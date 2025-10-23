@@ -1,0 +1,80 @@
+services:
+  # Base de données PostgreSQL
+  db:
+    image: postgres:15
+    container_name: marketplace_db
+    environment:
+      - POSTGRES_DB=bazart
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bazart"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - app-network
+
+  # Backend Spring Boot
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: marketplace_backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/bazart
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=admin
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Script d'initialisation des données
+  init-data:
+    image: postgres:15
+    container_name: marketplace_init_data
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./scripts/init-data.sh:/scripts/init-data.sh
+    working_dir: /scripts
+    command: ["/bin/bash", "/scripts/init-data.sh"]
+    networks:
+      - app-network
+
+  # Frontend Angular
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: marketplace_frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

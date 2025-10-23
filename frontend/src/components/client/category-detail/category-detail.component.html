@@ -1,0 +1,61 @@
+<section class="category-detail-section">
+  <div class="container">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+      <a routerLink="/domaines" class="breadcrumb-link">Domaines</a>
+      <span class="breadcrumb-separator">/</span>
+      <a [routerLink]="['/domaines', domaineSlug]" class="breadcrumb-link">{{ domaineSlug | titlecase }}</a>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-current">{{ currentCategory?.nom || (categorieSlug | titlecase) }}</span>
+    </div>
+  </div>
+
+  <!-- Section Hero -->
+  <div class="category-hero">
+    <img [src]="currentCategory?.image" [alt]="currentCategory?.nom" class="hero-background">
+    <div class="hero-content">
+      <h1 class="category-title">{{ currentCategory?.nom || (categorieSlug | titlecase) }}</h1>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Section des produits -->
+    <div class="products-section">
+      <div class="section-header">
+        <h2 class="section-title">Enchères Disponibles</h2>
+        <p class="products-count">{{ produits.length }} articles dans cette catégorie</p>
+      </div>
+
+      <!-- Grille des produits -->
+      <div class="auctions-grid">
+        <div *ngFor="let produit of produits" class="auction-card" [attr.data-produit-id]="produit.id">
+          <div class="auction-image">
+            <img [src]="produit.imagePrincipale" [alt]="produit.nom" class="item-image">
+            <div class="time-badge">En cours</div>
+          </div>
+
+          <div class="auction-content">
+            <h3 class="auction-title">{{ produit.nom }}</h3>
+            <p>{{ produit.description }}</p>
+            <div class="auction-price">{{ produit.prixDebut }} DH</div>
+
+            <div class="auction-meta">
+              <!-- Icône like avec couleur conditionnelle -->
+              <span class="interaction" (click)="toggleLike(produit, $event)"
+                    [class.liked]="produit.hasLiked">
+                <fa-icon [icon]="produit.hasLiked ? faHeartSolid : faHeartRegular"
+                         [style.color]="produit.hasLiked ? '#ff4757' : '#262626'"></fa-icon>
+                {{ produit.nombreInteractions }}
+              </span>
+
+              <!-- Icône commentaire -->
+              <span class="comments">
+                <fa-icon [icon]="faComment"></fa-icon> {{ produit.nombreCommentaires }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

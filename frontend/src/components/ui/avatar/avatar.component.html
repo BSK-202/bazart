@@ -1,0 +1,17 @@
+<div
+  class="avatar"
+  [style.width.px]="size"
+  [style.height.px]="size"
+>
+  <img
+    *ngIf="src; else fallbackTemplate"
+    [src]="src"
+    alt="avatar"
+    class="avatar-image"
+  />
+  <ng-template #fallbackTemplate>
+    <div class="avatar-fallback">
+      {{ fallback || 'U' }}
+    </div>
+  </ng-template>
+</div>

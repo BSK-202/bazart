@@ -1,0 +1,57 @@
+<section class="categories-section">
+  <div class="container">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+      <a routerLink="/domaines" class="breadcrumb-link">Domaines</a>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-current">{{ domaineName || (domaineSlug | titlecase) }}</span>
+    </div>
+
+    <div class="text-center mb-12">
+      <h1 class="section-title">Catégories de {{ domaineName || (domaineSlug | titlecase) }}</h1>
+      <p class="section-description">
+        Explorez notre collection complète d'objets de collection
+      </p>
+    </div>
+
+    <!-- Indicateur de chargement -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <span class="loading-text">Chargement des catégories...</span>
+    </div>
+
+    <div *ngIf="!isLoading" class="categories-grid">
+      <div
+        *ngFor="let category of filteredCategories"
+        class="category-card"
+        [routerLink]="['/domaines', domaineSlug, 'categories', category.slug, category.idCategorie]"
+        [queryParams]="{image: category.image}">  <!-- ✅ Ajout du paramètre image -->
+
+        <div class="image-container">
+          <img
+            [src]="category.image"
+            [alt]="category.nomCategorie"
+            class="category-image"
+            (error)="onImageError($event)"
+          />
+        </div>
+
+        <div class="category-content">
+          <div class="category-header">
+            <h3 class="category-name">{{ category.nomCategorie }}</h3>
+            <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7l7 7-7 7"/>
+            </svg>
+          </div>
+          <p class="category-description">{{ category.description }}</p>
+          <p class="auction-count">{{ category.count }} enchères actives</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si aucune catégorie -->
+    <div *ngIf="!isLoading && filteredCategories.length === 0" class="empty-state">
+      <p class="empty-text">Aucune catégorie disponible pour ce domaine.</p>
+    </div>
+  </div>
+</section>

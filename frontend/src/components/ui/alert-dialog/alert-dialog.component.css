@@ -1,0 +1,68 @@
+/* Overlay noir semi-transparent */
+.alert-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 40;
+}
+
+/* Conteneur du dialogue */
+.alert-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  z-index: 50;
+  max-width: 500px;
+  width: 90%;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+/* Header */
+.alert-header {
+  margin-bottom: 1rem;
+}
+.alert-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* Description */
+.alert-description {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Footer */
+.alert-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Boutons */
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-primary {
+  background: #2563eb;
+  color: white;
+  border: none;
+}
+.btn-primary:hover {
+  background: #1d4ed8;
+}
+.btn-outline {
+  border: 1px solid #ccc;
+  background: transparent;
+}
+.btn-outline:hover {
+  background: #f1f1f1;
+}

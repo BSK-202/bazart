@@ -1,0 +1,372 @@
+/* Hero Section - Espacement optimisé */
+.hero-section {
+  background: #f7fafc;
+  padding: 3rem 0;
+}
+
+.hero-title {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  color: #1a202c;
+  text-align: center; /* Ajout */
+}
+
+.hero-subtitle {
+  font-size: 1.125rem;
+  color: #718096;
+  max-width: 42rem;
+  margin: 0 auto;
+  line-height: 1.6;
+  text-align: center; /* Ajout */
+}
+
+/* Benefits Section - Espacement optimisé */
+.benefits-section {
+  padding: 3rem 0;
+}
+
+.benefits-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+@media (min-width: 768px) {
+  .benefits-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.benefit-item {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.benefit-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.1);
+  margin-bottom: 1rem;
+}
+
+.benefit-icon svg {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: #3b82f6;
+}
+
+.benefit-title {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 1.125rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #1a202c;
+}
+
+.benefit-description {
+  color: #718096;
+  line-height: 1.5;
+  font-size: 0.875rem;
+}
+
+/* Form Section - Espacement optimisé */
+.form-container {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.form-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.form-header {
+  padding: 1.5rem 1.5rem 0;
+}
+
+.form-title {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: #1a202c;
+}
+
+.form-description {
+  color: #718096;
+  margin-bottom: 0;
+  font-size: 0.875rem;
+}
+
+.form-content {
+  padding: 1.5rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: #ffffff;
+  color: #1a202c;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Upload Area améliorée */
+.upload-area {
+  border: 2px dashed #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #fafbfc;
+}
+
+.upload-area:hover,
+.upload-area.drag-over {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.upload-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto 0.75rem;
+  color: #718096;
+}
+
+.upload-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.upload-text {
+  font-size: 0.875rem;
+  color: #718096;
+  margin-bottom: 0.25rem;
+}
+
+.upload-note {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
+}
+
+.upload-count {
+  font-size: 0.75rem;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+/* Prévisualisation des images */
+.image-previews {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.image-preview {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.remove-image:hover {
+  background: #dc2626;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.btn-primary {
+  flex: 1;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+/* Info Section - Espacement optimisé */
+.info-section {
+  background: #f7fafc;
+  padding: 3rem 0;
+}
+
+.info-content {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.info-title {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: #1a202c;
+}
+
+.info-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.info-paragraph {
+  color: #718096;
+  line-height: 1.6;
+  font-size: 0.875rem;
+}
+
+.info-paragraph strong {
+  color: #1a202c;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-section {
+    padding: 2rem 0;
+  }
+
+  .benefits-section,
+  .info-section {
+    padding: 2rem 0;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .upload-area {
+    padding: 1.5rem 1rem;
+  }
+
+  .image-previews {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  }
+
+  .image-preview {
+    width: 80px;
+    height: 80px;
+  }
+}

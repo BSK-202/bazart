@@ -1,0 +1,20 @@
+<div class="border-b last:border-b-0">
+  <div class="flex" (click)="toggle()">
+    <div class="flex flex-1 items-start justify-between gap-4 py-4 text-left text-sm font-medium cursor-pointer">
+      <ng-content select="[accordion-trigger]"></ng-content>
+      <svg
+        class="transition-transform duration-200"
+        [ngClass]="{'rotate-180': isOpen}"
+        xmlns="http://www.w3.org/2000/svg"
+        width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M6 9l6 6 6-6"/>
+      </svg>
+    </div>
+  </div>
+  <div class="overflow-hidden text-sm transition-all duration-300" [ngClass]="{'max-h-0': !isOpen, 'max-h-96': isOpen}">
+    <div class="accordion-content" [class.open]="isOpen">
+      <ng-content select="[accordion-content]"></ng-content>
+    </div>
+
+  </div>
+</div>

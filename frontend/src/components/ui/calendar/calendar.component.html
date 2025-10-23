@@ -1,0 +1,33 @@
+<div class="calendar-container">
+  <!-- Navigation -->
+  <div class="calendar-nav">
+    <button (click)="prevMonth()" class="nav-btn">&lt;</button>
+    <span class="month-label">
+      {{ getCurrentMonthName() }} {{ currentYear }}
+    </span>
+    <button (click)="nextMonth()" class="nav-btn">&gt;</button>
+  </div>
+
+  <!-- Jours de la semaine -->
+  <div class="weekdays">
+    <div *ngFor="let day of ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']"
+         class="weekday">
+      {{ day }}
+    </div>
+  </div>
+
+  <!-- Grille des jours -->
+  <div class="days-grid">
+    <div *ngFor="let day of daysInMonth"
+         (click)="day.getMonth() === currentMonth && selectDay(day)"
+         [ngClass]="{
+            'today': isToday(day),
+            'selected': isSelected(day),
+            'in-range': inRange(day),
+            'other-month': day.getMonth() !== currentMonth
+         }"
+         class="day">
+      {{ day.getDate() }}
+    </div>
+  </div>
+</div>

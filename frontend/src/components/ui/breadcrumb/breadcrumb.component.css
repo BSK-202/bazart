@@ -1,0 +1,39 @@
+.breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.breadcrumb-link {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb-page {
+  font-weight: normal;
+  color: #111827;
+}
+
+.breadcrumb-separator {
+  display: inline-flex;
+  margin: 0 0.25rem;
+}
+
+.breadcrumb-ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}

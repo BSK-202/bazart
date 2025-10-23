@@ -1,0 +1,66 @@
+<section class="domaine-detail-section">
+  <div class="container">
+    <!-- En-tête principal pour la page domaines -->
+    <div class="text-center mb-12">
+      <h1 class="section-title">Nos Domaines</h1>
+      <p class="section-description">
+        Découvrez notre sélection d'objets de collection organisée par domaines
+      </p>
+    </div>
+
+    <!-- Indicateur de chargement -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <span class="loading-text">Chargement des domaines...</span>
+    </div>
+
+    <!-- Message d'erreur -->
+    <div *ngIf="error && !isLoading" class="error-container">
+      <p class="error-message">{{ error }}</p>
+      <button
+        (click)="retry()"
+        class="retry-button"
+      >
+        Réessayer
+      </button>
+    </div>
+
+    <!-- Grille des domaines -->
+    <div *ngIf="!isLoading && !error" class="categories-grid">
+      <div
+        *ngFor="let domaine of domaines"
+        class="category-card"
+        [routerLink]="['/domaines', domaine.slug]"> <!-- ✅ CORRIGÉ : Route cohérente avec app.routes -->
+
+        <div class="image-container">
+          <img
+            [src]="domaine.image"
+            [alt]="domaine.nomDomaine"
+            class="category-image"
+            (error)="onImageError($event, domaine)"
+          />
+
+          <div class="image-overlay"></div>
+        </div>
+
+        <div class="category-content">
+          <div class="category-header">
+            <h3 class="category-name">{{ domaine.nomDomaine }}</h3>
+            <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7l7 7-7 7"/>
+            </svg>
+          </div>
+          <p class="category-description">{{ domaine.description }}</p>
+          <p class="auction-count">
+            {{ domaine.categoriesCount }} catégorie(s)
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si aucun domaine -->
+    <div *ngIf="!isLoading && !error && domaines.length === 0" class="empty-state">
+      <p class="empty-text">Aucun domaine disponible pour le moment.</p>
+    </div>
+  </div>
+</section>

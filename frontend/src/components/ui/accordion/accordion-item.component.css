@@ -1,0 +1,51 @@
+/* Conteneur de l’item */
+:host {
+  display: block;
+  border-bottom: 1px solid #000000; /* équivalent border-b */
+}
+
+/* Dernier item : pas de bordure */
+:host(:last-child) {
+  border-bottom: 0;
+}
+
+/* Trigger */
+div[accordion-trigger] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  font-size: 0.875rem; /* text-sm */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+div[accordion-trigger]:hover {
+  text-decoration: underline;
+}
+
+/* Flèche */
+svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s;
+}
+
+/* Flèche tournée quand ouvert */
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Content */
+div[accordion-content] {
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  max-height: 0;
+}
+
+/* Content ouvert */
+div[accordion-content].open {
+  max-height: 24rem; /* ou auto si tu veux mais max-height pour animation */
+}

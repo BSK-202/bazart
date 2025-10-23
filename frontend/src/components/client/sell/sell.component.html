@@ -1,0 +1,231 @@
+<main>
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container text-center">
+      <h1 class="hero-title">Vendez Votre Artisanat</h1>
+      <p class="hero-subtitle">
+        Mettez vos pièces d'artisanat marocain aux enchères et touchez des collectionneurs du monde entier
+      </p>
+    </div>
+  </section>
+
+  <!-- Benefits Section -->
+  <section class="benefits-section">
+    <div class="container">
+      <div class="benefits-grid">
+        <div *ngFor="let benefit of benefits" class="benefit-item">
+          <div class="benefit-icon">
+            <svg *ngIf="benefit.icon === 'trending-up'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            </svg>
+            <svg *ngIf="benefit.icon === 'shield'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            <svg *ngIf="benefit.icon === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+            </svg>
+          </div>
+          <h3 class="benefit-title">{{ benefit.title }}</h3>
+          <p class="benefit-description">{{ benefit.description }}</p>
+        </div>
+      </div>
+
+      <!-- Form Section -->
+      <div class="form-container">
+        <div class="form-card">
+          <div class="form-header">
+            <h2 class="form-title">Publier un Produit </h2>
+            <p class="form-description">Remplissez les informations sur votre article</p>
+          </div>
+
+          <div class="form-content">
+            <form (submit)="onSubmit()" class="form">
+              <div class="form-group">
+                <label for="title" class="form-label">Titre de l'article *</label>
+                <input
+                  id="title"
+                  type="text"
+                  placeholder="Ex: Tapis Berbère Beni Ouarain Authentique"
+                  [(ngModel)]="formData.title"
+                  name="title"
+                  class="form-input"
+                  required
+                />
+              </div>
+
+              <!-- Domaine -->
+              <div class="form-group">
+                <label for="domain" class="form-label">Domaine *</label>
+                <select
+                  id="domain"
+                  [(ngModel)]="formData.domain"
+                  name="domain"
+                  class="form-select"
+                  (change)="onDomainChange(formData.domain)"
+                  required>
+                  <option [ngValue]="null">Sélectionnez un domaine</option>
+                  <option *ngFor="let dom of domaines" [ngValue]="dom.idDomaine">
+                    {{ dom.nomDomaine }}
+                  </option>
+                </select>
+
+
+              </div>
+
+              <!-- Catégorie (lié au domaine choisi) -->
+              <div class="form-group">
+                <label for="category" class="form-label">Catégorie *</label>
+                <select
+                  id="category"
+                  [(ngModel)]="formData.category"
+                  name="category"
+                  class="form-select"
+                  required>
+                  <option value="">Sélectionnez une catégorie</option>
+                  <option *ngFor="let cat of filteredCategories" [value]="cat.idCategorie">
+                    {{ cat.nomCategorie }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Expertisé -->
+              <div class="form-group">
+                <label class="form-label">
+                  <input type="checkbox" [(ngModel)]="formData.isExpertised" name="isExpertised" />
+                  Expertisé ?
+                </label>
+              </div>
+
+              <!-- Choix supplémentaires si expertisé -->
+              <div class="form-group" *ngIf="formData.isExpertised">
+                <label class="form-label">Méthode d'expertise *</label>
+                <select [(ngModel)]="formData.expertiseType" name="expertiseType" class="form-select" required>
+                  <option value="">Choisissez une méthode</option>
+                  <option value="online">Expertisé par admin en ligne</option>
+                  <option value="remote">Expertisé par admin à distance</option>
+                </select>
+              </div>
+
+
+              <div class="form-group">
+                <label for="description" class="form-label">Description *</label>
+                <textarea
+                  id="description"
+                  placeholder="Décrivez votre article en détail..."
+                  [(ngModel)]="formData.description"
+                  name="description"
+                  class="form-textarea"
+                  required
+                ></textarea>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="startingPrice" class="form-label">Prix de départ (DH) *</label>
+                  <input
+                    id="startingPrice"
+                    type="number"
+                    placeholder="1000"
+                    [(ngModel)]="formData.startingPrice"
+                    name="startingPrice"
+                    class="form-input"
+                    required
+                  />
+                </div>
+
+
+              </div>
+
+              <!-- Upload Section améliorée -->
+              <div class="form-group">
+                <label class="form-label">Photos *</label>
+
+                <!-- Zone d'upload principale -->
+                <div
+                  class="upload-area"
+                  [class.drag-over]="isDragOver"
+                  (dragover)="onDragOver($event)"
+                  (dragleave)="onDragLeave($event)"
+                  (drop)="onDrop($event)"
+                  (click)="fileInput.click()">
+
+                  <input
+                    #fileInput
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    (change)="onFileSelected($event)"
+                    class="file-input"
+                    style="display: none"
+                  />
+
+                  <div class="upload-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                  </div>
+                  <p class="upload-text">Cliquez pour télécharger ou glissez-déposez</p>
+                  <p class="upload-note">PNG, JPG jusqu'à 10MB (minimum 3 photos)</p>
+                  <p class="upload-count" *ngIf="formData.images.length > 0">
+                    {{ formData.images.length }} photo(s) sélectionnée(s)
+                  </p>
+                </div>
+
+                <!-- Prévisualisation des images -->
+                <div class="image-previews" *ngIf="imagePreviews.length > 0">
+                  <div
+                    *ngFor="let preview of imagePreviews; let i = index"
+                    class="image-preview">
+                    <img [src]="preview" [alt]="'Image ' + (i + 1)" />
+                    <button
+                      type="button"
+                      class="remove-image"
+                      (click)="removeImage(i)">
+                      ×
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                  Créer l'Enchère
+                </button>
+                <button type="button" class="btn-secondary" (click)="onPreview()">
+                  Aperçu
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Info Section -->
+  <section class="info-section">
+    <div class="container">
+      <div class="info-content">
+        <h2 class="info-title">Conditions de Vente</h2>
+        <div class="info-text">
+          <p class="info-paragraph">
+            <strong>Commission:</strong> Nous prélevons une commission de 15% sur le
+            prix final de vente. Cette commission couvre les frais de plateforme, de marketing et de support client.
+          </p>
+          <p class="info-paragraph">
+            <strong>Durée des enchères:</strong> Les enchères durent généralement 7
+            jours. Vous pouvez choisir une durée personnalisée entre 3 et 14 jours.
+          </p>
+          <p class="info-paragraph">
+            <strong>Paiement:</strong> Vous recevrez votre paiement sous 5 jours
+            ouvrables après la fin de l'enchère et la confirmation de la réception par l'acheteur.
+          </p>
+          <p class="info-paragraph">
+            <strong>Authentification:</strong> Tous les articles sont vérifiés par nos
+            experts avant publication pour garantir leur authenticité.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

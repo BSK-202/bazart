@@ -1,0 +1,24 @@
+.component-test-area {
+  padding: 2rem;
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.test-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.test-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.test-card h3 {
+  margin-top: 0;
+  color: #495057;
+}

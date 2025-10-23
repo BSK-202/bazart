@@ -1,0 +1,15 @@
+<div
+  role="alert"
+  class="alert"
+  [ngClass]="{
+    'alert-default': variant === 'default',
+    'alert-destructive': variant === 'destructive'
+  }"
+>
+  <div *ngIf="title" class="alert-title">
+    {{ title }}
+  </div>
+  <div *ngIf="description" class="alert-description">
+    {{ description }}
+  </div>
+</div>

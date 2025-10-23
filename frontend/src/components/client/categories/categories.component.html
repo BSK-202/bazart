@@ -1,0 +1,36 @@
+<section class="categories-section">
+  <div class="container">
+    <div class="text-center mb-12">
+      <h2 class="section-title">Explorez par catégorie</h2>
+      <p class="section-subtitle">Découvrez l'artisanat marocain dans toute sa diversité</p>
+    </div>
+
+    <div class="categories-grid">
+      <div
+        *ngFor="let category of categories"
+        class="category-item"
+        [routerLink]="['/categories', category.slug]">
+        <div class="image-container">
+          <img
+            [src]="category.image"
+            [alt]="category.name"
+            class="category-image"
+          />
+        </div>
+        <h3 class="category-name">{{ category.name }}</h3>
+        <p class="category-count">{{ category.count }} enchères</p>
+      </div>
+    </div>
+
+    <div class="text-center mt-8">
+      <a
+        routerLink="/categories"
+        class="see-all-link">
+        Voir toutes les catégories
+        <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>

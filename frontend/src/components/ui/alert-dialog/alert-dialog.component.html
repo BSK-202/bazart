@@ -1,0 +1,19 @@
+<!-- Bouton déclencheur -->
+<button class="btn btn-primary" (click)="open()">Ouvrir Alert Dialog</button>
+
+<!-- Overlay -->
+<div *ngIf="isOpen" class="alert-overlay"></div>
+
+<!-- Contenu de la boîte de dialogue -->
+<div *ngIf="isOpen" class="alert-dialog">
+  <div class="alert-header">
+    <h2 class="alert-title">{{ title }}</h2>
+  </div>
+  <div class="alert-body">
+    <p class="alert-description">{{ description }}</p>
+  </div>
+  <div class="alert-footer">
+    <button class="btn btn-outline" (click)="close()">Annuler</button>
+    <button class="btn btn-primary" (click)="confirm()">Confirmer</button>
+  </div>
+</div>
