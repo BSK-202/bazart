@@ -19,6 +19,14 @@
   </div>
 
   <div class="container">
+    <!-- Modal Commentaire -->
+    <app-comment-modal
+      *ngIf="showCommentModal && selectedProduit"
+      [produitId]="selectedProduit.id"
+      [produitNom]="selectedProduit.nom"
+      (close)="closeCommentModal()">
+    </app-comment-modal>
+
     <!-- Section des produits -->
     <div class="products-section">
       <div class="section-header">
@@ -26,9 +34,20 @@
         <p class="products-count">{{ produits.length }} articles dans cette catégorie</p>
       </div>
 
+      <!-- Indicateur de chargement -->
+      <div *ngIf="isLoading" class="loading-container">
+        <div class="loading-spinner">Chargement des produits...</div>
+      </div>
+
       <!-- Grille des produits -->
-      <div class="auctions-grid">
-        <div *ngFor="let produit of produits" class="auction-card" [attr.data-produit-id]="produit.id">
+      <div *ngIf="!isLoading" class="auctions-grid">
+        <div
+          *ngFor="let produit of produits"
+          class="auction-card"
+          [attr.data-produit-id]="produit.id"
+          (click)="goToProductDetail(produit.id)">
+
+          <!-- Contenu de la carte -->
           <div class="auction-image">
             <img [src]="produit.imagePrincipale" [alt]="produit.nom" class="item-image">
             <div class="time-badge">En cours</div>
@@ -36,10 +55,11 @@
 
           <div class="auction-content">
             <h3 class="auction-title">{{ produit.nom }}</h3>
-            <p>{{ produit.description }}</p>
+            <p class="auction-description">{{ produit.description }}</p>
             <div class="auction-price">{{ produit.prixDebut }} DH</div>
 
-            <div class="auction-meta">
+            <!-- Section des interactions - IMPORTANT: stopPropagation() -->
+            <div class="auction-meta" (click)="$event.stopPropagation()">
               <!-- Icône like avec couleur conditionnelle -->
               <span class="interaction" (click)="toggleLike(produit, $event)"
                     [class.liked]="produit.hasLiked">
@@ -48,13 +68,18 @@
                 {{ produit.nombreInteractions }}
               </span>
 
-              <!-- Icône commentaire -->
-              <span class="comments">
+              <!-- Icône commentaire avec ouverture de modal -->
+              <span class="comments" (click)="openCommentModal(produit, $event)">
                 <fa-icon [icon]="faComment"></fa-icon> {{ produit.nombreCommentaires }}
               </span>
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Message si aucun produit -->
+      <div *ngIf="!isLoading && produits.length === 0" class="no-products">
+        <p>Aucun produit disponible dans cette catégorie.</p>
       </div>
     </div>
   </div>

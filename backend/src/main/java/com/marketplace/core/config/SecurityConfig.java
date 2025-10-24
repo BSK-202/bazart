@@ -1,3 +1,4 @@
+// SecurityConfig.java - VERSION CORRIGÉE
 package com.marketplace.core.config;
 
 import com.marketplace.core.security.JwtAuthenticationFilter;
@@ -12,6 +13,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -40,13 +42,17 @@ public class SecurityConfig {
                         .requestMatchers("/api/domaines/**").permitAll()
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/produits/**").permitAll()
-                        .requestMatchers("/api/interactions/**").permitAll()
+                        .requestMatchers("/api/clients/*/upload-profile-image").permitAll()
+                        .requestMatchers("/api/clients/*/profile-image").permitAll()
+                        .requestMatchers("/api/commentaires/produit/*/count").permitAll()
+                        .requestMatchers("/api/commentaires/produit/**").permitAll() // ✅ AUTORISER SANS AUTH
+                        .requestMatchers("/api/interactions/**").authenticated() // ✅ Protéger les interactions
+                        .requestMatchers("/api/commentaires/**").authenticated() // ✅ Protéger les commentaires
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/static/**", "/resources/**", "/css/**", "/js/**", "/images/**").permitAll()
                         .anyRequest().authenticated()
-                );
-        // Uncomment this if you need JWT authentication for protected routes
-        //.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // ✅ ACTIVER LE FILTRE JWT
 
         return http.build();
     }
@@ -68,10 +74,23 @@ public class SecurityConfig {
         ));
 
         // Allowed headers
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "X-Client-Id",  // ✅ Ajouter X-Client-Id
+                "Accept",
+                "Origin",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
 
         // Exposed headers
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Disposition",
+                "X-Client-Id"  // ✅ Exposer X-Client-Id
+        ));
 
         // Allow credentials
         configuration.setAllowCredentials(true);

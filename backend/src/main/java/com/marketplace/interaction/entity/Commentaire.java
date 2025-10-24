@@ -2,10 +2,12 @@ package com.marketplace.interaction.entity;
 
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.marketplace.catalog.entity.Produit;
 import com.marketplace.user.entity.Client;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "Commentaire")
@@ -19,10 +21,12 @@ public class Commentaire {
 
     @ManyToOne
     @JoinColumn(name = "idproduit", referencedColumnName = "idproduit")
+    @JsonIgnore
     private Produit produit;
 
     @ManyToOne
     @JoinColumn(name = "idclient", referencedColumnName = "idclient")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "produits", "commandes"})
     private Client client;
 
     // Getters et Setters
