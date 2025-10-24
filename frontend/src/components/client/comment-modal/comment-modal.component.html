@@ -1,0 +1,77 @@
+<div class="modal-overlay" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <!-- En-tête -->
+    <div class="modal-header">
+      <h2 class="modal-title">Commentaires - {{ produitNom }}</h2>
+      <button class="close-btn" (click)="onClose()">
+        <fa-icon [icon]="faTimes"></fa-icon>
+      </button>
+    </div>
+
+    <!-- Zone de commentaire -->
+    <div class="comment-input-section" *ngIf="isAuthenticated()">
+      <textarea
+        [(ngModel)]="nouveauCommentaire"
+        placeholder="Ajouter un commentaire..."
+        class="comment-textarea"
+        rows="3"
+        maxlength="500"></textarea>
+      <div class="comment-actions">
+        <span class="char-count">{{ nouveauCommentaire.length }}/500</span>
+        <button
+          class="submit-btn"
+          (click)="ajouterCommentaire()"
+          [disabled]="!nouveauCommentaire.trim() || isSubmitting">
+          {{ isSubmitting ? 'Publication...' : 'Publier' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="login-prompt" *ngIf="!isAuthenticated()">
+      <p>Veuillez vous <a (click)="authService.redirectToLogin()">connecter</a> pour commenter</p>
+    </div>
+
+    <!-- Liste des commentaires -->
+    <div class="comments-list">
+      <div *ngIf="isLoading" class="loading">Chargement des commentaires...</div>
+
+      <div *ngIf="!isLoading && commentaires.length === 0" class="no-comments">
+        <p>Aucun commentaire pour le moment. Soyez le premier à commenter !</p>
+      </div>
+
+      <!-- comment-modal.component.html - VÉRIFICATION -->
+      <div *ngFor="let commentaire of commentaires" class="comment-item">
+        <div class="comment-avatar">
+          <fa-icon [icon]="faUser"></fa-icon>
+        </div>
+
+        <div class="comment-content">
+          <div class="comment-header">
+            <!-- Vérifiez la structure de votre objet client -->
+            <span class="comment-author" *ngIf="commentaire.client && commentaire.client.idclient">
+              {{ commentaire.client.prenom }} {{ commentaire.client.nom }}
+            </span>
+            <span class="comment-author" *ngIf="!commentaire.client || !commentaire.client.idclient">
+              Utilisateur anonyme
+            </span>
+
+            <span class="comment-date">{{ formatDate(commentaire.date) }}</span>
+          </div>
+
+          <!-- Bouton supprimer déplacé ici, sous la date -->
+          <div class="comment-actions-row">
+            <p class="comment-text">{{ commentaire.contenu }}</p>
+
+            <button
+              *ngIf="peutSupprimer(commentaire)"
+              class="delete-btn"
+              (click)="supprimerCommentaire(commentaire)"
+              title="Supprimer le commentaire">
+              <fa-icon [icon]="faTrash"></fa-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

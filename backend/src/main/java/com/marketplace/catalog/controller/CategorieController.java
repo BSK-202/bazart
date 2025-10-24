@@ -23,7 +23,7 @@ public class CategorieController {
     private final CategorieService categorieService;
 
     // 📁 Dossier de stockage des images de catégories
-    private final String UPLOAD_DIR = "assets/categories/";
+    private final String UPLOAD_DIR = "backend/assets/categories/";
 
     public CategorieController(CategorieService categorieService) {
         this.categorieService = categorieService;
@@ -36,7 +36,7 @@ public class CategorieController {
             Path imagePath = Paths.get(UPLOAD_DIR + fileName);
             Resource resource = new UrlResource(imagePath.toUri());
 
-            if (resource.exists() && resource.isReadable()) {
+            if (resource.exists()) {
                 String contentType = Files.probeContentType(imagePath);
                 if (contentType == null) {
                     contentType = "application/octet-stream";

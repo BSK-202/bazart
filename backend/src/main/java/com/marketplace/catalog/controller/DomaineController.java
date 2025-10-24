@@ -22,16 +22,18 @@ public class DomaineController {
     private final DomaineService domaineService;
 
     // Image storage directory
-    private final String UPLOAD_DIR = "assets/domaines/";
+    private final String UPLOAD_DIR = "backend/assets/domaines/";
 
     public DomaineController(DomaineService domaineService) {
         this.domaineService = domaineService;
     }
     @GetMapping("/images/{fileName}")
     public ResponseEntity<Resource> getDomaineImage(@PathVariable String fileName) {
+        System.out.println("Image");
         try {
             Path imagePath = Paths.get(UPLOAD_DIR + fileName);
             Resource resource = new UrlResource(imagePath.toUri());
+            System.out.println(imagePath);
 
             if (resource.exists() && resource.isReadable()) {
                 String contentType = Files.probeContentType(imagePath);

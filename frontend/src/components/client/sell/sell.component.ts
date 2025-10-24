@@ -224,15 +224,7 @@ export class SellComponent implements OnInit {
     console.log("🚀 Envoi du produit au backend...");
 
     this.http.post("http://localhost:8080/api/produits", formDataToSend).subscribe({
-      next: (res: any) => {
-        console.log("✅ Réponse backend:", res);
-        if (res.success) {
-          alert("🎉 Produit créé avec succès !\n\n" + res.message);
-        } else {
-          alert("⚠️ Le produit n’a pas pu être créé :\n" + (res.message || "Erreur inconnue."));
-        }
-        this.resetForm();
-      },
+
       error: (err) => {
         console.error("❌ Erreur backend:", err);
         const msg = err.error?.message || "Une erreur inattendue s’est produite.";

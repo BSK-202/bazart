@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.bazart</groupId>
-	<artifactId>marketplace-auctions</artifactId>
+	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>marketplace-auctions</name>
 	<description>une application pour la vente aux enchères d’objets artisanaux anciens avec expertise préalable</description>

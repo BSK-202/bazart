@@ -36,13 +36,14 @@ public class ProduitController {
     private final ProduitService produitService;
     private final CategorieService categorieService;
     private final ClientService clientService;
+    /*
     @Autowired
     private ImageVerificationService imageVerificationService;
-
+*/
 
 
     // 📁 DOSSIER DE STOCKAGE (en dehors du projet frontend)
-    private final String UPLOAD_DIR = "assets/produits/";
+    private final String UPLOAD_DIR = "backend/assets/produits/";
 
     public ProduitController(ProduitService produitService,
                              CategorieService categorieService,
@@ -152,21 +153,9 @@ public class ProduitController {
             produit.setCategorie(categorie);
             produit.setVendeur(vendeur);
 
-            Produit savedProduit = produitService.saveProduit(produit);
-            Long produitId = savedProduit.getIdproduit();
-            System.out.println("🎉 Produit créé avec ID: " + produitId);
-
-            // --- Création dossier d’upload ---
-            Path produitFolderPath = Paths.get(UPLOAD_DIR + produitId);
-            Files.createDirectories(produitFolderPath);
-
-            List<ProduitImage> produitImages = new ArrayList<>();
-            int imageIndex = 1;
-
+              /*
             for (MultipartFile file : images) {
-                String fileExtension = getFileExtension(file.getOriginalFilename());
-                String fileName = "image_" + imageIndex + fileExtension;
-                Path imagePath = produitFolderPath.resolve(fileName);
+
 
                 // Vérification authenticité
                 boolean estAuthentique = imageVerificationService.verifierImageAuthentique(file);
@@ -178,6 +167,26 @@ public class ProduitController {
                                     "message", "Une ou plusieurs images ont été rejetées : non authentiques."
                             ));
                 }
+            }
+              */
+
+            Produit savedProduit = produitService.saveProduit(produit);
+            Long produitId = savedProduit.getIdproduit();
+            System.out.println("🎉 Produit créé avec ID: " + produitId);
+
+            // --- Création dossier d’upload ---
+            Path produitFolderPath = Paths.get(UPLOAD_DIR + produitId);
+            Files.createDirectories(produitFolderPath);
+
+            List<ProduitImage> produitImages = new ArrayList<>();
+            int imageIndex = 1;
+            for (MultipartFile file : images) {
+
+                String fileExtension = getFileExtension(file.getOriginalFilename());
+                String fileName = "image_" + imageIndex + fileExtension;
+                Path imagePath = produitFolderPath.resolve(fileName);
+                savedProduit.setImages(produitImages);
+                Produit finalProduit = produitService.saveProduit(savedProduit);
 
                 Files.write(imagePath, file.getBytes());
                 ProduitImage produitImage = new ProduitImage();
@@ -191,24 +200,13 @@ public class ProduitController {
             Produit finalProduit = produitService.saveProduit(savedProduit);
 
             System.out.println("✅ Produit final créé avec " + produitImages.size() + " images.");
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Produit créé avec succès ! En attente de validation.",
-                    "produit", convertToDTO(finalProduit)
-            ));
+            return ResponseEntity.ok( convertToDTO(finalProduit));
 
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "success", false,
-                    "message", e.getMessage()
-            ));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(Map.of(
-                    "success", false,
-                    "message", "Erreur interne : " + e.getMessage()
-            ));
-        }
+            } catch (Exception e) {
+        System.err.println("❌ Erreur lors de la création du produit: " + e.getMessage());
+        e.printStackTrace();
+        return ResponseEntity.status(500).body("Erreur: " + e.getMessage());
+    }
     }
 
     private String getFileExtension(String fileName) {
