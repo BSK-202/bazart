@@ -22,7 +22,6 @@ class DomaineControllerFileTest {
 
     @BeforeEach
     void setUp() {
-        domaineController = new DomaineController(null);
 
         // Utiliser Reflection pour changer UPLOAD_DIR pour les tests
         try {

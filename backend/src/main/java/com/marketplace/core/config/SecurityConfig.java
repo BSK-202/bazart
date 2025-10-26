@@ -48,11 +48,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/commentaires/produit/**").permitAll() // ✅ AUTORISER SANS AUTH
                         .requestMatchers("/api/interactions/**").authenticated() // ✅ Protéger les interactions
                         .requestMatchers("/api/commentaires/**").authenticated() // ✅ Protéger les commentaires
+                        .requestMatchers("/api/admins/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/static/**", "/resources/**", "/css/**", "/js/**", "/images/**").permitAll()
                         .anyRequest().authenticated()
-                )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // ✅ ACTIVER LE FILTRE JWT
+                );
+                //.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // ✅ ACTIVER LE FILTRE JWT
 
         return http.build();
     }

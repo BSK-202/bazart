@@ -55,4 +55,14 @@ public class ProduitServiceImpl implements ProduitService {
     public Produit saveProduit(Produit produit) {
         return produitRepository.save(produit);
     }
+
+    @Override
+    public List<Produit> getProduitsEnAttente() {
+        return produitRepository.findByEtat("en_attente");
+    }
+
+    @Override
+    public long countProduitsEnAttente() {
+        return produitRepository.countByEtat("en_attente");
+    }
 }

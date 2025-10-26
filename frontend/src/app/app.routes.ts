@@ -6,6 +6,8 @@ import { LoginComponent } from '../components/login/login.component';
 import { SignupComponent } from '../components/signup/signup.component';
 import { SellComponent } from '../components/client/sell/sell.component';
 import { AuthGuard } from '../services/auth.guard';
+import {PubEnAttenteAdminComponent} from '../components/admin/pub-en-attente-admin/pub-en-attente-admin.component';
+import {ProduitDetailsAdminComponent} from '../components/admin/produit-details-admin/produit-details-admin.component';
 
 export const routes: Routes = [
   {
@@ -37,5 +39,7 @@ export const routes: Routes = [
     path: '',
     redirectTo: '/domaines',
     pathMatch: 'full'
-  }
+  },
+  { path: 'pub-en-attente-admin', component: PubEnAttenteAdminComponent },
+  { path: 'produit-details-admin/:id', component: ProduitDetailsAdminComponent },
 ];

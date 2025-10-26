@@ -27,6 +27,8 @@ export class AuthService {
     console.log('Login - saving token and user data to localStorage');
     localStorage.setItem(this.authTokenKey, token);
     localStorage.setItem(this.userDataKey, JSON.stringify(client)); // ✅ Sauvegarde les infos du client
+    localStorage.removeItem('admin_data');
+
   }
   logout(): void {
     console.log('Logout - removing token and user data');
@@ -56,6 +58,11 @@ export class AuthService {
       console.log('Aucun ID utilisateur trouvé');
       return null;
     }
+  }
+  loginAdmin(token: string, admin: any) {
+    localStorage.setItem(this.authTokenKey, token);
+    localStorage.setItem(this.userDataKey, JSON.stringify(admin));
+    localStorage.removeItem('client_token');
   }
   // ✅ AJOUTER CETTE MÉTHODE MANQUANTE
   redirectToLogin(message?: string) {

@@ -1,0 +1,85 @@
+<div class="header">
+  <div class="container">
+    <div class="header-content">
+      <!-- Logo -->
+      <a routerLink="/" class="logo">
+        <h1 class="logo-text">
+          Bazart<span class="logo-dot">.</span>
+        </h1>
+      </a>
+
+      <!-- Navigation -->
+      <nav class="navigation">
+        <a routerLink="/domaines-admin" class="nav-link">Accueil</a>
+        <a routerLink="/encheres" class="nav-link">Enchères</a>
+        <a routerLink="/pub-en-attente-admin" class="nav-link">
+          Publication en-attente
+          <span *ngIf="pendingCount > 0" class="notification-badge">
+            {{ pendingCount }}
+          </span>
+        </a>
+      </nav>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="icon-button" aria-label="Recherche">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </button>
+
+        <ng-container *ngIf="isAuthenticated">
+          <button class="icon-button" aria-label="Favoris" routerLink="/profil">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+          </button>
+
+          <!-- Menu utilisateur -->
+          <div class="user-menu">
+            <div class="user-dropdown">
+              <button class="user-trigger icon-button"
+                      aria-label="Profil utilisateur"
+                      (click)="toggleDropdown()">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+              </button>
+              <div class="dropdown-content" [class.show]="isDropdownOpen">
+                <div class="user-info">
+                  <p class="user-name">{{ user?.name || 'Utilisateur' }}</p>
+                  <p class="user-email">{{ user?.email || '' }}</p>
+                </div>
+                <div class="dropdown-separator"></div>
+                <a routerLink="/profil" class="dropdown-item" (click)="closeDropdown()">Mon profil</a>
+                <a routerLink="/profil" class="dropdown-item" (click)="closeDropdown()">Mes enchères</a>
+                <a routerLink="/profil" class="dropdown-item" (click)="closeDropdown()">Mes favoris</a>
+                <div class="dropdown-separator"></div>
+                <button class="dropdown-item logout" (click)="logout()">
+                  <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                  </svg>
+                  Déconnexion
+                </button>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Bouton connexion -->
+        <ng-container *ngIf="!isAuthenticated">
+          <button class="icon-button" aria-label="Connexion" routerLink="/connexion">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </button>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>
