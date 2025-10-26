@@ -27,14 +27,13 @@ export class AuthService {
     console.log('Login - saving token and user data to localStorage');
     localStorage.setItem(this.authTokenKey, token);
     localStorage.setItem(this.userDataKey, JSON.stringify(client)); // ✅ Sauvegarde les infos du client
-    localStorage.removeItem('admin_data');
-
   }
   logout(): void {
     console.log('Logout - removing token and user data');
     localStorage.removeItem(this.authTokenKey);
     localStorage.removeItem(this.userDataKey);
     this.router.navigate(['/connexion']);
+    localStorage.removeItem('admin_data');
   }
   isLoggedIn(): boolean {
     const hasToken = !!localStorage.getItem(this.authTokenKey);
