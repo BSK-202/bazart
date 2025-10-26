@@ -33,6 +33,7 @@ export class AuthService {
     localStorage.removeItem(this.authTokenKey);
     localStorage.removeItem(this.userDataKey);
     this.router.navigate(['/connexion']);
+    localStorage.removeItem('admin_data');
   }
   isLoggedIn(): boolean {
     const hasToken = !!localStorage.getItem(this.authTokenKey);
@@ -56,6 +57,11 @@ export class AuthService {
       console.log('Aucun ID utilisateur trouvé');
       return null;
     }
+  }
+  loginAdmin(token: string, admin: any) {
+    localStorage.setItem(this.authTokenKey, token);
+    localStorage.setItem(this.userDataKey, JSON.stringify(admin));
+    localStorage.removeItem('client_token');
   }
   // ✅ AJOUTER CETTE MÉTHODE MANQUANTE
   redirectToLogin(message?: string) {

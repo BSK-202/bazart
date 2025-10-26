@@ -1,0 +1,144 @@
+<section class="categories-section">
+  <div class="container">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+      <a routerLink="/domaines" class="breadcrumb-link">Domaines</a>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-current">{{ domaineName || (domaineSlug | titlecase) }}</span>
+    </div>
+
+    <div class="text-center mb-12">
+      <h1 class="section-title">Catégories de {{ domaineName || (domaineSlug | titlecase) }}</h1>
+      <p class="section-description">
+        Explorez notre collection complète d'objets de collection
+      </p>
+      <button class="sell-button" (click)="onAddCategory()">Ajouter une Catégorie</button>
+    </div>
+
+    <!-- Indicateur de chargement -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <span class="loading-text">Chargement des catégories...</span>
+    </div>
+
+    <div *ngIf="!isLoading" class="categories-grid">
+      <div *ngFor="let category of filteredCategories" class="category-card"
+           (click)="openCategory(category)" title="Voir les détails">
+
+        <div class="image-container">
+          <img [src]="category.image" [alt]="category.nomCategorie" class="category-image" (error)="onImageError($event)" />
+          <div class="image-overlay"></div>
+        </div>
+
+        <div class="category-content">
+          <div class="category-header">
+            <h3 class="category-name">{{ category.nomCategorie }}</h3>
+            <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7l7 7-7 7" />
+            </svg>
+          </div>
+          <p class="category-description">{{ category.description }}</p>
+          <p class="auction-count">{{ category.count }} enchères actives</p>
+        </div>
+
+        <div class="category-actions" (click)="$event.stopPropagation()">
+          <button class="btn-edit" (click)="openEditModal(category, $event)">Modifier</button>
+          <button class="btn-delete" (click)="openDeleteModal(category, $event)">Supprimer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si aucune catégorie -->
+    <div *ngIf="!isLoading && filteredCategories.length === 0" class="empty-state">
+      <p class="empty-text">Aucune catégorie disponible pour ce domaine.</p>
+    </div>
+  </div>
+
+  <!-- MODAL AJOUT / MODIF -->
+  <!-- MODAL AJOUT / MODIF - VERSION CORRIGÉE -->
+  <div *ngIf="showEditModal" class="modal-overlay" (click)="closeModals()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>{{ selectedCategory?.idCategorie ? 'Modifier la Catégorie' : 'Ajouter une Catégorie' }}</h2>
+
+      <div class="form-group">
+        <label>Nom</label>
+        <input
+          type="text"
+          [(ngModel)]="selectedCategory.nomCategorie"
+          class="form-input"
+          placeholder="Nom de la catégorie"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea
+          [(ngModel)]="selectedCategory.description"
+          class="form-textarea"
+          placeholder="Description de la catégorie"
+          rows="4"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Image</label>
+        <input
+          type="file"
+          accept="image/*"
+          (change)="onFileSelected($event)"
+          class="form-input"
+        />
+        <small>Laisser vide pour conserver l'image actuelle</small>
+      </div>
+
+      <div *ngIf="previewUrl" class="image-preview">
+        <p>Prévisualisation :</p>
+        <img [src]="previewUrl" alt="Prévisualisation" class="preview-image" />
+      </div>
+
+      <div class="modal-actions">
+        <button (click)="saveCategorie()" class="btn-primary">
+          {{ selectedCategory?.idCategorie ? 'Enregistrer' : 'Créer' }}
+        </button>
+        <button (click)="closeModals()" class="btn-secondary">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SUPPRESSION -->
+  <!-- MODAL SUPPRESSION -->
+  <div *ngIf="showDeleteModal" class="modal-overlay" (click)="closeModals()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h3>Supprimer la Catégorie</h3>
+
+      <div *ngIf="hasProducts" class="error-message">
+        <p>❌ <strong>Impossible de supprimer</strong></p>
+        <p>Cette catégorie contient des produits associés.</p>
+        <p>Veuillez d'abord supprimer ou déplacer les produits avant de supprimer la catégorie.</p>
+      </div>
+
+      <div *ngIf="!hasProducts && isLastCategory" class="warning-message">
+        <p>⚠️ <strong>ATTENTION : Dernière catégorie</strong></p>
+        <p>Cette catégorie est la seule dans le domaine <strong>"{{ domaineName }}"</strong>.</p>
+        <p>En la supprimant, <strong>le domaine entier sera également supprimé</strong>.</p>
+        <p>Confirmez-vous la suppression ?</p>
+      </div>
+
+      <div *ngIf="!hasProducts && !isLastCategory" class="confirmation-message">
+        <p>Voulez-vous vraiment supprimer la catégorie <strong>"{{ selectedCategory?.nomCategorie }}"</strong> ?</p>
+        <p class="note">L'image associée sera également supprimée du serveur.</p>
+      </div>
+
+      <div class="modal-actions">
+        <button *ngIf="!hasProducts"
+                class="btn-confirm-delete"
+                (click)="deleteCategorie(selectedCategory.idCategorie)">
+          {{ isLastCategory ? 'Supprimer Catégorie et Domaine' : 'Supprimer la Catégorie' }}
+        </button>
+        <button class="btn-cancel" (click)="closeModals()">
+          {{ hasProducts ? 'Fermer' : 'Annuler' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,268 @@
+.category-detail-section {
+  padding: 0;
+  background: #fff;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  padding-top: 2rem;
+  font-size: 0.875rem;
+  color: #718096;
+}
+
+.breadcrumb-link {
+  color: #2b6cb0;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.breadcrumb-link:hover {
+  color: #2c5282;
+  text-decoration: underline;
+}
+
+.breadcrumb-separator {
+  color: #cbd5e0;
+}
+
+.breadcrumb-current {
+  color: #1a202c;
+  font-weight: 500;
+}
+
+/* Hero Section avec image de la catégorie */
+.category-hero {
+  position: relative;
+  height: 400px;
+  margin-bottom: 3rem;
+  overflow: hidden;
+}
+
+.hero-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: white;
+  padding: 0 2rem;
+  z-index: 2;
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5));
+}
+
+.category-title {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 3rem;
+  font-weight: bold;
+  margin: 0 0 1rem 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.category-description {
+  font-size: 1.25rem;
+  margin: 0;
+  max-width: 600px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Section des produits */
+.products-section {
+  padding: 2rem 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.section-title {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: #1a202c;
+  margin: 0;
+}
+
+.products-count {
+  font-size: 1rem;
+  color: #718096;
+}
+
+/* Grille des enchères */
+.auctions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.auction-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.auction-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.auction-image {
+  position: relative;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+}
+
+.item-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.auction-card:hover .item-image {
+  transform: scale(1.05);
+}
+
+.time-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.auction-content {
+  padding: 1.5rem;
+}
+
+.auction-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
+}
+
+.auction-price {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2b6cb0;
+  margin-bottom: 0.75rem;
+}
+
+.auction-meta {
+  display: flex;
+  align-items: center;
+  gap:5px; /* ✅ Changé de 16px à 0 */
+  margin-top: 12px
+}
+
+.bids-count {
+  font-size: 0.875rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+/* Suppression du bouton Enchérir */
+.bid-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .category-hero {
+    height: 300px;
+  }
+
+  .category-title {
+    font-size: 2rem;
+  }
+
+  .category-description {
+    font-size: 1rem;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .auctions-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .auction-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  /* Dans category-detail.component.css */
+  .interaction, .comments {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #262626;
+    transition: all 0.3s ease;
+    margin-right: 14px;
+  }
+
+  .interaction:hover, .comments:hover {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+
+  .interaction i, .comments i {
+    font-size: 20px;
+    transition: all 0.3s ease;
+  }
+
+  /* Animation pour le like */
+  .interaction.liked i {
+    animation: heartBeat 0.3s ease;
+  }
+
+  @keyframes heartBeat {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+}

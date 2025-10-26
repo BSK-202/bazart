@@ -4,6 +4,7 @@ import com.marketplace.catalog.dto.ProduitDTO;
 import com.marketplace.catalog.entity.Produit;
 import com.marketplace.catalog.entity.ProduitImage;
 import com.marketplace.catalog.entity.Categorie;
+import com.marketplace.catalog.repository.ProduitRepository;
 import com.marketplace.catalog.service.ImageVerificationService;
 import com.marketplace.user.entity.Client;
 import com.marketplace.catalog.service.ProduitService;
@@ -36,6 +37,8 @@ public class ProduitController {
     private final ProduitService produitService;
     private final CategorieService categorieService;
     private final ClientService clientService;
+    private final ProduitRepository produitRepository; //  DÉCLARÉ
+
     /*
     @Autowired
     private ImageVerificationService imageVerificationService;
@@ -47,10 +50,11 @@ public class ProduitController {
 
     public ProduitController(ProduitService produitService,
                              CategorieService categorieService,
-                             ClientService clientService) {
+                             ClientService clientService, ProduitRepository produitRepository) {
         this.produitService = produitService;
         this.categorieService = categorieService;
         this.clientService = clientService;
+        this.produitRepository = produitRepository;
     }
 
     // 🆕 ENDPOINT POUR SERVIR LES IMAGES
@@ -237,5 +241,65 @@ public class ProduitController {
                 : null);
 
         return response;
+    }
+    //  ENDPOINTS POUR LES PRODUITS EN ATTENTE
+    @GetMapping("/en-attente")
+    public ResponseEntity<List<ProduitDTO>> getProduitsEnAttente() {
+        try {
+            System.out.println(" Recherche des produits en attente...");
+            List<Produit> produits = produitService.getProduitsEnAttente();
+            System.out.println(" Nombre de produits en attente trouvés: " + produits.size());
+
+            List<ProduitDTO> produitsDTO = produits.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(produitsDTO);
+        } catch (Exception e) {
+            System.err.println(" Erreur lors de la récupération des produits en attente: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/en-attente/count")
+    public ResponseEntity<Map<String, Long>> countProduitsEnAttente() {
+        try {
+            System.out.println(" Calcul du nombre de produits en attente...");
+            long count = produitService.countProduitsEnAttente();
+            System.out.println("Nombre de produits en attente: " + count);
+
+            Map<String, Long> response = new HashMap<>();
+            response.put("count", count);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println(" Erreur lors du comptage des produits en attente: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    //  ENDPOINT POUR RÉCUPÉRER TOUS LES PRODUITS AVEC FILTRE ÉTAT (optionnel)
+    @GetMapping("/etat/{etat}")
+    public ResponseEntity<List<ProduitDTO>> getProduitsByEtat(@PathVariable String etat) {
+        try {
+            System.out.println(" Recherche des produits avec état: " + etat);
+
+            // MAINTENANT produitRepository EST INITIALISÉ
+            List<Produit> produits = produitRepository.findByEtat(etat);
+
+            System.out.println(" Nombre de produits avec état '" + etat + "': " + produits.size());
+
+            List<ProduitDTO> produitsDTO = produits.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(produitsDTO);
+        } catch (Exception e) {
+            System.err.println(" Erreur lors de la récupération des produits par état: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
     }
 }

@@ -1,0 +1,220 @@
+<section class="domaine-detail-section">
+  <div class="container">
+    <!-- En-tête principal pour la page domaines -->
+    <div class="text-center mb-12">
+      <h1 class="section-title">Nos Domaines</h1>
+      <p class="section-description">
+        Découvrez notre sélection d'objets de collection organisée par domaines
+      </p>
+
+      <button class="sell-button" (click)="openAddDomaineModal()">
+        Ajouter un Domaine
+      </button>
+    </div>
+
+    <!-- Indicateur de chargement -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <span class="loading-text">Chargement des domaines...</span>
+    </div>
+
+    <!-- Message d'erreur -->
+    <div *ngIf="error && !isLoading" class="error-container">
+      <p class="error-message">{{ error }}</p>
+      <button (click)="retry()" class="retry-button">
+        Réessayer
+      </button>
+    </div>
+
+    <!-- Grille des domaines -->
+    <div *ngIf="!isLoading && !error" class="categories-grid">
+      <div
+        *ngFor="let domaine of domaines"
+        class="category-card"
+        [routerLink]="['/domaines-admin', domaine.slug]">
+
+        <div class="image-container">
+          <img
+            [src]="domaine.image"
+            [alt]="domaine.nomDomaine"
+            class="category-image"
+            (error)="onImageError($event, domaine)"
+          />
+          <div class="image-overlay"></div>
+
+
+          <div class="card-actions" (click)="$event.stopPropagation()">
+            <button class="btn-edit" (click)="openEditDomaineModal(domaine, $event)">
+              ✏️ Modifier
+            </button>
+          </div>
+        </div>
+
+        <div class="category-content">
+          <div class="category-header">
+            <h3 class="category-name">{{ domaine.nomDomaine }}</h3>
+            <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7l7 7-7 7"/>
+            </svg>
+          </div>
+          <p class="category-description">{{ domaine.description }}</p>
+          <p class="auction-count">
+            {{ domaine.categoriesCount }} catégorie(s)
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si aucun domaine -->
+    <div *ngIf="!isLoading && !error && domaines.length === 0" class="empty-state">
+      <p class="empty-text">Aucun domaine disponible pour le moment.</p>
+    </div>
+  </div>
+
+  <!--  MODALE D'AJOUT DE DOMAINE - VERSION AVEC CATÉGORIES MULTIPLES -->
+  <div class="modal-overlay" *ngIf="showAddDomaineModal" (click)="closeModals()">
+    <div class="modal modal-large" (click)="$event.stopPropagation()">
+      <h2 *ngIf="!step2">Ajouter un Domaine</h2>
+      <h2 *ngIf="step2">Ajouter une Catégorie</h2>
+
+      <!-- Étape 1 - Domaine -->
+      <div *ngIf="!step2">
+        <div class="form-group">
+          <label>Nom du domaine :</label>
+          <input type="text" [(ngModel)]="newDomaine.nomDomaine" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Description :</label>
+          <textarea [(ngModel)]="newDomaine.description" class="form-textarea"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Image :</label>
+          <input type="file" (change)="onDomaineFileSelected($event)" class="form-input" />
+        </div>
+
+        <div class="modal-actions">
+          <button (click)="goToNextStep()" class="btn-primary">Suivant</button>
+          <button class="btn-secondary" (click)="closeModals()">Annuler</button>
+        </div>
+      </div>
+
+      <!-- Étape 2 - Une seule catégorie à la fois -->
+      <div *ngIf="step2">
+        <div class="current-categorie-form">
+          <div class="form-group">
+            <label>Nom de la catégorie :</label>
+            <input
+              type="text"
+              [(ngModel)]="currentCategorie.nomCategorie"
+              class="form-input"
+              placeholder="Nom de la catégorie"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Description :</label>
+            <textarea
+              [(ngModel)]="currentCategorie.description"
+              class="form-textarea"
+              placeholder="Description de la catégorie"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Image :</label>
+            <input
+              type="file"
+              (change)="onCurrentCategorieImageSelected($event)"
+              class="form-input"
+            />
+            <small *ngIf="currentCategorie.fileName">Fichier sélectionné : {{ currentCategorie.fileName }}</small>
+          </div>
+        </div>
+
+        <!-- Liste des catégories déjà ajoutées -->
+        <div *ngIf="newCategories.length > 0" class="added-categories">
+          <h4>Catégories ajoutées :</h4>
+          <div *ngFor="let categorie of newCategories; let i = index" class="added-categorie-item">
+            <span>{{ i + 1 }}. {{ categorie.nomCategorie }}</span>
+            <button (click)="removeCategorie(i)" class="btn-remove-small">Supprimer</button>
+          </div>
+        </div>
+
+        <div class="modal-actions-step2">
+          <!-- Boutons pour l'étape 2 -->
+          <div class="step2-buttons">
+            <button
+              (click)="addCurrentCategorie()"
+              class="btn-add-another"
+              *ngIf="!isCreatingDomaine"
+            >
+              ➕ Créer
+            </button>
+
+            <button
+              (click)="createDomaineWithAllCategories()"
+              class="btn-primary"
+              [disabled]="newCategories.length === 0"
+            >
+               Créer le domaine ({{ newCategories.length }} catégorie(s))
+            </button>
+          </div>
+
+          <div class="step2-navigation">
+            <button (click)="goBackToStep1()" class="btn-secondary">Retour</button>
+            <button class="btn-cancel" (click)="closeModals()">Annuler</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!--  MODALE DE MODIFICATION DE DOMAINE - VERSION SIMPLIFIÉE -->
+  <div class="modal-overlay" *ngIf="showEditDomaineModal" (click)="closeModals()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <h2>Modifier le Domaine</h2>
+
+      <div class="form-group">
+        <label>Nom du domaine</label>
+        <input
+          type="text"
+          [(ngModel)]="selectedDomaine.nomDomaine"
+          class="form-input"
+          placeholder="Nom du domaine"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea
+          [(ngModel)]="selectedDomaine.description"
+          class="form-textarea"
+          placeholder="Description du domaine"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Image</label>
+        <input
+          type="file"
+          accept="image/*"
+          (change)="onDomaineEditFileSelected($event)"
+          class="form-input"
+        />
+        <small>Laisser vide pour garder l'image actuelle</small>
+      </div>
+
+      <div *ngIf="previewDomaineUrl" class="image-preview">
+        <p>Nouvelle image :</p>
+        <img [src]="previewDomaineUrl" alt="Prévisualisation" class="preview-image" />
+      </div>
+
+      <div class="modal-actions">
+        <button (click)="closeModals()" class="btn-secondary">Annuler</button>
+        <button (click)="updateDomaine()" class="btn-primary">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</section>

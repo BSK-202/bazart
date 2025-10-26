@@ -6,7 +6,11 @@ import { LoginComponent } from '../components/login/login.component';
 import { SignupComponent } from '../components/signup/signup.component';
 import { SellComponent } from '../components/client/sell/sell.component';
 import { AuthGuard } from '../services/auth.guard';
-
+import {PubEnAttenteAdminComponent} from '../components/admin/pub-en-attente-admin/pub-en-attente-admin.component';
+import {ProduitDetailsAdminComponent} from '../components/admin/produit-details-admin/produit-details-admin.component';
+import {DomaineAdminComponent} from '../components/admin/domaine-admin/domaine-admin.component';
+import {AllCategoriesAdminComponent} from '../components/admin/all-categories-admin/all-categories-admin.component';
+import {CategoryDetailAdminComponent} from '../components/admin/category-detail-admin/category-detail-admin.component';
 export const routes: Routes = [
   {
     path: 'domaines',
@@ -37,5 +41,18 @@ export const routes: Routes = [
     path: '',
     redirectTo: '/domaines',
     pathMatch: 'full'
-  }
+  },
+  { path: 'pub-en-attente-admin', component: PubEnAttenteAdminComponent },
+  { path: 'produit-details-admin/:id', component: ProduitDetailsAdminComponent },
+  {path: 'domaines-admin',
+  component: DomaineAdminComponent
+},
+
+{ path: 'domaines-admin/:slug',
+  component: AllCategoriesAdminComponent
+},
+{
+  path: 'domaines-admin/:domaineSlug/categories-admin/:slug1/:slug2',
+    component: CategoryDetailAdminComponent
+},
 ];

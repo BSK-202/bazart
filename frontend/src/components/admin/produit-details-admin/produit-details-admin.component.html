@@ -1,0 +1,89 @@
+<section class="product-details-section">
+  <div class="container">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+      <a routerLink="/pub-en-attente" class="breadcrumb-link">Publications en attente</a>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-current">Détails du produit</span>
+    </div>
+
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <span class="loading-text">Chargement des détails...</span>
+    </div>
+
+    <div *ngIf="!isLoading && produit" class="product-details-container">
+      <!-- Images du produit -->
+      <div class="product-images">
+        <div class="main-image">
+          <img
+            [src]="getImageUrl(mainImageIndex)"
+            [alt]="produit.nom"
+            class="product-detail-image"
+            (error)="onImageError($event)"
+          />
+        </div>
+        <div *ngIf="produit.images && produit.images.length > 1" class="image-thumbnails">
+          <div
+            *ngFor="let image of produit.images; let i = index"
+            class="thumbnail"
+            [class.active]="i === mainImageIndex"
+            (click)="mainImageIndex = i"
+          >
+            <img
+              [src]="getImageUrl(i)"
+              [alt]="'Miniature ' + (i + 1)"
+              (error)="onThumbnailError($event)"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Informations du produit -->
+      <div class="product-info">
+        <div class="product-header">
+          <h1 class="product-title">{{ produit.nom }}</h1>
+          <div class="product-status-badge status-pending">
+            En attente de validation
+          </div>
+        </div>
+
+        <p class="product-full-description">{{ produit.description }}</p>
+
+        <div class="product-meta">
+          <div class="meta-item">
+            <span class="meta-label">Prix de départ:</span>
+            <span class="meta-value">{{ produit.prixDebut }} €</span>
+          </div>
+
+          <div class="meta-item">
+            <span class="meta-label">Catégorie:</span>
+            <span class="meta-value">{{ produit.categorieNom }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Vendeur:</span>
+            <span class="meta-value">{{ produit.vendeurNom }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Expertise requise:</span>
+            <span class="meta-value">{{ produit.aExpertise ? 'Oui' : 'Non' }}</span>
+          </div>
+        </div>
+
+        <!-- Actions de modération -->
+        <div class="moderation-actions">
+          <button class="btn-accept" (click)="acceptProduct()">
+            ✅ Accepter le produit
+          </button>
+          <button class="btn-reject" (click)="rejectProduct()">
+            ❌ Refuser le produit
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!isLoading && !produit" class="error-state">
+      <p class="error-text">Produit non trouvé.</p>
+    </div>
+  </div>
+</section>
