@@ -65,7 +65,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.user = null;
     }
   }
-
+  goToAdmin() {
+    this.router.navigate(['/admin-auth']);
+  }
   toggleDropdown() {
     this.isDropdownOpen = !this.isDropdownOpen;
   }

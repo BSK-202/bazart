@@ -67,6 +67,12 @@
   align-items: center;
   gap: 1rem;
 }
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 
 .icon-button {
   display: flex;
@@ -214,5 +220,38 @@
 @media (min-width: 768px) {
   .sell-button {
     display: block;
+  }
+}
+.admin-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 8px;
+}
+
+.admin-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Ajuster l'espacement des boutons */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Pour les écrans mobiles */
+@media (max-width: 768px) {
+  .admin-button {
+    padding: 6px 12px;
+    font-size: 12px;
+    margin-right: 4px;
   }
 }

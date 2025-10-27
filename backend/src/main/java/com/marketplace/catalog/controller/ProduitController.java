@@ -302,4 +302,44 @@ public class ProduitController {
             return ResponseEntity.status(500).build();
         }
     }
+    // ENDPOINT POUR METTRE À JOUR L'ÉTAT DU PRODUIT
+    @PutMapping("/{id}/etat")
+    public ResponseEntity<?> updateProductState(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+
+        try {
+            String newState = request.get("etat");
+            String noteAdmin = request.get("noteAdmin");
+
+            System.out.println("🔄 Mise à jour état produit ID: " + id + " -> " + newState);
+
+            Produit produit = produitService.getProduitById(id)
+                    .orElseThrow(() -> new RuntimeException("Produit non trouvé avec ID: " + id));
+
+            produit.setEtat(newState);
+
+            // Si vous avez un champ pour stocker la note d'admin, vous pouvez l'ajouter ici
+            if (noteAdmin != null && !noteAdmin.trim().isEmpty()) {
+                System.out.println("📝 Note admin: " + noteAdmin);
+                // produit.setNoteAdmin(noteAdmin); // Décommentez si vous avez ce champ
+            }
+
+            Produit updatedProduit = produitService.saveProduit(produit);
+
+            System.out.println("✅ État produit mis à jour: " + updatedProduit.getEtat());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Produit " + (newState.equals("accepte") ? "accepté" : "refusé") + " avec succès"
+            ));
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur mise à jour état produit: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
+                    "success", false,
+                    "message", "Erreur lors de la mise à jour du produit"
+            ));
+        }
+    }
 }

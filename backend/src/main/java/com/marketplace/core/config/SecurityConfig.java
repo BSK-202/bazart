@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admins/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/static/**", "/resources/**", "/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/api/wallet/**").permitAll()
                         .anyRequest().authenticated()
                 );
                 //.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // ✅ ACTIVER LE FILTRE JWT

@@ -187,7 +187,7 @@ export class SellComponent implements OnInit {
       return;
     }
 
-    // Vérification du nombre d’images
+    // Vérification du nombre d'images
     if (this.formData.images.length < 3) {
       alert("📸 Vous devez ajouter au moins 3 images pour présenter votre produit !");
       return;
@@ -199,11 +199,11 @@ export class SellComponent implements OnInit {
       return;
     }
 
-    console.log("✅ Formulaire validé, préparation de l’envoi...");
+    console.log("✅ Formulaire validé, préparation de l'envoi...");
 
     const formDataToSend = new FormData();
 
-    // Création de l’objet produit
+    // Création de l'objet produit
     const produit = {
       nom: this.formData.title,
       description: this.formData.description,
@@ -224,15 +224,20 @@ export class SellComponent implements OnInit {
     console.log("🚀 Envoi du produit au backend...");
 
     this.http.post("http://localhost:8080/api/produits", formDataToSend).subscribe({
+      next: (response) => {
+        console.log("✅ Produit créé avec succès!", response);
+        alert("🎉 Votre produit a été créé avec succès et est en attente de validation !");
 
+        // Reset du formulaire après succès
+        this.resetForm();
+      },
       error: (err) => {
         console.error("❌ Erreur backend:", err);
-        const msg = err.error?.message || "Une erreur inattendue s’est produite.";
+        const msg = err.error?.message || "Une erreur inattendue s'est produite.";
         alert("❌ Échec de la création du produit :\n\n" + msg);
       }
     });
   }
-
 // Méthode pour reset le formulaire
   resetForm() {
     this.formData = {

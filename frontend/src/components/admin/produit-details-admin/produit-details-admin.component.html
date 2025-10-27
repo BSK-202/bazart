@@ -1,50 +1,49 @@
-<section class="product-details-section">
+<div class="product-details-section">
   <div class="container">
     <!-- Breadcrumb -->
     <div class="breadcrumb">
-      <a routerLink="/pub-en-attente" class="breadcrumb-link">Publications en attente</a>
+      <a class="breadcrumb-link" (click)="goBackToList()">Produits en attente</a>
       <span class="breadcrumb-separator">/</span>
       <span class="breadcrumb-current">Détails du produit</span>
     </div>
 
+    <!-- Loading State -->
     <div *ngIf="isLoading" class="loading-container">
       <div class="spinner"></div>
-      <span class="loading-text">Chargement des détails...</span>
+      <p class="loading-text">Chargement des détails du produit...</p>
     </div>
 
+    <!-- Product Details -->
     <div *ngIf="!isLoading && produit" class="product-details-container">
-      <!-- Images du produit -->
+      <!-- Images Gallery -->
       <div class="product-images">
         <div class="main-image">
           <img
             [src]="getImageUrl(mainImageIndex)"
             [alt]="produit.nom"
-            class="product-detail-image"
             (error)="onImageError($event)"
-          />
+            class="product-detail-image">
         </div>
-        <div *ngIf="produit.images && produit.images.length > 1" class="image-thumbnails">
+        <div class="image-thumbnails" *ngIf="produit.images && produit.images.length > 1">
           <div
             *ngFor="let image of produit.images; let i = index"
             class="thumbnail"
             [class.active]="i === mainImageIndex"
-            (click)="mainImageIndex = i"
-          >
+            (click)="mainImageIndex = i">
             <img
               [src]="getImageUrl(i)"
               [alt]="'Miniature ' + (i + 1)"
-              (error)="onThumbnailError($event)"
-            />
+              (error)="onThumbnailError($event)">
           </div>
         </div>
       </div>
 
-      <!-- Informations du produit -->
+      <!-- Product Info -->
       <div class="product-info">
         <div class="product-header">
           <h1 class="product-title">{{ produit.nom }}</h1>
           <div class="product-status-badge status-pending">
-            En attente de validation
+            {{ getStatusLabel(produit.etat) }}
           </div>
         </div>
 
@@ -52,38 +51,87 @@
 
         <div class="product-meta">
           <div class="meta-item">
-            <span class="meta-label">Prix de départ:</span>
-            <span class="meta-value">{{ produit.prixDebut }} €</span>
+            <span class="meta-label">Vendeur:</span>
+            <span class="meta-value">{{ produit.vendeurNom }}</span>
           </div>
-
           <div class="meta-item">
             <span class="meta-label">Catégorie:</span>
             <span class="meta-value">{{ produit.categorieNom }}</span>
           </div>
           <div class="meta-item">
-            <span class="meta-label">Vendeur:</span>
-            <span class="meta-value">{{ produit.vendeurNom }}</span>
+            <span class="meta-label">Prix de départ:</span>
+            <span class="meta-value">{{ produit.prixDebut }} DH</span>
           </div>
-          <div class="meta-item">
-            <span class="meta-label">Expertise requise:</span>
-            <span class="meta-value">{{ produit.aExpertise ? 'Oui' : 'Non' }}</span>
+
+          <div class="meta-item" *ngIf="produit.aExpertise">
+            <span class="meta-label">Statut expertise:</span>
+            <span class="meta-value">🔍 Produit expertisé</span>
           </div>
         </div>
 
         <!-- Actions de modération -->
         <div class="moderation-actions">
-          <button class="btn-accept" (click)="acceptProduct()">
-            ✅ Accepter le produit
+          <button class="btn-accept" (click)="openAcceptModal()">
+            <span>✅</span>
+            Accepter
           </button>
-          <button class="btn-reject" (click)="rejectProduct()">
-            ❌ Refuser le produit
+          <button class="btn-reject" (click)="openRejectModal()">
+            <span>❌</span>
+            Refuser
           </button>
         </div>
       </div>
     </div>
 
-    <div *ngIf="!isLoading && !produit" class="error-state">
-      <p class="error-text">Produit non trouvé.</p>
+    <!-- Modal d'acceptation -->
+    <div *ngIf="showAcceptModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Confirmer l'acceptation</h2>
+          <button class="modal-close" (click)="closeModals()">×</button>
+        </div>
+        <div class="modal-body">
+          <p>Êtes-vous sûr de vouloir <strong>accepter</strong> ce produit ?</p>
+          <p><strong>{{ produit?.nom }}</strong></p>
+          <p>Le produit sera publié et visible par tous les utilisateurs.</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" (click)="closeModals()">Annuler</button>
+          <button class="btn-confirm-accept" (click)="confirmAccept()">
+            ✅ Confirmer l'acceptation
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de refus -->
+    <div *ngIf="showRejectModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Motif du refus</h2>
+          <button class="modal-close" (click)="closeModals()">×</button>
+        </div>
+        <div class="modal-body">
+          <p>Veuillez saisir la raison du refus pour le produit :</p>
+          <p><strong>{{ produit?.nom }}</strong></p>
+
+          <div class="rejection-note">
+            <label for="rejectionNote">Note de refus :</label>
+            <textarea
+              id="rejectionNote"
+              [(ngModel)]="rejectionNote"
+              placeholder="Ex: Images de mauvaise qualité, description insuffisante, produit non conforme..."
+              rows="4"
+              class="note-textarea"></textarea>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" (click)="closeModals()">Annuler</button>
+          <button class="btn-confirm-reject" (click)="confirmReject()">
+            ❌ Confirmer le refus
+          </button>
+        </div>
+      </div>
     </div>
   </div>
-</section>
+</div>

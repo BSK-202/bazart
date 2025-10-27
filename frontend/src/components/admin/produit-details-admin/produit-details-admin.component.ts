@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
@@ -19,7 +20,7 @@ interface Produit {
 @Component({
   selector: 'app-produit-details',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './produit-details-admin.component.html',
   styleUrls: ['./produit-details-admin.component.css']
 })
@@ -31,6 +32,11 @@ export class ProduitDetailsAdminComponent implements OnInit {
   private readonly API_BASE_URL = 'http://localhost:8080';
   private readonly placeholderImage = 'assets/images/placeholder.jpg';
 
+  // États des modales
+  showAcceptModal = false;
+  showRejectModal = false;
+  rejectionNote = '';
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -40,6 +46,17 @@ export class ProduitDetailsAdminComponent implements OnInit {
   ngOnInit() {
     this.produitId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadProductDetails();
+  }
+  goBackToList() {
+    this.router.navigate(['/pub-en-attente-admin']);
+  }
+  getStatusLabel(etat: string): string {
+    switch(etat) {
+      case 'en_attente': return 'En attente';
+      case 'accepte': return 'Accepté';
+      case 'refuse': return 'Refusé';
+      default: return etat;
+    }
   }
 
   loadProductDetails() {
@@ -75,24 +92,51 @@ export class ProduitDetailsAdminComponent implements OnInit {
     imgElement.src = this.placeholderImage;
   }
 
-  acceptProduct() {
-    if (confirm('Êtes-vous sûr de vouloir accepter ce produit ?')) {
-      this.updateProductState('accepte');
-    }
+  // Méthodes pour les modales
+  openAcceptModal() {
+    this.showAcceptModal = true;
   }
 
-  rejectProduct() {
-    if (confirm('Êtes-vous sûr de vouloir refuser ce produit ?')) {
-      this.updateProductState('refuse');
-    }
+  openRejectModal() {
+    this.showRejectModal = true;
+    this.rejectionNote = '';
   }
 
-  private updateProductState(newState: string) {
-    this.http.put(`${this.API_BASE_URL}/api/produits/${this.produitId}/etat`, { etat: newState })
+  closeModals() {
+    this.showAcceptModal = false;
+    this.showRejectModal = false;
+    this.rejectionNote = '';
+  }
+
+  confirmAccept() {
+    this.updateProductState('accepte', '');
+    this.closeModals();
+  }
+
+  confirmReject() {
+    if (!this.rejectionNote.trim()) {
+      alert('Veuillez saisir une note expliquant le refus.');
+      return;
+    }
+    this.updateProductState('refuse', this.rejectionNote);
+    this.closeModals();
+  }
+
+  private updateProductState(newState: string, note: string) {
+    const requestBody = {
+      etat: newState,
+      noteAdmin: note
+    };
+
+    this.http.put(`${this.API_BASE_URL}/api/produits/${this.produitId}/etat`, requestBody)
       .subscribe({
         next: () => {
-          alert(`Produit ${newState === 'accepte' ? 'accepté' : 'refusé'} avec succès !`);
-          this.router.navigate(['/pub-en-attente']);
+          const message = newState === 'accepte'
+            ? 'Produit accepté avec succès !'
+            : 'Produit refusé avec succès !';
+
+          alert(message);
+          this.router.navigate(['/pub-en-attente-admin']);
         },
         error: (error) => {
           console.error('Erreur mise à jour état produit:', error);
@@ -100,4 +144,5 @@ export class ProduitDetailsAdminComponent implements OnInit {
         }
       });
   }
+
 }

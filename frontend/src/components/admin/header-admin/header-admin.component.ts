@@ -49,6 +49,28 @@ export class HeaderAdmin implements OnInit, OnDestroy {
   }
 
   private checkAuthState() {
+    // VÉRIFIER D'ABORD LES TOKENS ADMIN
+    const adminToken = localStorage.getItem('adminToken');
+    const adminData = localStorage.getItem('adminData');
+
+    if (adminToken && adminData) {
+      try {
+        const parsedAdmin = JSON.parse(adminData);
+
+        this.user = {
+          name: 'Administrateur', // Nom fixe pour admin
+          email: parsedAdmin.email || 'admin@bazart.ma'
+        };
+
+        this.isAuthenticated = true;
+        console.log("✅ Admin authentifié via adminToken");
+        return;
+      } catch (e) {
+        console.error('Erreur parsing admin data:', e);
+      }
+    }
+
+    // SI PAS ADMIN, VÉRIFIER LES TOKENS UTILISATEUR NORMAL
     const authToken = localStorage.getItem('authToken');
     const userData = localStorage.getItem('userData');
     console.log("Admin - Data Storage:", userData);
@@ -57,7 +79,6 @@ export class HeaderAdmin implements OnInit, OnDestroy {
       try {
         const parsedUser = JSON.parse(userData);
 
-        // Adapter selon les propriétés du backend
         this.user = {
           name: parsedUser.nom
             ? `${parsedUser.prenom} ${parsedUser.nom}`.trim()
@@ -105,12 +126,15 @@ export class HeaderAdmin implements OnInit, OnDestroy {
   }
 
   logout() {
+    // SUPPRIMER TOUS LES TOKENS (admin et utilisateur)
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminData');
+
     this.isAuthenticated = false;
     this.user = null;
     this.isDropdownOpen = false;
     window.location.href = '/';
   }
-
 }
