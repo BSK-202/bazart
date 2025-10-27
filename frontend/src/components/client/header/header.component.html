@@ -13,7 +13,7 @@
         <a routerLink="/" class="nav-link">Accueil</a>
         <a routerLink="/encheres" class="nav-link">Enchères</a>
         <a routerLink="/categories" class="nav-link">Catégories</a>
-        <a routerLink="/comment-ca-marche" class="nav-link">Comment ça marche</a>
+        <a routerLink="/wallet" class="nav-link">My Wallet</a>
         <a routerLink="/contact" class="nav-link">Contact</a>
       </nav>
 
@@ -72,9 +72,19 @@
           </button>
         </ng-container>
 
-        <button class="sell-button" routerLink="/vendre">
-          Vendre
-        </button>
+        <!-- Boutons Vendre et Espace Admin côte à côte -->
+        <div class="action-buttons">
+          <button class="sell-button" routerLink="/vendre">
+            Vendre
+          </button>
+
+          <!-- Bouton Espace Admin (seulement si NON connecté) -->
+          <ng-container *ngIf="!isAuthenticated">
+            <button class="admin-button" (click)="goToAdmin()">
+              Espace Admin
+            </button>
+          </ng-container>
+        </div>
       </div>
     </div>
   </div>
