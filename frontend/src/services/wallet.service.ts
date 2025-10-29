@@ -1,3 +1,4 @@
+// wallet.service.ts - VERSION CORRIGÉE
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -44,28 +45,27 @@ export class WalletService {
   private apiUrl = 'http://localhost:8080/api/wallet';
 
   constructor(private http: HttpClient) {}
-
+// Dans wallet.service.ts - vérification
   private getAuthHeaders(): HttpHeaders {
-    // Utilisez la même clé que dans AuthService
-    const token = localStorage.getItem('authToken'); // ← CHANGEMENT ICI
+    // ✅ Utiliser la même clé que auth.service
+    const token = localStorage.getItem('authToken');
 
-    console.log('🔐 Token récupéré:', token);
-
-    if (!token) {
-      console.error('❌ Aucun token trouvé avec la clé "authToken"');
-      // Debug: afficher toutes les clés du localStorage
-      console.log('🔍 Clés disponibles dans localStorage:');
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        console.log(`   - ${key}: ${localStorage.getItem(key!)}`);
-      }
+    console.log('🔐 WalletService - Token:', token);
+    console.log('🔐 WalletService - Toutes les clés localStorage:');
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      console.log(`   - ${key}: ${localStorage.getItem(key!)}`);
     }
 
-    const headers = new HttpHeaders({
+    let headers = new HttpHeaders({
       'Content-Type': 'application/json'
     });
 
-    return token ? headers.set('Authorization', `Bearer ${token}`) : headers;
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    return headers;
   }
 
   getBalance(): Observable<WalletBalanceResponse> {

@@ -28,12 +28,16 @@ export class AuthService {
     localStorage.setItem(this.authTokenKey, token);
     localStorage.setItem(this.userDataKey, JSON.stringify(client)); // ✅ Sauvegarde les infos du client
   }
+// auth.service.ts - AJOUTER LA MÉTHODE
   logout(): void {
     console.log('Logout - removing token and user data');
     localStorage.removeItem(this.authTokenKey);
     localStorage.removeItem(this.userDataKey);
+
+    // ✅ NE PAS supprimer les données admin quand un client se déconnecte
+    // localStorage.removeItem('admin_data'); // ❌ À RETIRER
+
     this.router.navigate(['/connexion']);
-    localStorage.removeItem('admin_data');
   }
   isLoggedIn(): boolean {
     const hasToken = !!localStorage.getItem(this.authTokenKey);

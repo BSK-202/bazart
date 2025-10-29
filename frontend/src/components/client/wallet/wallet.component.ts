@@ -39,23 +39,35 @@ export class WalletComponent implements OnInit {
     this.getBalance();
     this.loadHistory();
   }
-
   checkAuthentication() {
     const isLoggedIn = this.authService.isLoggedIn();
     const token = this.authService.getToken();
     const user = this.authService.getUser();
 
-    console.log('🔐 État authentification:');
+    console.log('🔐 État authentification Wallet:');
     console.log('   - Connecté:', isLoggedIn);
     console.log('   - Token présent:', !!token);
     console.log('   - Utilisateur:', user);
+    console.log('   - Contenu localStorage:');
+
+    // Debug: afficher tout le localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      console.log(`     ${key}: ${localStorage.getItem(key!)}`);
+    }
 
     if (!isLoggedIn) {
-      this.message = 'Veuillez vous connecter pour accéder à votre portefeuille';
-      console.error('❌ Utilisateur non connecté');
+      this.message = '❌ Veuillez vous connecter pour accéder à votre portefeuille';
+      console.error('Utilisateur non connecté - redirection nécessaire');
+
+      // Optionnel : redirection automatique après délai
+      setTimeout(() => {
+        this.authService.redirectToLogin('Veuillez vous connecter pour accéder au portefeuille');
+      }, 3000);
     }
   }
 
+  // Dans wallet.component.ts - amélioration de getBalance()
   getBalance() {
     if (!this.authService.isLoggedIn()) {
       this.message = 'Non authentifié. Veuillez vous reconnecter.';
@@ -77,12 +89,18 @@ export class WalletComponent implements OnInit {
       },
       error: (err: any) => {
         console.error('❌ Erreur lors du chargement du solde:', err);
+
+        // ✅ CORRECTION : Gestion spécifique des erreurs wallet
         if (err.status === 401) {
-          this.message = 'Session expirée. Veuillez vous reconnecter.';
-          // Redirection automatique après 3 secondes
-          setTimeout(() => {
-            this.authService.redirectToLogin('Session expirée');
-          }, 3000);
+          // Erreur d'authentification spécifique au wallet
+          if (err.error?.message?.includes('token') || err.error?.error?.includes('JWT')) {
+            this.message = 'Session expirée. Veuillez vous reconnecter.';
+            setTimeout(() => {
+              this.authService.redirectToLogin('Session expirée');
+            }, 3000);
+          } else {
+            this.message = 'Accès non autorisé au portefeuille.';
+          }
         } else if (err.status === 403) {
           this.message = 'Accès refusé.';
         } else {
@@ -91,7 +109,6 @@ export class WalletComponent implements OnInit {
       }
     });
   }
-
   confirmRecharge() {
     if (!this.authService.isLoggedIn()) {
       this.message = 'Veuillez vous connecter pour recharger votre portefeuille';

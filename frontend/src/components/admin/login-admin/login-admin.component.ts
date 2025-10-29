@@ -1,14 +1,19 @@
+// login-admin.component.ts - VERSION CORRIGÉE
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
+// ✅ AJOUTER CETTE INTERFACE
 interface AdminResponse {
   id: number;
   email: string;
-
+  // Ajoutez d'autres propriétés si nécessaire selon votre backend
+  nom?: string;
+  prenom?: string;
 }
+
 @Component({
   selector: 'app-login-admin',
   standalone: true,
@@ -16,7 +21,6 @@ interface AdminResponse {
   templateUrl: './login-admin.component.html',
   styleUrls: ['./login-admin.component.css']
 })
-
 export class LoginAdminComponent {
   loginData = {
     email: '',
@@ -74,4 +78,3 @@ export class LoginAdminComponent {
       });
   }
 }
-

@@ -1,10 +1,11 @@
-// app.config.ts
+// app.config.ts - VERSION CORRIGÉE
 import { ApplicationConfig, importProvidersFrom } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { routes } from './app.routes';
 
-// CORRECTION: Chemin relatif correct pour AuthInterceptor
+// ✅ CORRECTION: Importer AuthInterceptor (la classe)
+import { AuthInterceptor } from '../services/auth.interceptor';
 
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -15,7 +16,6 @@ import { faHeart as faHeartRegular, faComment } from '@fortawesome/free-regular-
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { environment } from '../environments/environment';
-import {AuthInterceptor} from '../services/auth.interceptor';
 // ============================
 
 console.log('Firebase config used:', environment.firebase);
@@ -26,6 +26,8 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
     provideHttpClient(withInterceptorsFromDi()),
+
+    // ✅ CORRECTION: Utiliser AuthInterceptor (la classe)
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,

@@ -1,15 +1,16 @@
-// login.component.ts - VERSION CORRIGÉE
+// login.component.ts - VERSION SIMPLIFIÉE ET EFFICACE
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClientModule, HttpClient, HttpHeaders } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
+import { AdminAuthService } from '../../services/admin-auth.service';
 
 interface AuthResponse {
   accessToken: string;
   tokenType: string;
-  client: {  // CHANGÉ: 'user' → 'client'
+  client: {
     idclient: number;
     nom: string;
     prenom: string;
@@ -21,6 +22,13 @@ interface AuthResponse {
     roles: string[];
     enabled: boolean;
   };
+}
+
+interface AdminResponse {
+  id: number;
+  email: string;
+  nom?: string;
+  prenom?: string;
 }
 
 @Component({
@@ -45,19 +53,17 @@ export class LoginComponent implements OnInit {
   constructor(
     private router: Router,
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private adminAuthService: AdminAuthService
   ) {}
 
   ngOnInit() {
-    // Vérifier s'il y a un message de succès d'inscription
     const inscriptionSuccess = sessionStorage.getItem('inscriptionSuccess');
     const newUserEmail = sessionStorage.getItem('newUserEmail');
 
     if (inscriptionSuccess && newUserEmail) {
       this.successMessage = `Inscription réussie ! Vous pouvez maintenant vous connecter avec l'email: ${newUserEmail}`;
-      this.email = newUserEmail; // Pré-remplir l'email
-
-      // Nettoyer le sessionStorage
+      this.email = newUserEmail;
       sessionStorage.removeItem('inscriptionSuccess');
       sessionStorage.removeItem('newUserEmail');
     }
@@ -67,6 +73,49 @@ export class LoginComponent implements OnInit {
     event.preventDefault();
     this.error = '';
     this.loading = true;
+
+    console.log('🔐 Tentative de connexion avec:', this.email);
+
+    // ✅ ESSAYER D'ABORD COMME ADMIN
+    this.tryAdminLogin();
+  }
+
+  private tryAdminLogin() {
+    console.log('🚀 Essai de connexion ADMIN...');
+
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+    });
+
+    this.http.post<AdminResponse>(
+      'http://localhost:8080/api/admins/login',
+      {
+        email: this.email,
+        motDePasse: this.password
+      },
+      { headers }
+    ).subscribe({
+      next: (response) => {
+        console.log('✅ Connexion ADMIN réussie:', response);
+        this.loading = false;
+
+        // Stocker les infos admin
+        this.adminAuthService.loginAdmin(response);
+
+        // Redirection vers l'interface admin
+        this.router.navigate(['/domaines-admin']);
+      },
+      error: (adminError) => {
+        console.log('❌ Échec connexion admin, tentative client...');
+
+        // ✅ SI ÉCHEC ADMIN, ESSAYER COMME CLIENT
+        this.tryClientLogin();
+      }
+    });
+  }
+
+  private tryClientLogin() {
+    console.log('🚀 Essai de connexion CLIENT...');
 
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
@@ -78,33 +127,31 @@ export class LoginComponent implements OnInit {
         email: this.email,
         password: this.password
       },
-      { headers: headers }
+      { headers }
     ).subscribe({
       next: (response) => {
-        console.log('✅ Connexion réussie:', response);
+        console.log('✅ Connexion CLIENT réussie:', response);
+        this.loading = false;
 
-        // Stocker le token ET les informations du client
         this.authService.login(response.accessToken, response.client);
 
-        // Rediriger vers la page d'accueil
         this.router.navigate(['/domaines']).then(() => {
-          // Recharger la page pour mettre à jour l'état d'authentification
           window.location.reload();
         });
       },
-      error: (error) => {
-        console.error('❌ Erreur de connexion:', error);
-
-        if (error.status === 401) {
-          this.error = 'Email ou mot de passe incorrect';
-        } else if (error.status === 0) {
-          this.error = 'Impossible de contacter le serveur. Vérifiez que Spring Boot est démarré.';
-        } else {
-          this.error = 'Une erreur est survenue lors de la connexion';
-        }
-
+      error: (clientError) => {
         this.loading = false;
+        console.error('❌ Échec connexion client aussi:', clientError);
+
+        // ✅ LES DEUX ONT ÉCHOUÉ - AFFICHER ERREUR
+        this.handleFinalError();
       }
     });
+  }
+
+  private handleFinalError() {
+    this.loading = false;
+    this.error = 'Email ou mot de passe incorrect';
+    console.log('🔍 Les deux types de connexion ont échoué pour:', this.email);
   }
 }

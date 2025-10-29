@@ -1,3 +1,4 @@
+// app.routes.ts - VERSION SIMPLIFIÉE
 import { Routes } from '@angular/router';
 import { AllCategoriesComponent } from '../components/client/all-categories/all-categories.component';
 import { DomaineComponent } from '../components/client/domaine/domaine.component';
@@ -12,7 +13,6 @@ import { DomaineAdminComponent } from '../components/admin/domaine-admin/domaine
 import { AllCategoriesAdminComponent } from '../components/admin/all-categories-admin/all-categories-admin.component';
 import { CategoryDetailAdminComponent } from '../components/admin/category-detail-admin/category-detail-admin.component';
 import { WalletComponent } from '../components/client/wallet/wallet.component';
-import { LoginAdminComponent } from '../components/admin/login-admin/login-admin.component';
 import { AdminAuthGuard } from '../services/admin-auth.guard';
 
 export const routes: Routes = [
@@ -31,7 +31,7 @@ export const routes: Routes = [
   },
   {
     path: 'connexion',
-    component: LoginComponent
+    component: LoginComponent  // ✅ UNE SEULE PAGE DE LOGIN
   },
   {
     path: 'inscription',
@@ -49,10 +49,7 @@ export const routes: Routes = [
   },
 
   // ===== ROUTES ADMIN PROTÉGÉES =====
-  {
-    path: 'admin-auth',
-    component: LoginAdminComponent
-  },
+  // ❌ SUPPRIMER la route 'admin-auth' - utiliser '/connexion' à la place
   {
     path: 'pub-en-attente-admin',
     component: PubEnAttenteAdminComponent,
