@@ -235,7 +235,21 @@ public class ProduitController {
 
         response.setNombreInteractions(produit.getInteractions() != null ? produit.getInteractions().size() : 0);
         response.setNombreCommentaires(produit.getCommentaires() != null ? produit.getCommentaires().size() : 0);
+        // Ajouter la date de publication
+        // ✅ CORRECTION: Utiliser camelCase partout
+        if (produit.getDatePublication() != null) {
+            response.setDatepublication(produit.getDatePublication().toString()); // ✅ camelCase
+            System.out.println("📅 Date de publication convertie: " + produit.getDatePublication().toString());
+        } else {
+            System.out.println("⚠️ Date de publication est null");
+            response.setDatepublication(LocalDateTime.now().toString()); // ✅ camelCase
+        }
 
+        // ✅ NOUVEAU : Date d'enchère
+        if (produit.getDateEnchere() != null) {
+            response.setDateenchere(produit.getDateEnchere().toString());
+        }
+        response.setVendeurId(produit.getVendeur() != null ? produit.getVendeur().getIdclient() : null);
         response.setImages(produit.getImages() != null ?
                 produit.getImages().stream().map(ProduitImage::getUrl).collect(Collectors.toList())
                 : null);
@@ -340,6 +354,55 @@ public class ProduitController {
                     "success", false,
                     "message", "Erreur lors de la mise à jour du produit"
             ));
+        }
+    }
+    // 🆕 ENDPOINT POUR RÉCUPÉRER LES PRODUITS DU CLIENT CONNECTÉ
+    @GetMapping("/vendeur/{vendeurId}")
+    public List<ProduitDTO> getProduitsByVendeur(@PathVariable Long vendeurId) {
+        System.out.println("🔍 Recherche produits du vendeur: " + vendeurId);
+        List<Produit> produits = produitService.getProduitsByVendeur(vendeurId);
+        System.out.println("📦 Nombre de produits trouvés: " + produits.size());
+
+        produits.forEach(p -> {
+            System.out.println("Produit: " + p.getNom() + " - État: " + p.getEtat());
+        });
+
+        return produits.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    // 🆕 ENDPOINT POUR DÉMARRER UNE ENCHÈRE
+    @PostMapping("/{produitId}/start-auction")
+    public ResponseEntity<?> startAuction(@PathVariable Long produitId) {
+        try {
+            System.out.println("🚀 Démarrage de l'enchère pour le produit: " + produitId);
+
+            Produit produit = produitService.getProduitById(produitId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produit non trouvé"));
+
+            // Vérifier que le produit est dans un état qui permet de démarrer une enchère
+            if (!"accepter".equals(produit.getEtat()) && !"accepte".equals(produit.getEtat())) {
+                return ResponseEntity.badRequest().body("Le produit doit être accepté pour démarrer une enchère. État actuel: " + produit.getEtat());
+            }
+
+            // Changer l'état à "en_enchere"
+            produit.setEtat("en_enchere");
+
+            // ✅ NOUVEAU : Définir la date de début d'enchère
+            produit.setDateEnchere(LocalDateTime.now());
+
+            Produit updatedProduit = produitService.saveProduit(produit);
+
+            System.out.println("✅ Enchère démarrée avec succès pour le produit: " + produitId);
+            System.out.println("📅 Date d'enchère définie: " + updatedProduit.getDateEnchere());
+
+            return ResponseEntity.ok(convertToDTO(updatedProduit));
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors du démarrage de l'enchère: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erreur lors du démarrage de l'enchère: " + e.getMessage());
         }
     }
 }

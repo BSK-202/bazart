@@ -25,17 +25,9 @@ public class ProduitServiceImpl implements ProduitService {
     @Override
     public List<Produit> getProduitsAcceptesByCategorie(Long idCategorie) {
         // Essayez d'abord avec "accepte" (minuscules)
-        List<Produit> produits = produitRepository.findByCategorieIdCategorieAndEtat(idCategorie, "accepte");
-
-        // Si aucun résultat, essayez avec "ACCEPTE" (majuscules)
-        if (produits.isEmpty()) {
-            produits = produitRepository.findByCategorieIdCategorieAndEtat(idCategorie, "ACCEPTE");
-        }
-
-        // Si toujours aucun résultat, essayez avec "accepter"
-        if (produits.isEmpty()) {
-            produits = produitRepository.findByCategorieIdCategorieAndEtat(idCategorie, "accepter");
-        }
+        List<Produit> produits = produitRepository.findByCategorieIdCategorieAndEtat(idCategorie, "accepter");
+        List<Produit> produits2 = produitRepository.findByCategorieIdCategorieAndEtat(idCategorie, "en_enchere");
+        produits.addAll(produits2) ;
 
         System.out.println("📦 Produits acceptés trouvés: " + produits.size());
         return produits;
@@ -64,5 +56,9 @@ public class ProduitServiceImpl implements ProduitService {
     @Override
     public long countProduitsEnAttente() {
         return produitRepository.countByEtat("en_attente");
+    }
+    @Override
+    public List<Produit> getProduitsByVendeur(Long vendeurId) {
+        return produitRepository.findByVendeurIdclient(vendeurId);
     }
 }

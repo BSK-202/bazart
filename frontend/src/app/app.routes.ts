@@ -14,6 +14,8 @@ import { AllCategoriesAdminComponent } from '../components/admin/all-categories-
 import { CategoryDetailAdminComponent } from '../components/admin/category-detail-admin/category-detail-admin.component';
 import { WalletComponent } from '../components/client/wallet/wallet.component';
 import { AdminAuthGuard } from '../services/admin-auth.guard';
+import { UserProfileComponent } from '../components/client/profile/profile.component';
+import { ProductDetailComponent } from '../components/client/Product-detail/Product-detail.component';
 
 export const routes: Routes = [
   // ===== ROUTES PUBLIQUES CLIENT =====
@@ -82,10 +84,21 @@ export const routes: Routes = [
     redirectTo: '/domaines',
     pathMatch: 'full'
   },
+  {
+    path: 'produit/:id',
+    component: ProductDetailComponent
+  },
+  {
+    path: 'profil',
+    component: UserProfileComponent, // ✅ Utiliser le composant directement
+    canActivate: [AuthGuard] // ✅ SEULEMENT cette route est protégée
 
+  },
   // Route de fallback (doit être la dernière)
   {
     path: '**',
     redirectTo: '/domaines'
-  }
+  },
+
+
 ];

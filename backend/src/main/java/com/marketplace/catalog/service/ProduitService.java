@@ -12,4 +12,6 @@ public interface ProduitService {
     Produit saveProduit(Produit produit);
     List<Produit> getProduitsEnAttente();
     long countProduitsEnAttente();
+    List<Produit> getProduitsByVendeur(Long vendeurId);
+
 }

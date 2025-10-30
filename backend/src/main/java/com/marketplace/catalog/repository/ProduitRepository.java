@@ -19,6 +19,7 @@ public interface ProduitRepository extends JpaRepository<Produit, Long> {
 
     List<Produit> findByEtat(String etat);
 
+    List<Produit> findByVendeurIdclient(Long vendeurId);
 
     @Query("SELECT DISTINCT p.etat FROM Produit p WHERE p.etat IS NOT NULL")
     List<String> findDistinctEtats();

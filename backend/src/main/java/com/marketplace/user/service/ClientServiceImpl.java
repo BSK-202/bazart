@@ -94,4 +94,11 @@ public class ClientServiceImpl implements ClientService {
     public Optional<Client> getClientById(Long id) {
         return clientRepository.findById(id);
     }
+    @Override
+    public Client updateClient(Client client) {
+        if (!clientRepository.existsById(client.getIdclient())) {
+            throw new RuntimeException("Client non trouvé");
+        }
+        return clientRepository.save(client);
+    }
 }

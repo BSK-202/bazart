@@ -48,9 +48,16 @@ public class SecurityConfig {
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/produits/**").permitAll()
                         .requestMatchers("/api/clients/*/upload-profile-image").permitAll()
+                        .requestMatchers("/api/clients/**").permitAll()
+
                         .requestMatchers("/api/clients/*/profile-image").permitAll()
                         .requestMatchers("/api/commentaires/produit/*/count").permitAll()
                         .requestMatchers("/api/commentaires/produit/**").permitAll()
+                        .requestMatchers("/api/clients/images/**").permitAll()
+
+                        .requestMatchers("/api/produits/*/start-auction").permitAll()
+
+
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/static/**", "/resources/**", "/css/**", "/js/**", "/images/**").permitAll()
 

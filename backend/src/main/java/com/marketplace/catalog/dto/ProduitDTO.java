@@ -18,6 +18,8 @@ public class ProduitDTO {
     private Long categorieId;    // Pour la création
     private Long vendeurId;
     private boolean aExpertise;
+    private String dateenchere;
+
     // Getters et Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -30,9 +32,24 @@ public class ProduitDTO {
 
     public Double getPrixDebut() { return prixDebut; }
     public void setPrixDebut(Double prixDebut) { this.prixDebut = prixDebut; }
+    public String getDatepublication() {
+        return datepublication;
+    }
 
+    public void setDatepublication(String datepublication) {
+        this.datepublication = datepublication;
+    }
+
+    private String datepublication;
     public Double getPrixFin() { return prixFin; }
     public void setPrixFin(Double prixFin) { this.prixFin = prixFin; }
+    public String getDateenchere() {
+        return dateenchere;
+    }
+
+    public void setDateenchere(String dateenchere) {
+        this.dateenchere = dateenchere;
+    }
 
     //  NOUVEAU
     public String getEtat() { return etat; }
