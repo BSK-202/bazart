@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/domaines/**").permitAll()
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/produits/**").permitAll()
+                        .requestMatchers("/api/clients/*/photo").permitAll() // ✅ AJOUTÉ
                         .requestMatchers("/api/clients/*/upload-profile-image").permitAll()
                         .requestMatchers("/api/clients/**").permitAll()
 
