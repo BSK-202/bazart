@@ -41,6 +41,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // ✅ Endpoints PUBLIC (sans authentification)
+                		.requestMatchers("/ws-notif/**").permitAll()
+                		
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/admins/login").permitAll() // Admin login public
                         .requestMatchers("/api/admins/register").permitAll() // Admin register public

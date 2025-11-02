@@ -1,4 +1,3 @@
-// AdminService.java - VERSION AVEC @Lazy
 package com.marketplace.admin.service;
 
 import com.marketplace.admin.dto.AdminDTO;
@@ -8,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -48,7 +48,6 @@ public class AdminService {
         adminDTO.setId(admin.getId());
         adminDTO.setEmail(admin.getEmail());
 
-
         return adminDTO;
     }
 
@@ -65,5 +64,10 @@ public class AdminService {
         dto.setId(saved.getId());
         dto.setEmail(saved.getEmail());
         return dto;
+    }
+
+    // ✅ AJOUT : Retourner tous les admins de la base
+    public List<Admin> getAllAdmins() {
+        return adminRepository.findAll();
     }
 }

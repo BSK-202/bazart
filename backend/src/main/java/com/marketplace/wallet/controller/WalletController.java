@@ -8,6 +8,8 @@ import com.marketplace.wallet.entity.HistoriqueWallet;
 import com.marketplace.user.entity.Client;
 import com.marketplace.user.service.ClientService;
 import com.marketplace.wallet.service.Walletservice;
+import com.marketplace.notification.entity.NotificationType;
+import com.marketplace.notification.service.NotificationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/wallet")
@@ -25,10 +28,12 @@ public class WalletController {
 
     private final Walletservice walletService;
     private final ClientService clientService;
+    private final NotificationService notificationService;
 
-    public WalletController(Walletservice walletService, ClientService clientService) {
+    public WalletController(Walletservice walletService, ClientService clientService, NotificationService notificationService) {
         this.walletService = walletService;
         this.clientService = clientService;
+        this.notificationService = notificationService;
     }
 
     private Client getAuthenticatedClient() {
@@ -87,6 +92,18 @@ public class WalletController {
             }
 
             Wallet wallet = walletService.rechargeWallet(user, amount);
+
+            // === NOTIFICATION: Recharge Wallet ===
+            Map<String, Object> notifData = new HashMap<>();
+            notifData.put("amount", amount);
+            notifData.put("message", "Votre portefeuille a été crédité de " + amount + " DH.");
+            notifData.put("balance", wallet.getBalance());
+            notificationService.processEvent(
+                    NotificationType.PAYMENT_RECEIVED,
+                    Set.of(user.getIdclient()),
+                    notifData
+            );
+            // === END NOTIFICATION ===
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -194,6 +211,18 @@ public class WalletController {
             }
 
             Wallet wallet = walletService.debitWallet(user, amount, description);
+
+            // === NOTIFICATION: Debit Wallet ===
+            Map<String, Object> notifData = new HashMap<>();
+            notifData.put("amount", amount);
+            notifData.put("message", "Votre portefeuille a été débité de " + amount + " DH.");
+            notifData.put("balance", wallet.getBalance());
+            notificationService.processEvent(
+                    NotificationType.PAYMENT_SENT,
+                    Set.of(user.getIdclient()),
+                    notifData
+            );
+            // === END NOTIFICATION ===
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

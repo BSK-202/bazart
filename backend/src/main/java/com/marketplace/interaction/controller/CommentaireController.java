@@ -1,10 +1,13 @@
-// CommentaireController.java - VERSION CORRIGÉE
 package com.marketplace.interaction.controller;
 
 import com.marketplace.interaction.entity.Commentaire;
 import com.marketplace.interaction.service.CommentaireService;
 import com.marketplace.user.entity.Client;
 import com.marketplace.user.repository.ClientRepository;
+import com.marketplace.catalog.entity.Produit;
+import com.marketplace.catalog.service.ProduitService;
+import com.marketplace.notification.entity.NotificationType;
+import com.marketplace.notification.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/commentaires")
@@ -26,6 +30,12 @@ public class CommentaireController {
 
     @Autowired
     private ClientRepository clientRepository;
+
+    @Autowired
+    private ProduitService produitService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     private Long getCurrentClientId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -88,7 +98,6 @@ public class CommentaireController {
         }
     }
 
-    // CommentaireController.java - VERSION AMÉLIORÉE
     @PostMapping("/produit/{produitId}")
     public ResponseEntity<?> addCommentaire(
             @PathVariable Long produitId,
@@ -108,7 +117,28 @@ public class CommentaireController {
 
             Commentaire commentaire = commentaireService.addCommentaire(produitId, clientId, contenu.trim());
 
-            // ✅ Retourner directement le commentaire (pas de wrapper)
+            // === NOTIFICATION LOGIC: Notify product owner about new comment ===
+            Optional<Produit> produitOpt = produitService.getProduitById(produitId);
+            if (produitOpt.isPresent()) {
+                Produit produit = produitOpt.get();
+                Long vendeurId = produit.getVendeur().getIdclient();
+                if (!vendeurId.equals(clientId)) { // Do not notify if user comments on their own product
+                    Map<String, Object> notifData = new HashMap<>();
+                    notifData.put("productName", produit.getNom());
+                    notifData.put("message", "Un nouveau commentaire a été ajouté à votre produit.");
+                    notifData.put("commentContent", contenu.trim());
+                    notifData.put("commentAuthor", commentaire.getClient() != null ?
+                            commentaire.getClient().getPrenom() + " " + commentaire.getClient().getNom() : "Un utilisateur");
+
+                    notificationService.processEvent(
+                            NotificationType.MESSAGE,
+                            Set.of(vendeurId),
+                            notifData
+                    );
+                }
+            }
+            // === END NOTIFICATION LOGIC ===
+
             return ResponseEntity.ok(commentaire);
 
         } catch (Exception e) {
@@ -124,7 +154,6 @@ public class CommentaireController {
     @DeleteMapping("/{commentaireId}")
     public ResponseEntity<?> deleteCommentaire(@PathVariable Long commentaireId) {
         try {
-            // ✅ Récupérer clientId depuis le token
             Long clientId = getCurrentClientId();
             commentaireService.deleteCommentaire(commentaireId, clientId);
             return ResponseEntity.ok().build();

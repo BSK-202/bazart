@@ -1,0 +1,25 @@
+<div class="notification-bell">
+	<button (click)="toggleDropdown()" class="notif-bell-btn">
+	  <svg class="bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+	       stroke-linecap="round" stroke-linejoin="round">
+	    <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+	    <path d="M13.73 21a2 2 0 01-3.46 0"/>
+	  </svg>
+	  <span class="notif-count" *ngIf="unreadCount() > 0">{{ unreadCount() }}</span>
+	</button>
+  <div class="notif-dropdown" *ngIf="showDropdown">
+    <div *ngIf="notifications.length === 0" class="empty">Aucune notification</div>
+    <div
+      *ngFor="let notif of notifications"
+      [class.unread]="!notif.read"
+      class="notif-item"
+      (click)="onNotificationClick(notif)"
+      style="cursor: pointer;"
+    >
+      <div>{{ notif.message }}</div>
+      <small>{{ notif.createdAt | date:'short' }}</small>
+    </div>
+  </div>
+  <!-- Toast notification at top -->
+  <div *ngIf="showToast" class="notif-toast">{{ toastMessage }}</div>
+</div>

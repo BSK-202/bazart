@@ -1,11 +1,15 @@
 package com.marketplace.catalog.controller;
 
+import com.marketplace.admin.entity.Admin;
+import com.marketplace.admin.service.AdminService;
 import com.marketplace.catalog.dto.ProduitDTO;
 import com.marketplace.catalog.entity.Produit;
 import com.marketplace.catalog.entity.ProduitImage;
 import com.marketplace.catalog.entity.Categorie;
 import com.marketplace.catalog.repository.ProduitRepository;
 import com.marketplace.catalog.service.ImageVerificationService;
+import com.marketplace.notification.entity.NotificationType;
+import com.marketplace.notification.service.NotificationService;
 import com.marketplace.user.entity.Client;
 import com.marketplace.catalog.service.ProduitService;
 import com.marketplace.catalog.service.CategorieService;
@@ -38,23 +42,28 @@ public class ProduitController {
     private final CategorieService categorieService;
     private final ClientService clientService;
     private final ProduitRepository produitRepository; //  DÉCLARÉ
-
+    private final NotificationService notificationService;
+    private final AdminService adminService;
     /*
     @Autowired
     private ImageVerificationService imageVerificationService;
-*/
-
+    */
 
     // 📁 DOSSIER DE STOCKAGE (en dehors du projet frontend)
     private final String UPLOAD_DIR = "backend/assets/produits/";
 
     public ProduitController(ProduitService produitService,
                              CategorieService categorieService,
-                             ClientService clientService, ProduitRepository produitRepository) {
+                             ClientService clientService,
+                             ProduitRepository produitRepository,
+                             NotificationService notificationService,
+                             AdminService adminService) {
         this.produitService = produitService;
         this.categorieService = categorieService;
         this.clientService = clientService;
         this.produitRepository = produitRepository;
+        this.notificationService = notificationService;
+        this.adminService = adminService;
     }
 
     // 🆕 ENDPOINT POUR SERVIR LES IMAGES
@@ -157,23 +166,6 @@ public class ProduitController {
             produit.setCategorie(categorie);
             produit.setVendeur(vendeur);
 
-              /*
-            for (MultipartFile file : images) {
-
-
-                // Vérification authenticité
-                boolean estAuthentique = imageVerificationService.verifierImageAuthentique(file);
-                if (!estAuthentique) {
-                    System.err.println("🚫 Image rejetée : IA détectée ou confiance < 99%");
-                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                            .body(Map.of(
-                                    "success", false,
-                                    "message", "Une ou plusieurs images ont été rejetées : non authentiques."
-                            ));
-                }
-            }
-              */
-
             Produit savedProduit = produitService.saveProduit(produit);
             Long produitId = savedProduit.getIdproduit();
             System.out.println("🎉 Produit créé avec ID: " + produitId);
@@ -185,7 +177,6 @@ public class ProduitController {
             List<ProduitImage> produitImages = new ArrayList<>();
             int imageIndex = 1;
             for (MultipartFile file : images) {
-
                 String fileExtension = getFileExtension(file.getOriginalFilename());
                 String fileName = "image_" + imageIndex + fileExtension;
                 Path imagePath = produitFolderPath.resolve(fileName);
@@ -204,13 +195,45 @@ public class ProduitController {
             Produit finalProduit = produitService.saveProduit(savedProduit);
 
             System.out.println("✅ Produit final créé avec " + produitImages.size() + " images.");
-            return ResponseEntity.ok( convertToDTO(finalProduit));
 
-            } catch (Exception e) {
-        System.err.println("❌ Erreur lors de la création du produit: " + e.getMessage());
-        e.printStackTrace();
-        return ResponseEntity.status(500).body("Erreur: " + e.getMessage());
-    }
+            // === NOTIFICATION: Produit créé (pour le vendeur) ===
+            Map<String, Object> notifData = new HashMap<>();
+            notifData.put("productName", finalProduit.getNom());
+            notifData.put("message", "Votre produit a été créé et est en attente de validation.");
+            Set<Long> recipients = Set.of(finalProduit.getVendeur().getIdclient());
+            notificationService.processEvent(
+                    NotificationType.MESSAGE,
+                    recipients,
+                    notifData
+            );
+
+            // === NOTIFICATION: Produit en attente de validation (pour tous les admins) ===
+            // Récupère tous les admins
+            List<Admin> allAdmins = adminService.getAllAdmins();
+            Set<Long> adminIds = allAdmins.stream()
+                .map(Admin::getId)
+                .collect(Collectors.toSet());
+
+            Map<String, Object> adminNotifData = new HashMap<>();
+            adminNotifData.put("productName", finalProduit.getNom());
+            adminNotifData.put("message", "Un nouveau produit est en attente de validation.");
+            adminNotifData.put("vendeurName", vendeur.getPrenom() + " " + vendeur.getNom());
+
+            if (!adminIds.isEmpty()) {
+                notificationService.processEvent(
+                    NotificationType.ADMIN_ALERT,
+                    adminIds,
+                    adminNotifData
+                );
+            }
+
+            return ResponseEntity.ok(convertToDTO(finalProduit));
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la création du produit: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erreur: " + e.getMessage());
+        }
     }
 
     private String getFileExtension(String fileName) {
@@ -238,11 +261,11 @@ public class ProduitController {
         // Ajouter la date de publication
         // ✅ CORRECTION: Utiliser camelCase partout
         if (produit.getDatePublication() != null) {
-            response.setDatepublication(produit.getDatePublication().toString()); // ✅ camelCase
+            response.setDatepublication(produit.getDatePublication().toString());
             System.out.println("📅 Date de publication convertie: " + produit.getDatePublication().toString());
         } else {
             System.out.println("⚠️ Date de publication est null");
-            response.setDatepublication(LocalDateTime.now().toString()); // ✅ camelCase
+            response.setDatepublication(LocalDateTime.now().toString());
         }
 
         // ✅ NOUVEAU : Date d'enchère
@@ -256,7 +279,8 @@ public class ProduitController {
 
         return response;
     }
-    //  ENDPOINTS POUR LES PRODUITS EN ATTENTE
+
+    // ENDPOINTS POUR LES PRODUITS EN ATTENTE
     @GetMapping("/en-attente")
     public ResponseEntity<List<ProduitDTO>> getProduitsEnAttente() {
         try {
@@ -294,13 +318,12 @@ public class ProduitController {
         }
     }
 
-    //  ENDPOINT POUR RÉCUPÉRER TOUS LES PRODUITS AVEC FILTRE ÉTAT (optionnel)
+    // ENDPOINT POUR RÉCUPÉRER TOUS LES PRODUITS AVEC FILTRE ÉTAT (optionnel)
     @GetMapping("/etat/{etat}")
     public ResponseEntity<List<ProduitDTO>> getProduitsByEtat(@PathVariable String etat) {
         try {
             System.out.println(" Recherche des produits avec état: " + etat);
 
-            // MAINTENANT produitRepository EST INITIALISÉ
             List<Produit> produits = produitRepository.findByEtat(etat);
 
             System.out.println(" Nombre de produits avec état '" + etat + "': " + produits.size());
@@ -316,6 +339,7 @@ public class ProduitController {
             return ResponseEntity.status(500).build();
         }
     }
+
     // ENDPOINT POUR METTRE À JOUR L'ÉTAT DU PRODUIT
     @PutMapping("/{id}/etat")
     public ResponseEntity<?> updateProductState(
@@ -333,14 +357,32 @@ public class ProduitController {
 
             produit.setEtat(newState);
 
-            // Si vous avez un champ pour stocker la note d'admin, vous pouvez l'ajouter ici
-            if (noteAdmin != null && !noteAdmin.trim().isEmpty()) {
-                System.out.println("📝 Note admin: " + noteAdmin);
-                // produit.setNoteAdmin(noteAdmin); // Décommentez si vous avez ce champ
-            }
-
             Produit updatedProduit = produitService.saveProduit(produit);
 
+            // === NOTIFICATION LOGIC STARTS HERE ===
+            Map<String, Object> notifData = new HashMap<>();
+            notifData.put("productName", updatedProduit.getNom());
+            if (noteAdmin != null && !noteAdmin.trim().isEmpty()) {
+                notifData.put("adminMessage", noteAdmin);
+            }
+
+            Set<Long> recipients = Set.of(updatedProduit.getVendeur().getIdclient());
+
+            NotificationType notifType;
+            if ("accepte".equalsIgnoreCase(newState) || "Accepté".equalsIgnoreCase(newState)) {
+                notifType = NotificationType.PRODUCT_ACCEPTED;
+            } else if ("refuse".equalsIgnoreCase(newState) || "Refusé".equalsIgnoreCase(newState)) {
+                notifType = NotificationType.PRODUCT_REFUSED;
+            } else {
+                notifType = NotificationType.GENERIC;
+            }
+
+            notificationService.processEvent(
+                notifType,
+                recipients,
+                notifData
+            );
+            // === NOTIFICATION LOGIC ENDS HERE ===
             System.out.println("✅ État produit mis à jour: " + updatedProduit.getEtat());
 
             return ResponseEntity.ok(Map.of(
@@ -356,7 +398,8 @@ public class ProduitController {
             ));
         }
     }
-    // 🆕 ENDPOINT POUR RÉCUPÉRER LES PRODUITS DU CLIENT CONNECTÉ
+
+    // ENDPOINT POUR RÉCUPÉRER LES PRODUITS DU CLIENT CONNECTÉ
     @GetMapping("/vendeur/{vendeurId}")
     public List<ProduitDTO> getProduitsByVendeur(@PathVariable Long vendeurId) {
         System.out.println("🔍 Recherche produits du vendeur: " + vendeurId);
@@ -372,7 +415,7 @@ public class ProduitController {
                 .collect(Collectors.toList());
     }
 
-    // 🆕 ENDPOINT POUR DÉMARRER UNE ENCHÈRE
+    // ENDPOINT POUR DÉMARRER UNE ENCHÈRE
     @PostMapping("/{produitId}/start-auction")
     public ResponseEntity<?> startAuction(@PathVariable Long produitId) {
         try {
@@ -393,6 +436,17 @@ public class ProduitController {
             produit.setDateEnchere(LocalDateTime.now());
 
             Produit updatedProduit = produitService.saveProduit(produit);
+
+            // === NOTIFICATION: Enchère démarrée ===
+            Map<String, Object> notifData = new HashMap<>();
+            notifData.put("productName", updatedProduit.getNom());
+            notifData.put("message", "Enchère démarrée pour votre produit.");
+            Set<Long> recipients = Set.of(updatedProduit.getVendeur().getIdclient());
+            notificationService.processEvent(
+                    NotificationType.AUCTION_START,
+                    recipients,
+                    notifData
+            );
 
             System.out.println("✅ Enchère démarrée avec succès pour le produit: " + produitId);
             System.out.println("📅 Date d'enchère définie: " + updatedProduit.getDateEnchere());

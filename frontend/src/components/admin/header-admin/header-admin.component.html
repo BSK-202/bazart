@@ -29,6 +29,12 @@
           </svg>
         </button>
 
+		<app-notification
+		  *ngIf="isAuthenticated && adminUserId"
+		  [userId]="adminUserId"
+		  [inAppEnabled]="true">
+		</app-notification>
+		
         <ng-container *ngIf="isAuthenticated">
           <button class="icon-button" aria-label="Favoris" routerLink="/profil">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">

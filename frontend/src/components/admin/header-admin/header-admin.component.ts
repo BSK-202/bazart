@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { filter, Subscription } from 'rxjs';
+import { NotificationComponent } from '../../notification/notification.component';
 
 interface User {
   name: string;
@@ -12,7 +13,7 @@ interface User {
 @Component({
   selector: 'app-header-admin',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, NotificationComponent],
   templateUrl: './header-admin.component.html',
   styleUrls: ['./header-admin.component.css']
 })
@@ -20,6 +21,7 @@ export class HeaderAdmin implements OnInit, OnDestroy {
   isAuthenticated = false;
   isDropdownOpen = false;
   user: User | null = null;
+  adminUserId: number | null = null;
   pendingCount = 0;
   private routerSubscription: Subscription | undefined;
 
@@ -62,6 +64,7 @@ export class HeaderAdmin implements OnInit, OnDestroy {
           email: parsedAdmin.email || 'admin@bazart.ma'
         };
 
+		this.adminUserId = parsedAdmin.id ?? null; 
         this.isAuthenticated = true;
         console.log("✅ Admin authentifié via adminToken");
         return;

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 
 interface Produit {
   id: number;
@@ -36,7 +37,7 @@ interface User {
   selector: 'app-user-profile',
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.css'],
-  imports: [CommonModule]
+  imports: [CommonModule, FormsModule]
 })
 export class UserProfileComponent implements OnInit {
   activeTab: string = 'bids';
@@ -45,6 +46,8 @@ export class UserProfileComponent implements OnInit {
   showProfileImage: boolean = false;
   joinDate: string = '';
   isLoading: boolean = true;
+  inAppEnabled: boolean = true;
+  emailEnabled: boolean = false;
 
   // Remplacez les données mockées par les vraies données
   produitsEncheres: Produit[] = [];
@@ -62,8 +65,28 @@ export class UserProfileComponent implements OnInit {
 
   ngOnInit() {
     this.loadUserDataFromAPI();
+	if (this.user?.id) {
+	      this.http.get<any>(`${this.API_BASE_URL}/api/user-notification-preference/${this.user.id}`).subscribe({
+	        next: pref => {
+	          this.inAppEnabled = pref?.inAppEnabled ?? true;
+	          this.emailEnabled = pref?.emailEnabled ?? false;
+	        }
+	      });
+	    }
   }
 
+  savePreferences() {
+      if (!this.user?.id) return;
+      this.http.post(`${this.API_BASE_URL}/api/user-notification-preference`, {
+        userId: this.user.id,
+        inAppEnabled: this.inAppEnabled,
+        emailEnabled: this.emailEnabled
+      }).subscribe({
+        next: () => {},
+        error: err => console.error('Failed to save notification preferences', err)
+      });
+    }
+  
   private loadUserDataFromAPI() {
     const userData = localStorage.getItem('userData');
     console.log("User data from localStorage:", userData);

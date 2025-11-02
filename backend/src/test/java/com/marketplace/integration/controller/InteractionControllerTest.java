@@ -1,4 +1,4 @@
-package com.marketplace.controller;
+package com.marketplace.integration.controller;
 
 import com.marketplace.interaction.entity.Interaction;
 import com.marketplace.interaction.repository.InteractionRepository;

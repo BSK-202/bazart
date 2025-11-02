@@ -1,12 +1,20 @@
 package com.marketplace.interaction.controller;
 
+import com.marketplace.catalog.entity.Produit;
+import com.marketplace.catalog.service.ProduitService;
 import com.marketplace.interaction.service.InteractionService;
+import com.marketplace.notification.entity.NotificationType;
+import com.marketplace.notification.service.NotificationService;
+import com.marketplace.user.entity.Client;
+import com.marketplace.user.service.ClientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/interactions")
@@ -15,6 +23,15 @@ public class InteractionController {
 
     @Autowired
     private InteractionService interactionService;
+
+    @Autowired
+    private ProduitService produitService;
+
+    @Autowired
+    private ClientService clientService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @PostMapping("/toggle/{produitId}")
     public ResponseEntity<Map<String, Object>> toggleInteraction(
@@ -30,6 +47,28 @@ public class InteractionController {
             Map<String, Object> response = new HashMap<>();
             response.put("liked", isLiked);
             response.put("interactionCount", newCount);
+
+            // === NOTIFICATION LOGIC: Notify product owner about new like/favorite ===
+            Optional<Produit> produitOpt = produitService.getProduitById(produitId);
+            if (produitOpt.isPresent()) {
+                Produit produit = produitOpt.get();
+                Long vendeurId = produit.getVendeur().getIdclient();
+                if (isLiked && !vendeurId.equals(clientId)) { // Only notify when liked, and not self-like
+                    Optional<Client> clientOpt = clientService.getClientById(clientId);
+                    String likerName = clientOpt.map(c -> c.getPrenom() + " " + c.getNom()).orElse("Un utilisateur");
+                    Map<String, Object> notifData = new HashMap<>();
+                    notifData.put("productName", produit.getNom());
+                    notifData.put("message", likerName + " a ajouté votre produit à ses favoris.");
+                    notifData.put("likerId", clientId);
+
+                    notificationService.processEvent(
+                            NotificationType.MESSAGE,
+                            Set.of(vendeurId),
+                            notifData
+                    );
+                }
+            }
+            // === END NOTIFICATION LOGIC ===
 
             System.out.println("✅ Réponse: " + response);
             return ResponseEntity.ok(response);
