@@ -235,6 +235,8 @@ public class ProduitController {
 
         response.setNombreInteractions(produit.getInteractions() != null ? produit.getInteractions().size() : 0);
         response.setNombreCommentaires(produit.getCommentaires() != null ? produit.getCommentaires().size() : 0);
+        // ✅ AJOUTER LA DURÉE D'ENCHÈRE
+        response.setDureeEnchereJours(produit.getDureeEnchereJours());
         // Ajouter la date de publication
         // ✅ CORRECTION: Utiliser camelCase partout
         if (produit.getDatePublication() != null) {
@@ -372,9 +374,13 @@ public class ProduitController {
                 .collect(Collectors.toList());
     }
 
-    // 🆕 ENDPOINT POUR DÉMARRER UNE ENCHÈRE
+// Dans ProduitController.java, modifier l'endpoint start-auction :
+
     @PostMapping("/{produitId}/start-auction")
-    public ResponseEntity<?> startAuction(@PathVariable Long produitId) {
+    public ResponseEntity<?> startAuction(
+            @PathVariable Long produitId,
+            @RequestBody Map<String, Object> requestBody) {
+
         try {
             System.out.println("🚀 Démarrage de l'enchère pour le produit: " + produitId);
 
@@ -386,15 +392,26 @@ public class ProduitController {
                 return ResponseEntity.badRequest().body("Le produit doit être accepté pour démarrer une enchère. État actuel: " + produit.getEtat());
             }
 
+            // ✅ RÉCUPÉRER LA DURÉE DEPUIS LA REQUÊTE
+            Integer dureeEnchereJours = (Integer) requestBody.get("dureeEnchereJours");
+
+            if (dureeEnchereJours == null || dureeEnchereJours < 1) {
+                return ResponseEntity.badRequest().body("Durée d'enchère invalide");
+            }
+
+            // ✅ SAUVEGARDER LA DURÉE DANS LE PRODUIT
+            produit.setDureeEnchereJours(dureeEnchereJours);
+
             // Changer l'état à "en_enchere"
             produit.setEtat("en_enchere");
 
-            // ✅ NOUVEAU : Définir la date de début d'enchère
+            // ✅ DÉFINIR LA DATE DE DÉBUT D'ENCHÈRE
             produit.setDateEnchere(LocalDateTime.now());
 
             Produit updatedProduit = produitService.saveProduit(produit);
 
             System.out.println("✅ Enchère démarrée avec succès pour le produit: " + produitId);
+            System.out.println("📅 Durée de l'enchère: " + dureeEnchereJours + " jours");
             System.out.println("📅 Date d'enchère définie: " + updatedProduit.getDateEnchere());
 
             return ResponseEntity.ok(convertToDTO(updatedProduit));

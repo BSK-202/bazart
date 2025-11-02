@@ -24,7 +24,7 @@ import java.util.Optional;
 public class ClientController {
 
     private final ClientService clientService;
-    private final String UPLOAD_DIR = "assets/user/";
+    private final String UPLOAD_DIR = "backend/assets/user/";
 
     public ClientController(ClientService clientService) {
         this.clientService = clientService;

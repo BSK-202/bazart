@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -69,4 +70,10 @@ public class InteractionService {
     public int getInteractionCount(Long produitId) {
         return interactionRepository.countByProduitId(produitId);
     }
+    // Dans InteractionService.java
+    public List<Interaction> getInteractionsByClientId(Long clientId) {
+        return interactionRepository.findByClientId(clientId);
+    }
+
+
 }

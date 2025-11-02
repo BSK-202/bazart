@@ -205,17 +205,68 @@
     <div *ngIf="activeTab === 'favorites'" class="tab-content">
       <div>
         <h2 class="font-serif text-2xl font-bold mb-6">Mes Favoris</h2>
-        <div class="text-center py-16">
+
+        <div *ngIf="produitsFavoris.length === 0" class="text-center py-16">
           <svg class="h-16 w-16 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
           </svg>
           <h3 class="font-serif text-2xl font-bold mb-2">Aucun favori pour le moment</h3>
-          <p class="text-muted-foreground mb-6">Vos produits favoris apparaîtront ici</p>
+          <p class="text-muted-foreground mb-6">Les produits que vous likez apparaîtront ici</p>
+        </div>
+
+        <div *ngIf="produitsFavoris.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div *ngFor="let produit of produitsFavoris"
+               class="enchere-card cursor-pointer"
+               (click)="goToProductDetail(produit.id)">
+            <div class="enchere-image-container">
+              <img [src]="produit.imagePrincipale || 'assets/images/placeholder.jpg'"
+                   [alt]="produit.nom"
+                   class="enchere-image"/>
+              <div class="time-badge badge-default">Favori</div>
+              <button class="favorite-btn"
+                      (click)="$event.stopPropagation(); toggleFavorite(produit)">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="enchere-content">
+              <h3 class="enchere-title">{{ produit.nom }}</h3>
+              <p class="enchere-description">
+                {{ produit.description | slice:0:120 }}{{ produit.description.length > 120 ? '...' : '' }}
+              </p>
+
+              <div class="enchere-stats">
+                <div class="enchere-stat">
+                  <span class="stat-label">Prix</span>
+                  <span class="stat-value primary">{{ formatCurrency(produit.prixDebut) }}</span>
+                </div>
+                <div class="enchere-stat">
+                  <span class="stat-label">Intérêts</span>
+                  <span class="stat-value">{{ produit.nombreInteractions }}</span>
+                </div>
+                <div class="enchere-stat">
+                  <span class="stat-label">État</span>
+                  <span class="stat-value">{{ getEtatDisplay(produit.etat) }}</span>
+                </div>
+              </div>
+
+              <div class="enchere-actions">
+                <button class="btn-enchere" (click)="$event.stopPropagation(); goToProductDetail(produit.id)">
+                  Voir détails
+                </button>
+              </div>
+
+              <div class="mt-2 text-xs text-muted-foreground" *ngIf="produit.dateLike">
+                Ajouté le {{ formatDate(produit.dateLike) }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Publiés Tab -->
+
     <!-- Publiés Tab -->
     <div *ngIf="activeTab === 'published'" class="tab-content">
       <div>
@@ -248,8 +299,7 @@
 
               <!-- ✅ BOUTON "METTRE EN ENCHÈRE" AJOUTÉ ICI -->
               <button class="btn-start-auction"
-                      (click)="$event.stopPropagation(); startAuction(produit)"
-                      [disabled]="isAuctionStarting">
+                      (click)="$event.stopPropagation(); openDurationModal(produit)"                      [disabled]="isAuctionStarting">
                 Mettre en enchère
               </button>
             </div>
@@ -402,3 +452,134 @@
     </div>
   </div>
 </main>
+<!-- Dans profile.component.html, ajouter après la fermeture du main -->
+
+<!-- Modal de paiement pour démarrage d'enchère -->
+<div *ngIf="showPaymentModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Paiement pour mise en enchère</h3>
+      <button class="modal-close" (click)="cancelPayment()" [disabled]="isProcessingPayment">
+        &times;
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="payment-info">
+        <h4>Produit: {{ selectedProduct?.nom }}</h4>
+        <p class="product-description">
+          {{ getProductDescription() }}
+        </p>
+
+        <div class="payment-details">
+          <div class="amount-section">
+            <label>Montant à payer:</label>
+            <div class="payment-amount">{{ formatCurrency(paymentAmount) }}</div>
+          </div>
+
+          <div class="balance-section">
+            <label>Votre solde:</label>
+            <div class="wallet-balance" [class.insufficient]="walletBalance < paymentAmount">
+              {{ formatCurrency(walletBalance) }}
+            </div>
+          </div>
+
+          <div *ngIf="walletBalance < paymentAmount" class="insufficient-balance-warning">
+            ❌ Solde insuffisant. Veuillez recharger votre wallet.
+          </div>
+        </div>
+
+        <div *ngIf="paymentError" class="payment-error">
+          {{ paymentError }}
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button
+        class="btn-cancel"
+        (click)="cancelPayment()"
+        [disabled]="isProcessingPayment">
+        Annuler
+      </button>
+      <button
+        class="btn-confirm"
+        (click)="confirmPayment()"
+        [disabled]="isProcessingPayment || walletBalance < paymentAmount">
+        <span *ngIf="!isProcessingPayment">Payer et démarrer l'enchère</span>
+        <span *ngIf="isProcessingPayment">Traitement en cours...</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Ajouter après le modal de paiement dans profile.component.html -->
+
+<!-- Modal de sélection de durée -->
+<div *ngIf="showDurationModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Durée de l'enchère</h3>
+      <button class="modal-close" (click)="showDurationModal = false">
+        &times;
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="duration-info">
+        <h4>Produit: {{ selectedProductForDuration?.nom }}</h4>
+        <p class="product-description">
+          {{ getProductDescription() }}
+        </p>
+
+        <div class="duration-selection">
+          <label for="durationDays">Nombre de jours pour l'enchère:</label>
+          <div class="duration-input-container">
+            <input
+              type="number"
+              id="durationDays"
+              [(ngModel)]="durationDays"
+              (change)="calculatePrice()"
+              min="1"
+              [max]="maxDurationDays"
+              class="duration-input">
+            <span class="days-label">jours</span>
+          </div>
+
+          <div class="price-calculation">
+            <div class="price-per-day">
+              <span>Prix par jour:</span>
+              <span class="price-amount">{{ formatCurrency(pricePerDay) }}</span>
+            </div>
+            <div class="total-price">
+              <span>Total à payer:</span>
+              <span class="total-amount">{{ formatCurrency(calculatedPrice) }}</span>
+            </div>
+          </div>
+
+          <div *ngIf="durationDays > maxDurationDays" class="duration-warning">
+            ❌ La durée maximum est de {{ maxDurationDays }} jours
+          </div>
+        </div>
+
+        <div *ngIf="paymentError" class="payment-error">
+          {{ paymentError }}
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button
+        class="btn-cancel"
+        (click)="showDurationModal = false">
+        Annuler
+      </button>
+      <button
+        class="btn-confirm"
+        (click)="validateDuration()"
+        [disabled]="durationDays < 1 || durationDays > maxDurationDays">
+        Continuer vers le paiement
+      </button>
+    </div>
+  </div>
+</div>

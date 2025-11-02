@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import {AuthService} from '../../../services/auth.service';
+import {Enchere, EnchereService} from '../../../services/enchere.service';
 
 // Services
 
@@ -44,6 +45,8 @@ interface Produit {
   datePublication?: string; // camelCase
   datepublication?: string; // fallback en minuscules
   aExpertise: boolean;
+  dateenchere?: string;
+  dureeEnchereJours?: number;
 }
 
 @Component({
@@ -66,20 +69,12 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   isLoading: boolean = true;
   error: string = '';
 
-  // Données temporaires pour la démo (à remplacer par les vraies données)
-  auction = {
-    currentBid: 2400,
-    minIncrement: 50,
-    startingBid: 1500,
-    bids: 12,
-    endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-    bidHistory: [
-      { bidder: 'Mohammed K.', amount: 2400, time: 'Il y a 15 minutes', isLeading: true },
-      { bidder: 'Fatima B.', amount: 2350, time: 'Il y a 1 heure', isLeading: false },
-      { bidder: 'Ahmed M.', amount: 2300, time: 'Il y a 2 heures', isLeading: false },
-      { bidder: 'Yasmine L.', amount: 2200, time: 'Il y a 4 heures', isLeading: false },
-    ]
-  };
+  enchereActuelle: number = 0;
+  nombreEncheres: number = 0;
+  historiqueEncheres: Enchere[] = [];
+  isLoadingEncheres: boolean = false;
+
+
 
   private readonly API_BASE_URL = 'http://localhost:8080';
 
@@ -87,7 +82,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private enchereService: EnchereService // Nouveau service
   ) {}
 
   ngOnInit(): void {
@@ -96,6 +92,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
     if (this.produitId) {
       this.loadProduitDetails();
+      this.loadDonneesEnchere();
     } else {
       this.error = 'ID produit non valide';
       this.isLoading = false;
@@ -111,6 +108,84 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   }
 
 
+  // Charger les données d'enchère
+  loadDonneesEnchere(): void {
+    if (!this.produitId) return;
+
+    const produitIdNum = parseInt(this.produitId);
+
+    // Charger l'enchère actuelle
+    this.enchereService.getEnchereActuelle(produitIdNum).subscribe({
+      next: (response) => {
+        this.enchereActuelle = response.montantActuel;
+        console.log('💰 Enchère actuelle:', this.enchereActuelle);
+      },
+      error: (err) => {
+        console.error('❌ Erreur chargement enchère actuelle:', err);
+        this.enchereActuelle = this.produit?.prixDebut || 0;
+      }
+    });
+
+    // Charger le nombre d'enchères
+    this.enchereService.getNombreEncheres(produitIdNum).subscribe({
+      next: (response) => {
+        this.nombreEncheres = response.count;
+        console.log('🔢 Nombre d\'enchères:', this.nombreEncheres);
+      },
+      error: (err) => {
+        console.error('❌ Erreur chargement nombre enchères:', err);
+      }
+    });
+
+    // Charger l'historique des enchères
+    this.loadHistoriqueEncheres();
+  }
+
+  // Charger l'historique des enchères
+  loadHistoriqueEncheres(): void {
+    if (!this.produitId) return;
+
+    this.isLoadingEncheres = true;
+    const produitIdNum = parseInt(this.produitId);
+
+    this.enchereService.getHistoriqueEncheres(produitIdNum).subscribe({
+      next: (historique) => {
+        this.historiqueEncheres = historique.map(enchere => ({
+          ...enchere,
+          bidder: `${enchere.encherisseurPrenom} ${enchere.encherisseurNom}`,
+          amount: enchere.montant,
+          time: this.formatEnchereTime(enchere.dateEnchere),
+          isLeading: enchere.isLeading || false
+        }));
+        console.log('📊 Historique des enchères:', this.historiqueEncheres);
+        this.isLoadingEncheres = false;
+      },
+      error: (err) => {
+        console.error('❌ Erreur chargement historique enchères:', err);
+        this.isLoadingEncheres = false;
+      }
+    });
+  }
+
+  // Formater le temps de l'enchère
+  private formatEnchereTime(dateString: string): string {
+    try {
+      const dateEnchere = new Date(dateString);
+      const maintenant = new Date();
+      const difference = maintenant.getTime() - dateEnchere.getTime();
+
+      const minutes = Math.floor(difference / (1000 * 60));
+      const heures = Math.floor(difference / (1000 * 60 * 60));
+      const jours = Math.floor(difference / (1000 * 60 * 60 * 24));
+
+      if (minutes < 1) return 'À l\'instant';
+      if (minutes < 60) return `Il y a ${minutes} minute${minutes > 1 ? 's' : ''}`;
+      if (heures < 24) return `Il y a ${heures} heure${heures > 1 ? 's' : ''}`;
+      return `Il y a ${jours} jour${jours > 1 ? 's' : ''}`;
+    } catch (e) {
+      return 'Date inconnue';
+    }
+  }
 
   loadProduitDetails(): void {
     this.isLoading = true;
@@ -155,6 +230,24 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Dans ProductDetailComponent
+  formatDate(dateString: string | undefined): string {
+    if (!dateString) return '';
+
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      console.error('Error formatting date:', e);
+      return dateString;
+    }
+  }
   // 🔍 Extraire l'ID du vendeur du produit
   private extractVendeurId(produit: Produit): number {
     // Si vous avez directement l'ID du vendeur dans le produit
@@ -232,9 +325,15 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   private resetProfileImageState() {
     this.showDefaultAvatar = false;
   }
-  // Méthodes existantes avec adaptations
+
+
   get minBid(): number {
-    return this.auction.currentBid + this.auction.minIncrement;
+    if (!this.isEnchereActive) {
+      return this.produit?.prixDebut || 0;
+    }
+
+    // Utiliser l'enchère actuelle + incrément minimum
+    return this.enchereActuelle + (this.auction.minIncrement || 50);
   }
 
   get isAuthenticated(): boolean {
@@ -243,26 +342,43 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   private startTimer(): void {
     this.timer = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = this.auction.endTime.getTime() - now;
-
-      if (distance < 0) {
-        this.timeLeft = 'Enchère terminée';
-        clearInterval(this.timer);
-        return;
-      }
-
-      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      this.timeLeft = `${days}j ${hours}h ${minutes}m ${seconds}s`;
+      this.updateTimeLeft();
     }, 1000);
   }
 
+  private updateTimeLeft(): void {
+    if (!this.isEnchereActive || !this.auctionEndTime) {
+      this.timeLeft = 'Enchère non active';
+      return;
+    }
+
+    const now = new Date().getTime();
+    const distance = this.auctionEndTime.getTime() - now;
+
+    if (distance < 0) {
+      this.timeLeft = 'Enchère terminée';
+      // Optionnel: Mettre à jour l'état du produit
+      this.handleAuctionEnd();
+      return;
+    }
+
+    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+    this.timeLeft = `${days}j ${hours}h ${minutes}m ${seconds}s`;
+  }
+
+
   selectImage(index: number): void {
     this.selectedImage = index;
+  }
+
+  private handleAuctionEnd(): void {
+    console.log('🏁 Enchère terminée pour le produit:', this.produit?.id);
+    // Ici vous pouvez appeler une API pour mettre à jour l'état du produit
+    clearInterval(this.timer);
   }
 
   handleBid(): void {
@@ -272,6 +388,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
 
     const amount = parseFloat(this.bidAmount);
+    const produitIdNum = parseInt(this.produitId);
 
     if (!this.bidAmount || isNaN(amount)) {
       alert('Veuillez entrer un montant valide');
@@ -279,14 +396,36 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
 
     if (amount < this.minBid) {
-      alert(`L'enchère doit être d'au moins ${this.minBid.toLocaleString('fr-MA')} DH`);
+      alert(`L'enchère doit être d'au moins ${this.formatPrice(this.minBid)}`);
       return;
     }
 
-    console.log('[v0] Placing bid:', this.bidAmount);
-    alert('Enchère placée avec succès!');
-    this.bidAmount = '';
+    // Récupérer l'ID du client connecté
+    const clientId = this.authService.getCurrentUserId();
+    if (!clientId) {
+      alert('Erreur: Utilisateur non identifié');
+      return;
+    }
+
+    console.log('🎯 Placement enchère:', { produitId: produitIdNum, clientId, montant: amount });
+
+    this.enchereService.placerEnchere(produitIdNum, clientId, amount).subscribe({
+      next: (enchere) => {
+        console.log('✅ Enchère placée avec succès:', enchere);
+        alert('Enchère placée avec succès!');
+        this.bidAmount = '';
+
+        // Recharger les données d'enchère
+        this.loadDonneesEnchere();
+      },
+      error: (err) => {
+        console.error('❌ Erreur placement enchère:', err);
+        const errorMessage = err.error?.error || 'Erreur lors du placement de l\'enchère';
+        alert(`Erreur: ${errorMessage}`);
+      }
+    });
   }
+
 
   handleAddToFavorites(): void {
     if (!this.isAuthenticated) {
@@ -306,17 +445,21 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  formatPrice(amount: number): string {
+  formatPrice(amount: number | undefined): string {
+    // @ts-ignore
     return amount.toLocaleString('fr-MA') + ' DH';
   }
 
-  getInitials(name: string): string {
+// Mettre à jour getInitials pour être plus robuste
+  getInitials(name: string | undefined): string {
+    if (!name) return '??';
+
     const parts = name.split(' ');
     return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
   }
 
   // 🔄 Formater la date d'inscription
-  formatJoinDate(dateString: string): string {
+  formatJoinDate(dateString: string | undefined): string {
     if (!dateString) return 'Membre depuis 2020';
 
     try {
@@ -338,7 +481,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-// 🔄 Formater la date de publication - VERSION ROBUSTE
   formatPublicationDate(produit: Produit): string {
     console.log('📅 FormatPublicationDate appelée avec produit:', produit);
 
@@ -391,6 +533,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+
   // ⭐ Calculer la note du vendeur (temporairement statique)
   getSellerRating(): number {
     return 4.8; // À remplacer par un vrai calcul
@@ -402,4 +545,52 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   }
 
   protected readonly parseFloat = parseFloat;
+
+  get isEnchereActive(): boolean {
+    return this.produit?.etat === 'en_enchere';
+  }
+
+  get auctionEndTime(): Date | null {
+    if (!this.produit?.dateenchere || !this.produit.dureeEnchereJours) {
+      return null;
+    }
+
+    try {
+      const startDate = new Date(this.produit.dateenchere);
+      const endDate = new Date(startDate.getTime() + this.produit.dureeEnchereJours * 24 * 60 * 60 * 1000);
+      return endDate;
+    } catch (e) {
+      console.error('Erreur calcul date fin enchère:', e);
+      return null;
+    }
+  }
+
+  get auction() {
+    return {
+      currentBid: this.enchereActuelle,
+      minIncrement: 50, // Vous pouvez le rendre dynamique aussi
+      startingBid: this.produit?.prixDebut || 0,
+      bids: this.nombreEncheres,
+      endTime: this.auctionEndTime || new Date(),
+      bidHistory: this.historiqueEncheres
+    };
+  }
+
+// 🖼️ Construire l'URL complète de l'image de profil des enchérisseurs
+  getBidderProfileImageUrl(bidderId: number): string {
+    console.log('🖼️ Chargement image profil enchérisseur ID:', bidderId);
+    return `${this.API_BASE_URL}/api/clients/images/${bidderId}.jpg`;
+  }
+
+// Gérer l'erreur de chargement de l'image de profil des enchérisseurs
+  onBidderProfileImageError(event: any, bid: any) {
+    console.log(`❌ Profile image not found for bidder ${bid.encherisseurId}, using default avatar`);
+
+    // Ajouter une propriété pour afficher l'avatar par défaut
+    bid.showDefaultAvatar = true;
+
+    // Optionnel: cacher l'image défectueuse
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.style.display = 'none';
+  }
 }

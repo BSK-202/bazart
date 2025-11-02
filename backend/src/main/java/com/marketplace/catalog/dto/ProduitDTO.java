@@ -19,7 +19,7 @@ public class ProduitDTO {
     private Long vendeurId;
     private boolean aExpertise;
     private String dateenchere;
-
+    private Integer dureeEnchereJours;
     // Getters et Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -79,4 +79,12 @@ public class ProduitDTO {
     public void setVendeurId(Long vendeurId) { this.vendeurId = vendeurId; }
     public boolean isAExpertise() { return aExpertise; }
     public void setAExpertise(boolean aExpertise) { this.aExpertise = aExpertise; }
+
+    public Integer getDureeEnchereJours() {
+        return dureeEnchereJours;
+    }
+
+    public void setDureeEnchereJours(Integer dureeEnchereJours) {
+        this.dureeEnchereJours = dureeEnchereJours;
+    }
 }

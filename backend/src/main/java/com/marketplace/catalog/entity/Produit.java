@@ -61,6 +61,17 @@ public class Produit {
     @OneToMany(mappedBy = "produit", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Commentaire> commentaires;
 
+    @Column(name = "duree_enchere_jours")
+    private Integer dureeEnchereJours;
+
+    public Integer getDureeEnchereJours() {
+        return dureeEnchereJours;
+    }
+
+    public void setDureeEnchereJours(Integer dureeEnchereJours) {
+        this.dureeEnchereJours = dureeEnchereJours;
+    }
+
     // Getters et Setters existants...
     public Long getIdproduit() { return idproduit; }
     public void setIdproduit(Long idproduit) { this.idproduit = idproduit; }

@@ -26,7 +26,10 @@
         </button>
 
         <ng-container *ngIf="isAuthenticated">
-          <button class="icon-button" aria-label="Favoris" routerLink="/profil">
+          <!-- MODIFICATION ICI : Icône cœur qui redirige vers les favoris -->
+          <button class="icon-button"
+                  aria-label="Favoris"
+                  (click)="navigateToProfileSection('favorites')">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
             </svg>
@@ -71,8 +74,8 @@
                 </div>
                 <div class="dropdown-separator"></div>
                 <a routerLink="/profil" class="dropdown-item" (click)="closeDropdown()">Mon profil</a>
-                <a routerLink="/profil" class="dropdown-item" (click)="closeDropdown()">Mes enchères</a>
-                <a routerLink="/profil" class="dropdown-item" (click)="closeDropdown()">Mes favoris</a>
+                <a routerLink="/profil" class="dropdown-item" (click)="navigateToProfileSection('bids')">Mes enchères</a>
+                <a routerLink="/profil" class="dropdown-item" (click)="navigateToProfileSection('favorites')">Mes favoris</a>
                 <div class="dropdown-separator"></div>
                 <button class="dropdown-item logout" (click)="logout()">
                   <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -99,8 +102,6 @@
           <button class="sell-button" routerLink="/vendre">
             Vendre
           </button>
-
-
         </div>
       </div>
     </div>
