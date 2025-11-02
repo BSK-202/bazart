@@ -14,4 +14,6 @@ public interface ClientService extends UserDetailsService {
 
     //  AJOUTER cette méthode
     Optional<Client> getClientById(Long id);
+    Client updateClient(Client client);
+
 }

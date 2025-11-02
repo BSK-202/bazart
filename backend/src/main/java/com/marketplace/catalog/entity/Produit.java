@@ -1,5 +1,6 @@
 package com.marketplace.catalog.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.marketplace.interaction.entity.Commentaire;
 import com.marketplace.interaction.entity.Interaction;
 import com.marketplace.user.entity.Client;
@@ -27,6 +28,11 @@ public class Produit {
     @Column(name = "datepublication")
     private LocalDateTime datePublication;
 
+
+    // ✅ NOUVEAU : Date de début d'enchère
+    @Column(name = "dateenchere")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime dateEnchere;
     @Column(nullable = false)
     private boolean aExpertise;
 
@@ -54,6 +60,17 @@ public class Produit {
 
     @OneToMany(mappedBy = "produit", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Commentaire> commentaires;
+
+    @Column(name = "duree_enchere_jours")
+    private Integer dureeEnchereJours;
+
+    public Integer getDureeEnchereJours() {
+        return dureeEnchereJours;
+    }
+
+    public void setDureeEnchereJours(Integer dureeEnchereJours) {
+        this.dureeEnchereJours = dureeEnchereJours;
+    }
 
     // Getters et Setters existants...
     public Long getIdproduit() { return idproduit; }
@@ -98,4 +115,20 @@ public class Produit {
 
     public List<Commentaire> getCommentaires() { return commentaires; }
     public void setCommentaires(List<Commentaire> commentaires) { this.commentaires = commentaires; }
+    public LocalDateTime getDateEnchere() {
+        return dateEnchere;
+    }
+
+    public void setDateEnchere(LocalDateTime dateEnchere) {
+        this.dateEnchere = dateEnchere;
+    }
+
+    public boolean isaExpertise() {
+        return aExpertise;
+    }
+
+    public void setaExpertise(boolean aExpertise) {
+        this.aExpertise = aExpertise;
+    }
+
 }

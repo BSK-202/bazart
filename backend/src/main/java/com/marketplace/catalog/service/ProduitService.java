@@ -10,4 +10,8 @@ public interface ProduitService {
     List<Produit> getProduitsByCategorie(Long idCategorie); //  CORRIGÉ
     List<String> getTousLesEtats(); //  CORRIGÉ (nom correct)
     Produit saveProduit(Produit produit);
+    List<Produit> getProduitsEnAttente();
+    long countProduitsEnAttente();
+    List<Produit> getProduitsByVendeur(Long vendeurId);
+
 }

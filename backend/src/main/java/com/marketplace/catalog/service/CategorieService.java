@@ -22,4 +22,38 @@ public class CategorieService {
     public Optional<Categorie> getCategorieById(Long id) {
         return categorieRepository.findById(id);
     }
+
+    // CategorieService.java
+
+    public Categorie addCategorie(Categorie categorie) {
+        return categorieRepository.save(categorie);
+    }
+
+    public Categorie updateCategorie(Long id, Categorie categorieDetails) {
+        Categorie categorie = categorieRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Catégorie non trouvée"));
+
+        categorie.setNomCategorie(categorieDetails.getNomCategorie());
+        categorie.setDescription(categorieDetails.getDescription());
+
+        // Ne met à jour l'image que si elle est fournie dans categorieDetails
+        if (categorieDetails.getImage() != null) {
+            categorie.setImage(categorieDetails.getImage());
+        }
+
+        return categorieRepository.save(categorie);
+    }
+
+    public boolean deleteCategorie(Long id) {
+        if (categorieRepository.existsById(id)) {
+            categorieRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+    public long getCategoriesCountByDomaine(Long idDomaine) {
+        return categorieRepository.findByDomaine_IdDomaine(idDomaine).size();
+    }
+
+
 }

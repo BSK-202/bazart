@@ -4,6 +4,7 @@ import com.marketplace.catalog.dto.ProduitDTO;
 import com.marketplace.catalog.entity.Produit;
 import com.marketplace.catalog.entity.ProduitImage;
 import com.marketplace.catalog.entity.Categorie;
+import com.marketplace.catalog.repository.ProduitRepository;
 import com.marketplace.catalog.service.ImageVerificationService;
 import com.marketplace.user.entity.Client;
 import com.marketplace.catalog.service.ProduitService;
@@ -36,6 +37,8 @@ public class ProduitController {
     private final ProduitService produitService;
     private final CategorieService categorieService;
     private final ClientService clientService;
+    private final ProduitRepository produitRepository; //  DÉCLARÉ
+
     /*
     @Autowired
     private ImageVerificationService imageVerificationService;
@@ -47,10 +50,11 @@ public class ProduitController {
 
     public ProduitController(ProduitService produitService,
                              CategorieService categorieService,
-                             ClientService clientService) {
+                             ClientService clientService, ProduitRepository produitRepository) {
         this.produitService = produitService;
         this.categorieService = categorieService;
         this.clientService = clientService;
+        this.produitRepository = produitRepository;
     }
 
     // 🆕 ENDPOINT POUR SERVIR LES IMAGES
@@ -231,11 +235,191 @@ public class ProduitController {
 
         response.setNombreInteractions(produit.getInteractions() != null ? produit.getInteractions().size() : 0);
         response.setNombreCommentaires(produit.getCommentaires() != null ? produit.getCommentaires().size() : 0);
+        // ✅ AJOUTER LA DURÉE D'ENCHÈRE
+        response.setDureeEnchereJours(produit.getDureeEnchereJours());
+        // Ajouter la date de publication
+        // ✅ CORRECTION: Utiliser camelCase partout
+        if (produit.getDatePublication() != null) {
+            response.setDatepublication(produit.getDatePublication().toString()); // ✅ camelCase
+            System.out.println("📅 Date de publication convertie: " + produit.getDatePublication().toString());
+        } else {
+            System.out.println("⚠️ Date de publication est null");
+            response.setDatepublication(LocalDateTime.now().toString()); // ✅ camelCase
+        }
 
+        // ✅ NOUVEAU : Date d'enchère
+        if (produit.getDateEnchere() != null) {
+            response.setDateenchere(produit.getDateEnchere().toString());
+        }
+        response.setVendeurId(produit.getVendeur() != null ? produit.getVendeur().getIdclient() : null);
         response.setImages(produit.getImages() != null ?
                 produit.getImages().stream().map(ProduitImage::getUrl).collect(Collectors.toList())
                 : null);
 
         return response;
+    }
+    //  ENDPOINTS POUR LES PRODUITS EN ATTENTE
+    @GetMapping("/en-attente")
+    public ResponseEntity<List<ProduitDTO>> getProduitsEnAttente() {
+        try {
+            System.out.println(" Recherche des produits en attente...");
+            List<Produit> produits = produitService.getProduitsEnAttente();
+            System.out.println(" Nombre de produits en attente trouvés: " + produits.size());
+
+            List<ProduitDTO> produitsDTO = produits.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(produitsDTO);
+        } catch (Exception e) {
+            System.err.println(" Erreur lors de la récupération des produits en attente: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/en-attente/count")
+    public ResponseEntity<Map<String, Long>> countProduitsEnAttente() {
+        try {
+            System.out.println(" Calcul du nombre de produits en attente...");
+            long count = produitService.countProduitsEnAttente();
+            System.out.println("Nombre de produits en attente: " + count);
+
+            Map<String, Long> response = new HashMap<>();
+            response.put("count", count);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println(" Erreur lors du comptage des produits en attente: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    //  ENDPOINT POUR RÉCUPÉRER TOUS LES PRODUITS AVEC FILTRE ÉTAT (optionnel)
+    @GetMapping("/etat/{etat}")
+    public ResponseEntity<List<ProduitDTO>> getProduitsByEtat(@PathVariable String etat) {
+        try {
+            System.out.println(" Recherche des produits avec état: " + etat);
+
+            // MAINTENANT produitRepository EST INITIALISÉ
+            List<Produit> produits = produitRepository.findByEtat(etat);
+
+            System.out.println(" Nombre de produits avec état '" + etat + "': " + produits.size());
+
+            List<ProduitDTO> produitsDTO = produits.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(produitsDTO);
+        } catch (Exception e) {
+            System.err.println(" Erreur lors de la récupération des produits par état: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
+    // ENDPOINT POUR METTRE À JOUR L'ÉTAT DU PRODUIT
+    @PutMapping("/{id}/etat")
+    public ResponseEntity<?> updateProductState(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+
+        try {
+            String newState = request.get("etat");
+            String noteAdmin = request.get("noteAdmin");
+
+            System.out.println("🔄 Mise à jour état produit ID: " + id + " -> " + newState);
+
+            Produit produit = produitService.getProduitById(id)
+                    .orElseThrow(() -> new RuntimeException("Produit non trouvé avec ID: " + id));
+
+            produit.setEtat(newState);
+
+            // Si vous avez un champ pour stocker la note d'admin, vous pouvez l'ajouter ici
+            if (noteAdmin != null && !noteAdmin.trim().isEmpty()) {
+                System.out.println("📝 Note admin: " + noteAdmin);
+                // produit.setNoteAdmin(noteAdmin); // Décommentez si vous avez ce champ
+            }
+
+            Produit updatedProduit = produitService.saveProduit(produit);
+
+            System.out.println("✅ État produit mis à jour: " + updatedProduit.getEtat());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Produit " + (newState.equals("accepte") ? "accepté" : "refusé") + " avec succès"
+            ));
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur mise à jour état produit: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
+                    "success", false,
+                    "message", "Erreur lors de la mise à jour du produit"
+            ));
+        }
+    }
+    // 🆕 ENDPOINT POUR RÉCUPÉRER LES PRODUITS DU CLIENT CONNECTÉ
+    @GetMapping("/vendeur/{vendeurId}")
+    public List<ProduitDTO> getProduitsByVendeur(@PathVariable Long vendeurId) {
+        System.out.println("🔍 Recherche produits du vendeur: " + vendeurId);
+        List<Produit> produits = produitService.getProduitsByVendeur(vendeurId);
+        System.out.println("📦 Nombre de produits trouvés: " + produits.size());
+
+        produits.forEach(p -> {
+            System.out.println("Produit: " + p.getNom() + " - État: " + p.getEtat());
+        });
+
+        return produits.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+// Dans ProduitController.java, modifier l'endpoint start-auction :
+
+    @PostMapping("/{produitId}/start-auction")
+    public ResponseEntity<?> startAuction(
+            @PathVariable Long produitId,
+            @RequestBody Map<String, Object> requestBody) {
+
+        try {
+            System.out.println("🚀 Démarrage de l'enchère pour le produit: " + produitId);
+
+            Produit produit = produitService.getProduitById(produitId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produit non trouvé"));
+
+            // Vérifier que le produit est dans un état qui permet de démarrer une enchère
+            if (!"accepter".equals(produit.getEtat()) && !"accepte".equals(produit.getEtat())) {
+                return ResponseEntity.badRequest().body("Le produit doit être accepté pour démarrer une enchère. État actuel: " + produit.getEtat());
+            }
+
+            // ✅ RÉCUPÉRER LA DURÉE DEPUIS LA REQUÊTE
+            Integer dureeEnchereJours = (Integer) requestBody.get("dureeEnchereJours");
+
+            if (dureeEnchereJours == null || dureeEnchereJours < 1) {
+                return ResponseEntity.badRequest().body("Durée d'enchère invalide");
+            }
+
+            // ✅ SAUVEGARDER LA DURÉE DANS LE PRODUIT
+            produit.setDureeEnchereJours(dureeEnchereJours);
+
+            // Changer l'état à "en_enchere"
+            produit.setEtat("en_enchere");
+
+            // ✅ DÉFINIR LA DATE DE DÉBUT D'ENCHÈRE
+            produit.setDateEnchere(LocalDateTime.now());
+
+            Produit updatedProduit = produitService.saveProduit(produit);
+
+            System.out.println("✅ Enchère démarrée avec succès pour le produit: " + produitId);
+            System.out.println("📅 Durée de l'enchère: " + dureeEnchereJours + " jours");
+            System.out.println("📅 Date d'enchère définie: " + updatedProduit.getDateEnchere());
+
+            return ResponseEntity.ok(convertToDTO(updatedProduit));
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors du démarrage de l'enchère: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erreur lors du démarrage de l'enchère: " + e.getMessage());
+        }
     }
 }

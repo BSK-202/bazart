@@ -1,0 +1,585 @@
+<main class="container mx-auto px-4 py-12">
+  <!-- Profile Header -->
+  <div class="mb-12">
+    <div class="flex flex-col md:flex-row items-start md:items-center gap-6 mb-8">
+      <div class="avatar-container">
+        <div class="avatar h-24 w-24">
+          <!-- Afficher l'image de profil si disponible -->
+          <img *ngIf="showProfileImage && userProfileImage && !isLoading"
+               [src]="userProfileImage"
+               alt="Photo de profil"
+               class="w-full h-full object-cover rounded-full"
+               (error)="onImageError()">
+          <!-- Fallback aux initiales si pas d'image mais utilisateur connecté -->
+          <div *ngIf="!showProfileImage && user && !isLoading" class="avatar-fallback font-serif text-2xl">
+            {{ getInitials() }}
+          </div>
+          <!-- Avatar vide si pas d'utilisateur -->
+          <div *ngIf="!user && !isLoading" class="avatar-fallback font-serif text-2xl">
+            ?
+          </div>
+          <!-- Loading state -->
+          <div *ngIf="isLoading" class="avatar-fallback font-serif text-2xl">
+            ...
+          </div>
+        </div>
+      </div>
+      <div class="flex-1">
+        <h1 class="font-serif text-4xl font-bold mb-2">
+          <span *ngIf="isLoading">Chargement...</span>
+          <span *ngIf="!isLoading">{{ user?.name || 'Utilisateur' }}</span>
+        </h1>
+        <p class="text-muted-foreground mb-4" *ngIf="joinDate && !isLoading">
+          Membre depuis {{ joinDate }}
+        </p>
+        <p class="text-muted-foreground mb-4" *ngIf="!joinDate && !isLoading && user">
+          Membre
+        </p>
+        <div class="flex flex-wrap gap-4">
+          <div class="flex items-center gap-2">
+            <svg class="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span class="font-semibold">{{ produitsEncheres.length }} enchères actives</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg class="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            <span class="font-semibold">{{ produitsPublies.length }} produits publiés</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <svg class="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span class="font-semibold">{{ produitsVendus.length }} produits vendus</span>
+          </div>
+        </div>
+      </div>
+      <button class="btn-outline gap-2 bg-transparent"
+              [disabled]="isLoading"
+              (click)="setActiveTab('settings')">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Paramètres
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs-container">
+    <div class="tabs-list">
+      <button
+        [class.active]="activeTab === 'bids'"
+        (click)="setActiveTab('bids')"
+        class="tab-trigger gap-2">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Mes Enchères
+      </button>
+      <button
+        [class.active]="activeTab === 'favorites'"
+        (click)="setActiveTab('favorites')"
+        class="tab-trigger gap-2">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+        </svg>
+        Favoris
+      </button>
+      <button
+        [class.active]="activeTab === 'published'"
+        (click)="setActiveTab('published')"
+        class="tab-trigger gap-2">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        Publiés
+      </button>
+      <button
+        [class.active]="activeTab === 'sold'"
+        (click)="setActiveTab('sold')"
+        class="tab-trigger gap-2">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        Vendus
+      </button>
+      <button
+        [class.active]="activeTab === 'pending'"
+        (click)="setActiveTab('pending')"
+        class="tab-trigger gap-2">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        En Attente
+      </button>
+      <button
+        [class.active]="activeTab === 'won'"
+        (click)="setActiveTab('won')"
+        class="tab-trigger gap-2">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+        Gagnées
+      </button>
+    </div>
+
+    <!-- Mes Enchères Tab -->
+    <div *ngIf="activeTab === 'bids'" class="tab-content space-y-6">
+      <div>
+        <h2 class="font-serif text-2xl font-bold mb-6">Enchères Actives</h2>
+        <div *ngIf="produitsEncheres.length === 0" class="text-center py-16">
+          <svg class="h-16 w-16 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          <h3 class="font-serif text-2xl font-bold mb-2">Aucune enchère active</h3>
+          <p class="text-muted-foreground mb-6">Vos produits en cours d'enchère apparaîtront ici</p>
+        </div>
+
+        <!-- Nouveau design pour les produits en enchère -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div *ngFor="let produit of produitsEncheres"
+               class="enchere-card cursor-pointer"
+               (click)="goToProductDetail(produit.id)">
+            <div class="enchere-image-container">
+              <img [src]="produit.imagePrincipale || 'assets/images/placeholder.jpg'"
+                   [alt]="produit.nom"
+                   class="enchere-image"/>
+              <div class="time-badge badge-default">Enchère active</div>
+            </div>
+            <div class="enchere-content">
+              <h3 class="enchere-title">{{ produit.nom }}</h3>
+
+              <!-- ✅ NOUVEAU : Afficher la date de début d'enchère -->
+              <div class="mt-2 text-xs text-muted-foreground" *ngIf="produit.dateenchere">
+                🕐 Enchère démarrée le {{ formatDate(produit.dateenchere) }}
+              </div>
+
+              <p class="enchere-description">
+                {{ produit.description | slice:0:120 }}{{ produit.description.length > 120 ? '...' : '' }}
+              </p>
+
+              <div class="enchere-stats">
+                <div class="enchere-stat">
+                  <span class="stat-label">Prix actuel</span>
+                  <span class="stat-value primary">{{ formatCurrency(produit.prixDebut) }}</span>
+                </div>
+                <div class="enchere-stat">
+                  <span class="stat-label">Intérêts</span>
+                  <span class="stat-value">{{ produit.nombreInteractions }}</span>
+                </div>
+                <div class="enchere-stat">
+                  <span class="stat-label">Commentaires</span>
+                  <span class="stat-value">{{ produit.nombreCommentaires }}</span>
+                </div>
+                <div class="enchere-stat">
+                  <span class="stat-label">Durée</span>
+                  <!-- ✅ Optionnel : Afficher la durée depuis le début -->
+                  <span class="stat-value" *ngIf="produit.dateenchere">
+          {{ calculateAuctionDuration(produit.dateenchere) }}
+        </span>
+                  <span class="stat-value" *ngIf="!produit.dateenchere">
+          Nouvelle
+        </span>
+                </div>
+              </div>
+
+              <div class="enchere-actions">
+                <button class="btn-enchere" (click)="$event.stopPropagation(); goToProductDetail(produit.id)">
+                  Voir détails
+                </button>
+                <button class="btn-enchere-outline" (click)="$event.stopPropagation(); manageAuction(produit)">
+                  Gérer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Favoris Tab -->
+    <div *ngIf="activeTab === 'favorites'" class="tab-content">
+      <div>
+        <h2 class="font-serif text-2xl font-bold mb-6">Mes Favoris</h2>
+
+        <div *ngIf="produitsFavoris.length === 0" class="text-center py-16">
+          <svg class="h-16 w-16 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+          <h3 class="font-serif text-2xl font-bold mb-2">Aucun favori pour le moment</h3>
+          <p class="text-muted-foreground mb-6">Les produits que vous likez apparaîtront ici</p>
+        </div>
+
+        <div *ngIf="produitsFavoris.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div *ngFor="let produit of produitsFavoris"
+               class="enchere-card cursor-pointer"
+               (click)="goToProductDetail(produit.id)">
+            <div class="enchere-image-container">
+              <img [src]="produit.imagePrincipale || 'assets/images/placeholder.jpg'"
+                   [alt]="produit.nom"
+                   class="enchere-image"/>
+              <div class="time-badge badge-default">Favori</div>
+              <button class="favorite-btn"
+                      (click)="$event.stopPropagation(); toggleFavorite(produit)">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="enchere-content">
+              <h3 class="enchere-title">{{ produit.nom }}</h3>
+              <p class="enchere-description">
+                {{ produit.description | slice:0:120 }}{{ produit.description.length > 120 ? '...' : '' }}
+              </p>
+
+              <div class="enchere-stats">
+                <div class="enchere-stat">
+                  <span class="stat-label">Prix</span>
+                  <span class="stat-value primary">{{ formatCurrency(produit.prixDebut) }}</span>
+                </div>
+                <div class="enchere-stat">
+                  <span class="stat-label">Intérêts</span>
+                  <span class="stat-value">{{ produit.nombreInteractions }}</span>
+                </div>
+                <div class="enchere-stat">
+                  <span class="stat-label">État</span>
+                  <span class="stat-value">{{ getEtatDisplay(produit.etat) }}</span>
+                </div>
+              </div>
+
+              <div class="enchere-actions">
+                <button class="btn-enchere" (click)="$event.stopPropagation(); goToProductDetail(produit.id)">
+                  Voir détails
+                </button>
+              </div>
+
+              <div class="mt-2 text-xs text-muted-foreground" *ngIf="produit.dateLike">
+                Ajouté le {{ formatDate(produit.dateLike) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Publiés Tab -->
+    <div *ngIf="activeTab === 'published'" class="tab-content">
+      <div>
+        <h2 class="font-serif text-2xl font-bold mb-6">Mes Produits Publiés</h2>
+        <!-- ... contenu existant ... -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div *ngFor="let produit of produitsPublies"
+               class="auction-card cursor-pointer">
+            <div class="auction-image-container">
+              <img [src]="produit.imagePrincipale || 'assets/images/placeholder.jpg'"
+                   [alt]="produit.nom"
+                   class="auction-image"/>
+              <div class="time-badge badge-warning">Publié</div>
+            </div>
+            <div class="auction-content">
+              <h3 class="auction-title">{{ produit.nom }}</h3>
+              <p class="text-sm text-muted-foreground mb-2">
+                {{ produit.description | slice:0:100 }}{{ produit.description.length > 100 ? '...' : '' }}
+              </p>
+              <div class="auction-details">
+                <div class="current-bid">
+                  <span class="bid-label">Prix de départ</span>
+                  <span class="bid-amount">{{ formatCurrency(produit.prixDebut) }}</span>
+                </div>
+                <div class="bids-count">{{ produit.nombreInteractions }} intérêts</div>
+              </div>
+              <div class="mt-2 text-xs text-muted-foreground">
+                Publié le {{ formatDate(produit.datepublication) }}
+              </div>
+
+              <!-- ✅ BOUTON "METTRE EN ENCHÈRE" AJOUTÉ ICI -->
+              <button class="btn-start-auction"
+                      (click)="$event.stopPropagation(); openDurationModal(produit)"                      [disabled]="isAuctionStarting">
+                Mettre en enchère
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vendus Tab -->
+    <div *ngIf="activeTab === 'sold'" class="tab-content">
+      <div>
+        <h2 class="font-serif text-2xl font-bold mb-6">Produits Vendus</h2>
+        <div *ngIf="produitsVendus.length === 0" class="text-center py-16">
+          <svg class="h-16 w-16 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          <h3 class="font-serif text-2xl font-bold mb-2">Aucun produit vendu</h3>
+          <p class="text-muted-foreground mb-6">Vos produits vendus apparaîtront ici</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div *ngFor="let produit of produitsVendus"
+               class="auction-card cursor-pointer"
+               (click)="goToProductDetail(produit.id)">
+            <div class="auction-image-container">
+              <img [src]="produit.imagePrincipale || 'assets/images/placeholder.jpg'"
+                   [alt]="produit.nom"
+                   class="auction-image"/>
+              <div class="badge-sold">Vendu</div>
+            </div>
+            <div class="auction-content">
+              <h3 class="auction-title">{{ produit.nom }}</h3>
+              <div class="auction-details">
+                <div class="current-bid">
+                  <span class="bid-label">Prix de vente</span>
+                  <span class="bid-amount text-green-600" *ngIf="produit.prixFin">
+                    {{ formatCurrency(produit.prixFin) }}
+                  </span>
+                  <span class="bid-amount text-green-600" *ngIf="!produit.prixFin">
+                    {{ formatCurrency(produit.prixDebut) }}
+                  </span>
+                </div>
+              </div>
+              <div class="mt-2 text-xs text-muted-foreground" *ngIf="produit.acheteurNom">
+                Vendu à {{ produit.acheteurNom }}
+              </div>
+              <div class="mt-2 text-xs text-muted-foreground" *ngIf="!produit.acheteurNom">
+                Vendu
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- En Attente Tab -->
+    <div *ngIf="activeTab === 'pending'" class="tab-content">
+      <div>
+        <h2 class="font-serif text-2xl font-bold mb-6">Produits en Attente</h2>
+        <div *ngIf="produitsEnAttente.length === 0" class="text-center py-16">
+          <svg class="h-16 w-16 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="font-serif text-2xl font-bold mb-2">Aucun produit en attente</h3>
+          <p class="text-muted-foreground mb-6">Vos produits en attente de validation apparaîtront ici</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div *ngFor="let produit of produitsEnAttente"
+               class="auction-card cursor-pointer"
+               (click)="goToProductDetail(produit.id)">
+            <div class="auction-image-container">
+              <img [src]="produit.imagePrincipale || 'assets/images/placeholder.jpg'"
+                   [alt]="produit.nom"
+                   class="auction-image"/>
+              <div class="time-badge badge-warning">En attente</div>
+            </div>
+            <div class="auction-content">
+              <h3 class="auction-title">{{ produit.nom }}</h3>
+              <p class="text-sm text-muted-foreground mb-2">{{ produit.description | slice:0:100 }}{{ produit.description.length > 100 ? '...' : '' }}</p>
+              <div class="auction-details">
+                <div class="current-bid">
+                  <span class="bid-label">Prix proposé</span>
+                  <span class="bid-amount">{{ formatCurrency(produit.prixDebut) }}</span>
+                </div>
+              </div>
+              <div class="mt-2 text-xs text-muted-foreground">
+                Soumis le {{ formatDate(produit.datepublication) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gagnées Tab -->
+    <div *ngIf="activeTab === 'won'" class="tab-content">
+      <div class="text-center py-16">
+        <svg class="h-16 w-16 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+        <h3 class="font-serif text-2xl font-bold mb-2">Aucune enchère gagnée récemment</h3>
+        <p class="text-muted-foreground mb-6">Vos enchères gagnées apparaîtront ici</p>
+      </div>
+    </div>
+
+    <!-- Paramètres Tab -->
+    <div *ngIf="activeTab === 'settings'" class="tab-content space-y-6">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="font-serif card-title">Notifications</h3>
+          <p class="card-description">Gérez vos préférences de notification</p>
+        </div>
+        <div class="card-content space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <svg class="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+              <div>
+                <p class="font-medium">Alertes d'enchères</p>
+                <p class="text-sm text-muted-foreground">
+                  Recevoir des notifications quand vous êtes surenchéri
+                </p>
+              </div>
+            </div>
+            <button class="btn-outline">Activer</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="font-serif card-title">Paiement</h3>
+          <p class="card-description">Gérez vos méthodes de paiement</p>
+        </div>
+        <div class="card-content">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <svg class="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+              </svg>
+              <div>
+                <p class="font-medium">Cartes enregistrées</p>
+                <p class="text-sm text-muted-foreground">Aucune carte enregistrée</p>
+              </div>
+            </div>
+            <button class="btn-outline">Ajouter</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<!-- Dans profile.component.html, ajouter après la fermeture du main -->
+
+<!-- Modal de paiement pour démarrage d'enchère -->
+<div *ngIf="showPaymentModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Paiement pour mise en enchère</h3>
+      <button class="modal-close" (click)="cancelPayment()" [disabled]="isProcessingPayment">
+        &times;
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="payment-info">
+        <h4>Produit: {{ selectedProduct?.nom }}</h4>
+        <p class="product-description">
+          {{ getProductDescription() }}
+        </p>
+
+        <div class="payment-details">
+          <div class="amount-section">
+            <label>Montant à payer:</label>
+            <div class="payment-amount">{{ formatCurrency(paymentAmount) }}</div>
+          </div>
+
+          <div class="balance-section">
+            <label>Votre solde:</label>
+            <div class="wallet-balance" [class.insufficient]="walletBalance < paymentAmount">
+              {{ formatCurrency(walletBalance) }}
+            </div>
+          </div>
+
+          <div *ngIf="walletBalance < paymentAmount" class="insufficient-balance-warning">
+            ❌ Solde insuffisant. Veuillez recharger votre wallet.
+          </div>
+        </div>
+
+        <div *ngIf="paymentError" class="payment-error">
+          {{ paymentError }}
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button
+        class="btn-cancel"
+        (click)="cancelPayment()"
+        [disabled]="isProcessingPayment">
+        Annuler
+      </button>
+      <button
+        class="btn-confirm"
+        (click)="confirmPayment()"
+        [disabled]="isProcessingPayment || walletBalance < paymentAmount">
+        <span *ngIf="!isProcessingPayment">Payer et démarrer l'enchère</span>
+        <span *ngIf="isProcessingPayment">Traitement en cours...</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Ajouter après le modal de paiement dans profile.component.html -->
+
+<!-- Modal de sélection de durée -->
+<div *ngIf="showDurationModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Durée de l'enchère</h3>
+      <button class="modal-close" (click)="showDurationModal = false">
+        &times;
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="duration-info">
+        <h4>Produit: {{ selectedProductForDuration?.nom }}</h4>
+        <p class="product-description">
+          {{ getProductDescription() }}
+        </p>
+
+        <div class="duration-selection">
+          <label for="durationDays">Nombre de jours pour l'enchère:</label>
+          <div class="duration-input-container">
+            <input
+              type="number"
+              id="durationDays"
+              [(ngModel)]="durationDays"
+              (change)="calculatePrice()"
+              min="1"
+              [max]="maxDurationDays"
+              class="duration-input">
+            <span class="days-label">jours</span>
+          </div>
+
+          <div class="price-calculation">
+            <div class="price-per-day">
+              <span>Prix par jour:</span>
+              <span class="price-amount">{{ formatCurrency(pricePerDay) }}</span>
+            </div>
+            <div class="total-price">
+              <span>Total à payer:</span>
+              <span class="total-amount">{{ formatCurrency(calculatedPrice) }}</span>
+            </div>
+          </div>
+
+          <div *ngIf="durationDays > maxDurationDays" class="duration-warning">
+            ❌ La durée maximum est de {{ maxDurationDays }} jours
+          </div>
+        </div>
+
+        <div *ngIf="paymentError" class="payment-error">
+          {{ paymentError }}
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button
+        class="btn-cancel"
+        (click)="showDurationModal = false">
+        Annuler
+      </button>
+      <button
+        class="btn-confirm"
+        (click)="validateDuration()"
+        [disabled]="durationDays < 1 || durationDays > maxDurationDays">
+        Continuer vers le paiement
+      </button>
+    </div>
+  </div>
+</div>

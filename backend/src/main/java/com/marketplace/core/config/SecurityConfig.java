@@ -1,4 +1,4 @@
-// SecurityConfig.java - VERSION CORRIGÉE
+// SecurityConfig.java - VERSION SANS DÉPENDANCE CIRCULAIRE
 package com.marketplace.core.config;
 
 import com.marketplace.core.security.JwtAuthenticationFilter;
@@ -23,6 +23,8 @@ import java.util.Arrays;
 @Configuration
 public class SecurityConfig {
 
+    // ✅ SUPPRIMER la dépendance AdminService du constructeur
+
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, ClientService clientService) {
         return new JwtAuthenticationFilter(jwtTokenProvider, clientService);
@@ -38,21 +40,39 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // ✅ Endpoints PUBLIC (sans authentification)
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/admins/login").permitAll() // Admin login public
+                        .requestMatchers("/api/admins/register").permitAll() // Admin register public
                         .requestMatchers("/api/domaines/**").permitAll()
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/produits/**").permitAll()
                         .requestMatchers("/api/clients/*/upload-profile-image").permitAll()
+                        .requestMatchers("/api/clients/**").permitAll()
+
                         .requestMatchers("/api/clients/*/profile-image").permitAll()
                         .requestMatchers("/api/commentaires/produit/*/count").permitAll()
-                        .requestMatchers("/api/commentaires/produit/**").permitAll() // ✅ AUTORISER SANS AUTH
-                        .requestMatchers("/api/interactions/**").authenticated() // ✅ Protéger les interactions
-                        .requestMatchers("/api/commentaires/**").authenticated() // ✅ Protéger les commentaires
+                        .requestMatchers("/api/commentaires/produit/**").permitAll()
+                        .requestMatchers("/api/clients/images/**").permitAll()
+
+                        .requestMatchers("/api/produits/*/start-auction").permitAll()
+
+
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/static/**", "/resources/**", "/css/**", "/js/**", "/images/**").permitAll()
+
+                        // ✅ Endpoints ADMIN PROTÉGÉS - Utiliser authenticated() au lieu de hasRole()
+                        .requestMatchers("/api/admins/**").authenticated()
+
+                        // ✅ Endpoints CLIENT PROTÉGÉS
+                        .requestMatchers("/api/interactions/**").authenticated()
+                        .requestMatchers("/api/commentaires/**").authenticated()
+                        .requestMatchers("/api/wallet/**").authenticated()
+
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // ✅ ACTIVER LE FILTRE JWT
+                // ✅ SEULEMENT LE FILTRE JWT (supprimer le filtre admin)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -60,42 +80,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        // Allow Angular and other origins
-        configuration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:4200",
-                "http://127.0.0.1:4200",
-                "http://localhost:3000"
-        ));
-
-        // Allowed HTTP methods
-        configuration.setAllowedMethods(Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
-        ));
-
-        // Allowed headers
-        configuration.setAllowedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "X-Requested-With",
-                "X-Client-Id",  // ✅ Ajouter X-Client-Id
-                "Accept",
-                "Origin",
-                "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"
-        ));
-
-        // Exposed headers
-        configuration.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Disposition",
-                "X-Client-Id"  // ✅ Exposer X-Client-Id
-        ));
-
-        // Allow credentials
+        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:4200", "http://127.0.0.1:4200", "http://localhost:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "X-Client-Id", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition", "X-Client-Id"));
         configuration.setAllowCredentials(true);
-
-        // Cache duration for preflight requests
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

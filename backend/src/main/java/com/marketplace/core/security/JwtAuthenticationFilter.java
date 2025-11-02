@@ -1,3 +1,4 @@
+// JwtAuthenticationFilter.java - VERSION AMÉLIORÉE
 package com.marketplace.core.security;
 
 import com.marketplace.user.service.ClientService;
@@ -26,6 +27,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+
+        String requestURI = request.getRequestURI();
+
+        // ✅ IGNORER COMPLÈTEMENT toutes les routes admin
+        if (requestURI.startsWith("/api/admins/")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // ✅ IGNORER les routes d'authentification
+        if (requestURI.startsWith("/api/auth/")) {
+            chain.doFilter(request, response);
+            return;
+        }
 
         String header = request.getHeader("Authorization");
         String token = null;

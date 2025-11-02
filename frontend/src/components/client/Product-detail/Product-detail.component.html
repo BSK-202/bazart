@@ -1,0 +1,319 @@
+<section class="py-12">
+  <div class="container mx-auto px-4">
+    <!-- Indicateur de chargement -->
+    <div *ngIf="isLoading" class="text-center py-12">
+      <div class="loading-spinner">Chargement du produit...</div>
+    </div>
+
+    <!-- Message d'erreur -->
+    <div *ngIf="error && !isLoading" class="text-center py-12 text-red-600">
+      {{ error }}
+    </div>
+
+    <!-- Contenu principal -->
+    <div *ngIf="produit && !isLoading" class="grid lg:grid-cols-2 gap-12">
+      <!-- Images -->
+      <div class="space-y-4">
+        <div class="relative aspect-square rounded-2xl overflow-hidden bg-muted">
+          <img
+            [src]="produit.images[selectedImage] || 'assets/images/placeholder.jpg'"
+            [alt]="produit.nom"
+            class="object-cover w-full h-full"
+          />
+        </div>
+        <div class="flex gap-4" *ngIf="produit.images && produit.images.length > 1">
+          <button
+            *ngFor="let image of produit.images; let index = index"
+            (click)="selectImage(index)"
+            [class]="'relative aspect-square rounded-lg overflow-hidden bg-muted flex-1 ' + (selectedImage === index ? 'ring-2 ring-primary' : '')"
+          >
+            <img
+              [src]="image"
+              [alt]="produit.nom + ' ' + (index + 1)"
+              class="object-cover w-full h-full"
+            />
+          </button>
+        </div>
+      </div>
+
+      <!-- Details -->
+      <div class="space-y-6">
+        <div>
+          <h1 class="font-serif text-4xl md:text-5xl font-bold mb-4 text-balance">{{ produit.nom }}</h1>
+          <p class="text-lg text-muted-foreground leading-relaxed">{{ produit.description }}</p>
+        </div>
+
+        <!-- Vendeur -->
+        <div class="p-5 bg-muted rounded-xl border border-border" *ngIf="vendeur">
+          <p class="text-sm font-medium text-muted-foreground mb-3">Vendu par</p>
+          <div class="flex items-center gap-4">
+            <!-- Image de profil du vendeur -->
+            <div class="profile-image-container">
+              <!-- Image chargée depuis le backend - SEULEMENT si l'image existe -->
+              <img
+                [src]="getProfileImageUrl(vendeur.idClient)"
+                [alt]="'Photo de profil de ' + vendeur.prenom + ' ' + vendeur.nom"
+                class="profile-image"
+                (error)="onProfileImageError($event)"
+                *ngIf="!showDefaultAvatar">
+
+              <!-- Avatar par défaut (affiché SEULEMENT si l'image n'existe pas) -->
+              <div class="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-white font-semibold text-lg"
+                   *ngIf="showDefaultAvatar">
+                {{ getInitials(vendeur.prenom + ' ' + vendeur.nom) }}
+              </div>
+            </div>
+
+            <div class="flex-1">
+              <p class="font-semibold text-lg">{{ vendeur.prenom }} {{ vendeur.nom }}</p>
+              <p class="text-sm text-muted-foreground">
+                ⭐ {{ getSellerRating() }} • {{ getSellerSales() }} ventes
+              </p>
+              <p class="text-xs text-muted-foreground mt-1">{{ formatJoinDate(vendeur.dateInscription) }}</p>
+              <p class="text-xs text-muted-foreground" *ngIf="vendeur.ville">
+                {{ vendeur.ville }}{{ vendeur.pays ? ', ' + vendeur.pays : '' }}
+              </p>
+              <p class="text-xs text-muted-foreground" *ngIf="vendeur.tel">
+                📞 {{ vendeur.tel }}
+              </p>
+            </div>
+            <button class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
+              Voir profil
+            </button>
+          </div>
+        </div>
+
+        <!-- Countdown - Afficher uniquement si l'enchère est active -->
+        <div *ngIf="isEnchereActive" class="p-6 bg-primary/5 rounded-xl border border-primary/20">
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span class="text-sm font-medium text-muted-foreground">Temps restant</span>
+          </div>
+          <p class="font-serif text-3xl font-bold text-primary">{{ timeLeft }}</p>
+
+          <!-- Afficher la durée de l'enchère -->
+          <div *ngIf="produit?.dureeEnchereJours" class="mt-2 text-sm text-muted-foreground">
+            Durée: {{ produit.dureeEnchereJours }} jour(s)
+          </div>
+
+          <!-- Afficher la date de début -->
+          <div *ngIf="produit?.dateenchere" class="mt-1 text-xs text-muted-foreground">
+            Début: {{ formatDate(produit.dateenchere) }}
+          </div>
+        </div>
+
+        <!-- Current Bid - Afficher différemment selon l'état -->
+        <div *ngIf="isEnchereActive" class="space-y-4">
+          <div class="flex items-baseline justify-between">
+            <div>
+              <p class="text-sm text-muted-foreground mb-1">Offre actuelle</p>
+              <p class="font-serif text-4xl font-bold text-foreground">
+                {{ formatPrice(enchereActuelle) }}
+              </p>
+            </div>
+            <div class="flex items-center gap-2 text-muted-foreground">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+              </svg>
+              <span class="text-sm">{{ nombreEncheres }} enchères</span>
+            </div>
+          </div>
+
+          <p class="text-sm text-muted-foreground">Enchère minimale: {{ formatPrice(minBid) }}</p>
+        </div>
+
+        <!-- Afficher le prix de départ si pas en enchère -->
+        <div *ngIf="!isEnchereActive" class="space-y-4">
+          <div>
+            <p class="text-sm text-muted-foreground mb-1">Prix de départ</p>
+            <p class="font-serif text-4xl font-bold text-foreground">
+              {{ formatPrice(produit?.prixDebut || 0) }}
+            </p>
+          </div>
+          <p class="text-sm text-muted-foreground">Ce produit n'est pas encore en enchère</p>
+        </div>
+
+        <!-- Authentification requise - Afficher uniquement si l'enchère est active -->
+        <div *ngIf="!isAuthenticated && isEnchereActive" class="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+          <p class="text-sm text-center">
+            <a routerLink="/connexion" class="text-primary hover:underline font-medium">Connectez-vous</a>
+            ou
+            <a routerLink="/inscription" class="text-primary hover:underline font-medium">créez un compte</a>
+            pour enchérir
+          </p>
+        </div>
+
+        <!-- Formulaire d'enchère - Afficher uniquement si l'enchère est active et utilisateur connecté -->
+        <div *ngIf="isEnchereActive" class="space-y-3">
+          <div class="space-y-3" *ngIf="isAuthenticated">
+            <div class="flex gap-3">
+              <div class="flex-1">
+                <input
+                  type="number"
+                  [placeholder]="'Minimum ' + formatPrice(minBid)"
+                  [value]="bidAmount"
+                  (input)="onBidAmountChange($event)"
+                  [min]="minBid"
+                  [step]="auction.minIncrement"
+                  class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+                <p *ngIf="bidAmount && parseFloat(bidAmount) < minBid" class="text-xs text-destructive mt-1">
+                  Le montant doit être au moins {{ formatPrice(minBid) }}
+                </p>
+              </div>
+              <button
+                (click)="handleBid()"
+                [disabled]="!bidAmount || parseFloat(bidAmount) < minBid"
+                class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-8 py-2"
+              >
+                Enchérir
+              </button>
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <button
+              (click)="handleAddToFavorites()"
+              [disabled]="!isAuthenticated"
+              class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 flex-1"
+            >
+              <svg class="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+              </svg>
+              Ajouter aux favoris
+            </button>
+            <button class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Informations supplémentaires -->
+        <div class="pt-6 border-t border-border space-y-3 text-sm">
+          <div class="flex justify-between">
+            <span class="text-muted-foreground">État du produit</span>
+            <span class="font-medium">{{ produit.etat | titlecase }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-muted-foreground">Catégorie</span>
+            <span class="font-medium">{{ produit.categorieNom }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-muted-foreground">Nécessite expertise</span>
+            <span class="font-medium">{{ produit.aExpertise ? 'Oui' : 'Non' }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-muted-foreground">Date de publication</span>
+            <span class="font-medium">{{ formatPublicationDate(produit) }}</span>
+          </div>
+          <!-- Afficher la durée d'enchère si disponible -->
+          <div class="flex justify-between" *ngIf="produit.dureeEnchereJours">
+            <span class="text-muted-foreground">Durée d'enchère</span>
+            <span class="font-medium">{{ produit.dureeEnchereJours }} jour(s)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historique des enchères (temporairement statique) - Afficher uniquement si l'enchère est active -->
+    <div class="mt-16" *ngIf="produit && !isLoading && isEnchereActive">
+      <div class="flex items-center gap-3 mb-6">
+        <svg class="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+        </svg>
+        <h2 class="font-serif text-3xl font-bold">Historique des enchères</h2>
+        <span *ngIf="isLoadingEncheres" class="loading-spinner text-sm">Chargement...</span>
+      </div>
+
+      <div class="bg-card rounded-xl border border-border overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-muted/50 border-b border-border">
+            <tr>
+              <th class="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Enchérisseur</th>
+              <th class="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Montant</th>
+              <th class="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Date</th>
+              <th class="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Statut</th>
+            </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+            <!-- Message si pas d'enchères -->
+            <tr *ngIf="historiqueEncheres.length === 0 && !isLoadingEncheres">
+              <td colspan="4" class="py-8 px-6 text-center text-muted-foreground">
+                Aucune enchère pour le moment. Soyez le premier à enchérir!
+              </td>
+            </tr>
+
+
+            <!-- Liste des enchères -->
+            <tr *ngFor="let bid of historiqueEncheres"
+                [class.bg-green-50]="bid.isLeading"
+                [class.border-l-4]="bid.isLeading"
+                [class.border-l-green-500]="bid.isLeading">
+              <td class="py-4 px-6">
+                <div class="flex items-center gap-3">
+                  <!-- Container pour l'avatar de l'enchérisseur -->
+                  <div class="bidder-avatar-container">
+                    <!-- Image de profil chargée depuis le backend -->
+                    <img
+                      [src]="getBidderProfileImageUrl(bid.encherisseurId)"
+                      [alt]="'Photo de profil de ' + bid.bidder"
+                      class="bidder-profile-image"
+                      (error)="onBidderProfileImageError($event, bid)"
+                    />
+
+                    <!-- Avatar par défaut -->
+                    <div
+                      class="default-bidder-avatar"
+                      [class.hidden]="!bid.showDefaultAvatar">
+                      {{ getInitials(bid.bidder) }}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span class="font-medium block">{{ bid.bidder }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="py-4 px-6">
+                <span class="font-semibold text-lg">{{ formatPrice(bid.amount) }}</span>
+              </td>
+              <td class="py-4 px-6 text-muted-foreground">{{ bid.time }}</td>
+              <td class="py-4 px-6">
+    <span *ngIf="bid.isLeading"
+          class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
+      <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+      En tête
+    </span>
+                <span *ngIf="!bid.isLeading" class="text-xs text-muted-foreground">
+      Dépassée
+    </span>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si le produit n'est pas en enchère -->
+    <div *ngIf="produit && !isLoading && !isEnchereActive" class="mt-16 text-center py-12">
+      <div class="bg-muted rounded-xl p-8 max-w-md mx-auto">
+        <svg class="h-16 w-16 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h3 class="font-serif text-2xl font-bold mb-2">Enchère non disponible</h3>
+        <p class="text-muted-foreground">
+          Ce produit n'est pas actuellement en enchère.
+          L'enchère pourrait commencer prochainement.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>

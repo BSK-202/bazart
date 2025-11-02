@@ -1,6 +1,6 @@
 <!-- app.component.html -->
-<app-header></app-header>
-
+<app-header *ngIf="!isAdminRoute"></app-header>
+<app-header-admin *ngIf="isAdminRoute" ></app-header-admin>
 <main class="p-4">
   <!-- C’est ici que les composants des routes vont s’afficher -->
   <router-outlet></router-outlet>

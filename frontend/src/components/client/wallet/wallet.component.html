@@ -1,0 +1,170 @@
+<div class="wallet-container">
+  <h2>💰 Mon Portefeuille</h2>
+
+  <div class="wallet-layout">
+    <!-- Section gauche : Recharge -->
+    <div class="left-section">
+      <div class="balance-card">
+        <div class="balance-header">
+          <h3>Solde Actuel</h3>
+          <button (click)="refreshAll()" class="refresh-btn" title="Actualiser" [disabled]="isLoading">
+            {{ isLoading ? '⏳' : '🔄' }}
+          </button>
+        </div>
+        <div class="balance-amount">
+          {{ balance | currency:currency:'symbol':'1.2-2' }}
+        </div>
+      </div>
+
+      <div class="recharge-card">
+        <h3>💳 Recharger le Portefeuille</h3>
+
+        <div class="form">
+          <label for="amount">Montant à recharger (MAD)</label>
+          <input
+            type="number"
+            id="amount"
+            [(ngModel)]="amountToAdd"
+            placeholder="Entrez le montant"
+            min="1"
+            step="0.01"
+            class="amount-input"
+            [class.error]="amountToAdd < 0"
+          />
+
+          <div class="quick-amounts">
+            <p>Montants rapides :</p>
+            <div class="quick-buttons">
+              <button
+                *ngFor="let quickAmount of [50, 100, 200, 500]"
+                (click)="setQuickAmount(quickAmount)"
+                class="quick-amount-btn"
+                [class.active]="amountToAdd === quickAmount"
+              >
+                {{ quickAmount }} MAD
+              </button>
+            </div>
+          </div>
+
+          <button
+            (click)="confirmRecharge()"
+            [disabled]="isLoading || amountToAdd <= 0"
+            class="pay-btn"
+          >
+            <span *ngIf="!isLoading">💳 Recharger {{ amountToAdd | currency:currency:'symbol':'1.2-2' }}</span>
+            <span *ngIf="isLoading">⏳ Recharge en cours...</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Message de statut -->
+      <div *ngIf="message" class="message" [class.error]="message.includes('❌') || message.includes('Erreur')" [class.success]="message.includes('✅')">
+        {{ message }}
+      </div>
+    </div>
+
+    <!-- Section droite : Historique -->
+    <div class="right-section">
+      <div class="history-card">
+        <div class="history-header">
+          <h3>📊 Historique des Opérations</h3>
+          <div class="history-controls">
+            <select
+              [(ngModel)]="selectedOperationType"
+              (change)="onOperationTypeChange()"
+              class="filter-select"
+              [disabled]="historyLoading"
+            >
+              <option value="ALL">Toutes les opérations</option>
+              <option value="CREDIT">Rechargements</option>
+              <option value="DEBIT">Débits</option>
+            </select>
+            <button
+              (click)="loadHistory()"
+              class="refresh-btn"
+              [disabled]="historyLoading"
+              title="Actualiser l'historique"
+            >
+              {{ historyLoading ? '⏳' : '🔄' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="history-content">
+          <div *ngIf="historyLoading" class="loading-history">
+            <p>Chargement de l'historique...</p>
+          </div>
+
+          <div *ngIf="!historyLoading && history.length === 0" class="no-history">
+            <p>Aucune opération trouvée.</p>
+          </div>
+
+          <div *ngIf="!historyLoading && history.length > 0" class="history-list">
+            <div
+              *ngFor="let operation of history"
+              class="history-item {{getOperationClass(operation.operationType)}}"
+            >
+              <div class="operation-icon">
+                {{ getOperationIcon(operation.operationType) }}
+              </div>
+
+              <div class="operation-details">
+                <div class="operation-main">
+                  <span class="operation-type">{{ operation.operationType === 'CREDIT' ? 'Rechargement' : 'Débit' }}</span>
+                  <span class="operation-amount" [class.positive]="operation.operationType === 'CREDIT'">
+                    {{ operation.operationType === 'CREDIT' ? '+' : '-' }}{{ operation.amount | currency:currency:'symbol':'1.2-2' }}
+                  </span>
+                </div>
+
+                <p class="operation-description">
+                  {{ formatDescription(operation.description) }}
+                </p>
+
+                <div class="operation-meta">
+                  <span class="operation-date">
+                    {{ operation.operationDate | date:'dd/MM/yyyy HH:mm' }}
+                  </span>
+                  <span class="operation-reference">
+                    {{ operation.reference }}
+                  </span>
+                </div>
+
+                <div class="balance-change">
+                  <small>
+                    Solde: {{ operation.balanceBefore | currency:currency:'symbol':'1.2-2' }}
+                    → {{ operation.balanceAfter | currency:currency:'symbol':'1.2-2' }}
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!historyLoading && history.length > 0" class="history-footer">
+          <p>{{ history.length }} opération(s) trouvée(s)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de confirmation -->
+  <div *ngIf="showConfirmation" class="confirmation-modal">
+    <div class="modal-overlay" (click)="cancelRecharge()"></div>
+    <div class="modal-content">
+      <h3>Confirmation de recharge</h3>
+      <p>Êtes-vous sûr de vouloir recharger votre portefeuille de <strong>{{ pendingAmount | currency:currency:'symbol':'1.2-2' }}</strong> ?</p>
+
+      <div class="balance-preview">
+        <p>Solde actuel: {{ balance | currency:currency:'symbol':'1.2-2' }}</p>
+        <p>Nouveau solde: {{ balance + pendingAmount | currency:currency:'symbol':'1.2-2' }}</p>
+      </div>
+
+      <div class="modal-actions">
+        <button (click)="executeRecharge()" [disabled]="isLoading" class="confirm-btn">
+          {{ isLoading ? 'Recharge en cours...' : 'Oui, recharger' }}
+        </button>
+        <button (click)="cancelRecharge()" [disabled]="isLoading" class="cancel-btn">Annuler</button>
+      </div>
+    </div>
+  </div>
+</div>
