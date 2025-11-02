@@ -1,5 +1,7 @@
 package com.marketplace.catalog.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.marketplace.catalog.dto.ProduitDTO;
 import com.marketplace.catalog.entity.Produit;
 import com.marketplace.catalog.entity.ProduitImage;
@@ -403,6 +405,183 @@ public class ProduitController {
             System.err.println("❌ Erreur lors du démarrage de l'enchère: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(500).body("Erreur lors du démarrage de l'enchère: " + e.getMessage());
+        }
+    }
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateProduit(
+            @PathVariable Long id,
+            @RequestPart("produit") ProduitDTO produitRequest,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestPart(value = "imagesToDelete", required = false) String imagesToDeleteJson) {
+
+        try {
+            System.out.println("✏️ [BACKEND] Modification du produit ID: " + id);
+
+            // 🔍 Récupérer le produit existant
+            Produit produit = produitService.getProduitById(id)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produit non trouvé avec ID: " + id));
+
+            // 🔄 Mettre à jour les champs simples
+            produit.setNom(produitRequest.getNom());
+            produit.setDescription(produitRequest.getDescription());
+            produit.setPrixDebut(produitRequest.getPrixDebut());
+            produit.setPrixFin(produitRequest.getPrixFin());
+            produit.setAExpertise(produitRequest.isAExpertise());
+            produit.setEtat(produitRequest.getEtat() != null ? produitRequest.getEtat() : produit.getEtat());
+
+            // 🔗 Mettre à jour la catégorie si modifiée
+            if (produitRequest.getCategorieId() != null) {
+                Categorie categorie = categorieService.getCategorieById(produitRequest.getCategorieId())
+                        .orElseThrow(() -> new RuntimeException("Catégorie non trouvée avec ID: " + produitRequest.getCategorieId()));
+                produit.setCategorie(categorie);
+            }
+
+            // 📁 Dossier du produit
+            Path produitFolderPath = Paths.get(UPLOAD_DIR + id);
+            if (!Files.exists(produitFolderPath)) {
+                Files.createDirectories(produitFolderPath);
+            }
+
+            // 🗑️ SUPPRIMER SEULEMENT LES IMAGES MARQUÉES POUR SUPPRESSION
+            if (imagesToDeleteJson != null && !imagesToDeleteJson.trim().isEmpty()) {
+                try {
+                    List<String> imagesToDelete = new ObjectMapper().readValue(imagesToDeleteJson, new TypeReference<List<String>>() {});
+                    System.out.println("🗑️ Images à supprimer: " + imagesToDelete);
+
+                    for (String imageName : imagesToDelete) {
+                        // Supprimer du système de fichiers
+                        Path imagePath = produitFolderPath.resolve(imageName);
+                        if (Files.exists(imagePath)) {
+                            Files.delete(imagePath);
+                            System.out.println("✅ Image supprimée du dossier: " + imageName);
+                        }
+
+                        // Supprimer de la base de données
+                        boolean removed = produit.getImages().removeIf(img -> imageName.equals(img.getUrl()));
+                        if (removed) {
+                            System.out.println("✅ Image supprimée de la base: " + imageName);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ Erreur lors du traitement des images à supprimer: " + e.getMessage());
+                }
+            }
+
+            // 📷 AJOUTER LES NOUVELLES IMAGES (sans supprimer les existantes)
+            if (images != null && !images.isEmpty()) {
+                System.out.println("🖼️ Ajout de " + images.size() + " nouvelles images pour le produit ID: " + id);
+
+                // Trouver le prochain index disponible
+                int nextIndex = 1;
+                if (!produit.getImages().isEmpty()) {
+                    nextIndex = produit.getImages().size() + 1;
+                }
+
+                // Ajouter les nouvelles images
+                for (int i = 0; i < images.size(); i++) {
+                    MultipartFile file = images.get(i);
+                    String fileExtension = getFileExtension(file.getOriginalFilename());
+                    String fileName = "image_" + (nextIndex + i) + fileExtension;
+                    Path imagePath = produitFolderPath.resolve(fileName);
+
+                    // Vérifier si le fichier existe déjà (au cas où)
+                    if (!Files.exists(imagePath)) {
+                        Files.write(imagePath, file.getBytes());
+                        System.out.println("✅ Nouvelle image sauvegardée: " + fileName);
+
+                        ProduitImage produitImage = new ProduitImage();
+                        produitImage.setUrl(fileName);
+                        produitImage.setProduit(produit);
+                        produit.getImages().add(produitImage);
+                    } else {
+                        System.err.println("⚠️ Image déjà existante, ignorée: " + fileName);
+                    }
+                }
+            }
+
+            System.out.println("📊 Total images après mise à jour: " + produit.getImages().size());
+
+            // 💾 Sauvegarder le produit modifié
+            Produit updatedProduit = produitService.saveProduit(produit);
+
+            System.out.println("✅ Produit mis à jour avec succès : " + updatedProduit.getNom());
+            return ResponseEntity.ok(convertToDTO(updatedProduit));
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la modification du produit : " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of(
+                    "success", false,
+                    "message", "Erreur lors de la mise à jour du produit : " + e.getMessage()
+            ));
+        }
+    }
+    // 🆕 AJOUTER CETTE MÉTHODE MANQUANTE
+    @PostMapping("/{clientId}/photo")
+    public ResponseEntity<?> uploadProfilePhoto(
+            @PathVariable Long clientId,
+            @RequestParam("photoProfil") MultipartFile file) {
+
+        try {
+            System.out.println("📤 Upload de photo de profil pour le client ID: " + clientId);
+
+            Optional<Client> clientOpt = clientService.getClientById(clientId);
+            if (clientOpt.isEmpty()) {
+                return ResponseEntity.status(404).body("Client non trouvé");
+            }
+
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest().body("Aucun fichier fourni");
+            }
+
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest().body("Le fichier doit être une image");
+            }
+
+            if (file.getSize() > 5 * 1024 * 1024) {
+                return ResponseEntity.badRequest().body("L'image ne doit pas dépasser 5MB");
+            }
+
+            String originalFileName = file.getOriginalFilename();
+            String fileExtension = ".jpg";
+
+            if (originalFileName != null && originalFileName.contains(".")) {
+                fileExtension = originalFileName.substring(originalFileName.lastIndexOf(".")).toLowerCase();
+            }
+
+            String newFileName = clientId + fileExtension;
+            Path filePath = Paths.get(UPLOAD_DIR + newFileName);
+
+            // Supprimer l'ancienne image si elle existe
+            Files.deleteIfExists(filePath);
+            Files.copy(file.getInputStream(), filePath);
+
+            System.out.println("✅ Photo de profil sauvegardée: " + filePath.toString());
+
+            // Mettre à jour le client avec le nouveau nom de fichier
+            Client client = clientOpt.get();
+            client.setPhotoprofil(newFileName);
+            clientService.updateClient(client);
+
+            // Construire l'URL complète
+            String profileImageUrl = "http://localhost:8080/api/clients/images/" + newFileName;
+
+            Map<String, String> response = new HashMap<>();
+            response.put("fileName", newFileName);
+            response.put("photoProfil", profileImageUrl); // ✅ CORRECTION: utiliser "photoProfil" au lieu de "profileImageUrl"
+            response.put("message", "Photo de profil uploadée avec succès");
+
+            return ResponseEntity.ok(response);
+
+        } catch (IOException e) {
+            System.err.println("❌ Erreur lors de l'upload de la photo: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erreur lors de l'upload de la photo: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("❌ Erreur inattendue: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erreur serveur: " + e.getMessage());
         }
     }
 }
