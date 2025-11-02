@@ -13,6 +13,6 @@ public class NotificationWebSocketService {
 
     public void sendToUser(Long userId, Notification notification) {
         // Envoie au frontend sur le canal /topic/notifications/{userId}
-        messagingTemplate.convertAndSend("/api/notifications/" + userId, notification);
+        messagingTemplate.convertAndSend("/topic/notifications/" + userId, notification);
     }
 }
