@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -26,4 +27,6 @@ public interface InteractionRepository extends JpaRepository<Interaction, Long> 
     @Modifying
     @Query("DELETE FROM Interaction i WHERE i.produit.idproduit = :produitId AND i.client.idclient = :clientId")
     int deleteByProduitIdAndClientId(@Param("produitId") Long produitId, @Param("clientId") Long clientId);
+    @Query("SELECT i FROM Interaction i WHERE i.client.idclient = :clientId ORDER BY i.date DESC")
+    List<Interaction> findByClientId(@Param("clientId") Long clientId);
 }

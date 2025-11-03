@@ -43,6 +43,26 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
+
+  navigateToProfileSection(section: string): void {
+    this.closeDropdown();
+
+    // Si nous sommes déjà sur la page de profil, on utilise le state pour changer d'onglet
+    if (this.router.url === '/profil' || this.router.url.startsWith('/profil')) {
+      // Émettre un événement ou utiliser un service pour communiquer avec le composant profil
+      this.router.navigate(['/profil'], {
+        state: { activeTab: section },
+        queryParams: { tab: section }
+      });
+    } else {
+      // Si nous ne sommes pas sur le profil, on navigue vers le profil avec l'état
+      this.router.navigate(['/profil'], {
+        state: { activeTab: section },
+        queryParams: { tab: section }
+      });
+    }
+  }
+
   private checkAuthState() {
     const authToken = localStorage.getItem('authToken');
     const userData = localStorage.getItem('userData');
@@ -58,15 +78,12 @@ export class HeaderComponent implements OnInit, OnDestroy {
             : parsedUser.name || 'Utilisateur',
           email: parsedUser.email,
           id: parsedUser.id || parsedUser.userId || parsedUser.idclient,
-          photoProfil: parsedUser.photoProfil // 🆕 Utiliser directement photoProfil
+          photoProfil: parsedUser.photoProfil
         };
-
 
         if (this.user.photoProfil) {
           this.userProfileImage = this.user.photoProfil;
           this.showProfileImage = true;
-
-          // DEBUG
           console.log('🖼️ Profile image URL from auth service:', this.userProfileImage);
         } else {
           this.showProfileImage = false;

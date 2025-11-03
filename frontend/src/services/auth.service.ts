@@ -57,7 +57,15 @@ export class AuthService {
       return null;
     }
   }
-
+  // ✅ AJOUTER CETTE MÉTHODE MANQUANTE
+  redirectToLogin(message?: string) {
+    this.router.navigate(['/connexion'], {
+      queryParams: {
+        returnUrl: this.router.url,
+        message: message || 'Veuillez vous connecter'
+      }
+    });
+  }
   // ===== Firebase Registration & Verification =====
   async registerWithFirebase(email: string, password: string): Promise<void> {
     const userCredential = await createUserWithEmailAndPassword(this.firebaseAuth, email, password);
@@ -70,4 +78,6 @@ export class AuthService {
       throw new Error('Please verify your email before logging in.');
     }
   }
+
+
 }

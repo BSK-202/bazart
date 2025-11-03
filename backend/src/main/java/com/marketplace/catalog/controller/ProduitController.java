@@ -2,6 +2,7 @@ package com.marketplace.catalog.controller;
 
 import com.marketplace.admin.entity.Admin;
 import com.marketplace.admin.service.AdminService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.marketplace.catalog.dto.ProduitDTO;
 import com.marketplace.catalog.entity.Produit;
 import com.marketplace.catalog.entity.ProduitImage;
@@ -24,7 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -258,6 +259,8 @@ public class ProduitController {
 
         response.setNombreInteractions(produit.getInteractions() != null ? produit.getInteractions().size() : 0);
         response.setNombreCommentaires(produit.getCommentaires() != null ? produit.getCommentaires().size() : 0);
+        // ✅ AJOUTER LA DURÉE D'ENCHÈRE
+        response.setDureeEnchereJours(produit.getDureeEnchereJours());
         // Ajouter la date de publication
         // ✅ CORRECTION: Utiliser camelCase partout
         if (produit.getDatePublication() != null) {
@@ -416,8 +419,13 @@ public class ProduitController {
     }
 
     // ENDPOINT POUR DÉMARRER UNE ENCHÈRE
+// Dans ProduitController.java, modifier l'endpoint start-auction :
+
     @PostMapping("/{produitId}/start-auction")
-    public ResponseEntity<?> startAuction(@PathVariable Long produitId) {
+    public ResponseEntity<?> startAuction(
+            @PathVariable Long produitId,
+            @RequestBody Map<String, Object> requestBody) {
+
         try {
             System.out.println("🚀 Démarrage de l'enchère pour le produit: " + produitId);
 
@@ -429,10 +437,20 @@ public class ProduitController {
                 return ResponseEntity.badRequest().body("Le produit doit être accepté pour démarrer une enchère. État actuel: " + produit.getEtat());
             }
 
+            // ✅ RÉCUPÉRER LA DURÉE DEPUIS LA REQUÊTE
+            Integer dureeEnchereJours = (Integer) requestBody.get("dureeEnchereJours");
+
+            if (dureeEnchereJours == null || dureeEnchereJours < 1) {
+                return ResponseEntity.badRequest().body("Durée d'enchère invalide");
+            }
+
+            // ✅ SAUVEGARDER LA DURÉE DANS LE PRODUIT
+            produit.setDureeEnchereJours(dureeEnchereJours);
+
             // Changer l'état à "en_enchere"
             produit.setEtat("en_enchere");
 
-            // ✅ NOUVEAU : Définir la date de début d'enchère
+            // ✅ DÉFINIR LA DATE DE DÉBUT D'ENCHÈRE
             produit.setDateEnchere(LocalDateTime.now());
 
             Produit updatedProduit = produitService.saveProduit(produit);
@@ -449,6 +467,7 @@ public class ProduitController {
             );
 
             System.out.println("✅ Enchère démarrée avec succès pour le produit: " + produitId);
+            System.out.println("📅 Durée de l'enchère: " + dureeEnchereJours + " jours");
             System.out.println("📅 Date d'enchère définie: " + updatedProduit.getDateEnchere());
 
             return ResponseEntity.ok(convertToDTO(updatedProduit));
@@ -457,6 +476,226 @@ public class ProduitController {
             System.err.println("❌ Erreur lors du démarrage de l'enchère: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(500).body("Erreur lors du démarrage de l'enchère: " + e.getMessage());
+        }
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateProduit(
+            @PathVariable Long id,
+            @RequestPart("produit") ProduitDTO produitRequest,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images,
+            @RequestPart(value = "imagesToDelete", required = false) String imagesToDeleteJson) {
+
+        HttpHeaders headers = null;
+        try {
+
+            System.out.println("✏️ [BACKEND] Modification du produit ID: " + id);
+
+            // 🔍 Récupérer le produit existant
+            Produit produit = produitService.getProduitById(id)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produit non trouvé avec ID: " + id));
+
+            // 🔄 Mettre à jour les champs simples
+            produit.setNom(produitRequest.getNom());
+            produit.setDescription(produitRequest.getDescription());
+            produit.setPrixDebut(produitRequest.getPrixDebut());
+            produit.setPrixFin(produitRequest.getPrixFin());
+            produit.setAExpertise(produitRequest.isAExpertise());
+            produit.setEtat(produitRequest.getEtat() != null ? produitRequest.getEtat() : produit.getEtat());
+
+            // 🔗 Mettre à jour la catégorie si modifiée
+            if (produitRequest.getCategorieId() != null) {
+                Categorie categorie = categorieService.getCategorieById(produitRequest.getCategorieId())
+                        .orElseThrow(() -> new RuntimeException("Catégorie non trouvée avec ID: " + produitRequest.getCategorieId()));
+                produit.setCategorie(categorie);
+            }
+
+            // 📁 Dossier du produit
+            Path produitFolderPath = Paths.get(UPLOAD_DIR + id);
+            if (!Files.exists(produitFolderPath)) {
+                Files.createDirectories(produitFolderPath);
+            }
+
+// Remplacer cette partie:
+            if (imagesToDeleteJson != null && !imagesToDeleteJson.trim().isEmpty()) {
+                try {
+                    List<String> imagesToDelete = new ObjectMapper().readValue(imagesToDeleteJson, new TypeReference<List<String>>() {});
+                    System.out.println("🗑️ Images à supprimer: " + imagesToDelete);
+
+                    // ✅ AJOUTER LA DÉDUPLICATION
+                    Set<String> uniqueImagesToDelete = new HashSet<>(imagesToDelete);
+                    System.out.println("✅ Images uniques à supprimer après déduplication: " + uniqueImagesToDelete);
+
+                    for (String imageName : uniqueImagesToDelete) {
+                        // Supprimer du système de fichiers
+                        Path imagePath = produitFolderPath.resolve(imageName);
+                        if (Files.exists(imagePath)) {
+                            Files.delete(imagePath);
+                            System.out.println("✅ Image supprimée du dossier: " + imageName);
+                        }
+
+                        // Supprimer de la base de données
+                        boolean removed = produit.getImages().removeIf(img -> imageName.equals(img.getUrl()));
+                        if (removed) {
+                            System.out.println("✅ Image supprimée de la base: " + imageName);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ Erreur lors du traitement des images à supprimer: " + e.getMessage());
+                }
+            }
+
+            // 📷 AJOUTER LES NOUVELLES IMAGES (sans supprimer les existantes)
+            if (images != null && !images.isEmpty()) {
+                System.out.println("🖼️ Ajout de " + images.size() + " nouvelles images pour le produit ID: " + id);
+
+                // ❌ PROBLEME: Trouver le prochain index disponible BASÉ SUR LES IMAGES RESTANTES
+                // Ça réutilise les noms des images supprimées !
+                int nextIndex = 1;
+                if (!produit.getImages().isEmpty()) {
+                    nextIndex = produit.getImages().size() + 1; // ❌ Ça réutilise image_2, image_3, etc.
+                }
+
+                // ✅ CORRECTION: Trouver le prochain index DISPONIBLE (sans réutiliser les noms supprimés)
+                 nextIndex = findNextAvailableImageIndex(produit.getImages());
+
+                // Ajouter les nouvelles images
+                for (int i = 0; i < images.size(); i++) {
+                    MultipartFile file = images.get(i);
+                    String fileExtension = getFileExtension(file.getOriginalFilename());
+                    String fileName = "image_" + (nextIndex + i) + fileExtension;
+                    Path imagePath = produitFolderPath.resolve(fileName);
+
+                    // Vérifier si le fichier existe déjà (au cas où)
+                    if (!Files.exists(imagePath)) {
+                        Files.write(imagePath, file.getBytes());
+                        System.out.println("✅ Nouvelle image sauvegardée: " + fileName);
+
+                        ProduitImage produitImage = new ProduitImage();
+                        produitImage.setUrl(fileName);
+                        produitImage.setProduit(produit);
+                        produit.getImages().add(produitImage);
+                    } else {
+                        System.err.println("⚠️ Image déjà existante, ignorée: " + fileName);
+                    }
+                }
+            }
+
+            System.out.println("📊 Total images après mise à jour: " + produit.getImages().size());
+
+            // 💾 Sauvegarder le produit modifié
+            Produit updatedProduit = produitService.saveProduit(produit);
+
+            System.out.println("✅ Produit mis à jour avec succès : " + updatedProduit.getNom());
+            return ResponseEntity.ok(convertToDTO(updatedProduit));
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la modification du produit : " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of(
+                    "success", false,
+                    "message", "Erreur lors de la mise à jour du produit : " + e.getMessage()
+            ));
+        }
+    }
+
+    // 🆕 MÉTHODE POUR TROUVER LE PROCHAIN INDEX D'IMAGE DISPONIBLE
+    private int findNextAvailableImageIndex(List<ProduitImage> existingImages) {
+        if (existingImages == null || existingImages.isEmpty()) {
+            return 1;
+        }
+
+        // Extraire tous les numéros d'images existants
+        Set<Integer> existingNumbers = new HashSet<>();
+        for (ProduitImage image : existingImages) {
+            String url = image.getUrl();
+            if (url != null && url.startsWith("image_")) {
+                try {
+                    // Extraire le numéro de "image_1.jpg", "image_2.png", etc.
+                    String numberStr = url.substring(6, url.lastIndexOf('.'));
+                    int number = Integer.parseInt(numberStr);
+                    existingNumbers.add(number);
+                } catch (Exception e) {
+                    System.err.println("⚠️ Impossible d'extraire le numéro de l'image: " + url);
+                }
+            }
+        }
+
+        // Trouver le prochain numéro disponible
+        int nextNumber = 1;
+        while (existingNumbers.contains(nextNumber)) {
+            nextNumber++;
+        }
+
+        System.out.println("🔢 Prochain index d'image disponible: " + nextNumber);
+        return nextNumber;
+    }
+
+    // 🆕 AJOUTER CETTE MÉTHODE MANQUANTE
+    @PostMapping("/{clientId}/photo")
+    public ResponseEntity<?> uploadProfilePhoto(
+            @PathVariable Long clientId,
+            @RequestParam("photoProfil") MultipartFile file) {
+
+        try {
+            System.out.println("📤 Upload de photo de profil pour le client ID: " + clientId);
+
+            Optional<Client> clientOpt = clientService.getClientById(clientId);
+            if (clientOpt.isEmpty()) {
+                return ResponseEntity.status(404).body("Client non trouvé");
+            }
+
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest().body("Aucun fichier fourni");
+            }
+
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest().body("Le fichier doit être une image");
+            }
+
+            if (file.getSize() > 5 * 1024 * 1024) {
+                return ResponseEntity.badRequest().body("L'image ne doit pas dépasser 5MB");
+            }
+
+            String originalFileName = file.getOriginalFilename();
+            String fileExtension = ".jpg";
+
+            if (originalFileName != null && originalFileName.contains(".")) {
+                fileExtension = originalFileName.substring(originalFileName.lastIndexOf(".")).toLowerCase();
+            }
+
+            String newFileName = clientId + fileExtension;
+            Path filePath = Paths.get(UPLOAD_DIR + newFileName);
+
+            // Supprimer l'ancienne image si elle existe
+            Files.deleteIfExists(filePath);
+            Files.copy(file.getInputStream(), filePath);
+
+            System.out.println("✅ Photo de profil sauvegardée: " + filePath.toString());
+
+            // Mettre à jour le client avec le nouveau nom de fichier
+            Client client = clientOpt.get();
+            client.setPhotoprofil(newFileName);
+            clientService.updateClient(client);
+
+            // Construire l'URL complète
+            String profileImageUrl = "http://localhost:8080/api/clients/images/" + newFileName;
+
+            Map<String, String> response = new HashMap<>();
+            response.put("fileName", newFileName);
+            response.put("photoProfil", profileImageUrl); // ✅ CORRECTION: utiliser "photoProfil" au lieu de "profileImageUrl"
+            response.put("message", "Photo de profil uploadée avec succès");
+
+            return ResponseEntity.ok(response);
+
+        } catch (IOException e) {
+            System.err.println("❌ Erreur lors de l'upload de la photo: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erreur lors de l'upload de la photo: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("❌ Erreur inattendue: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erreur serveur: " + e.getMessage());
         }
     }
 }

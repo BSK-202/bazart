@@ -78,7 +78,7 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
             if (this.inAppEnabled) {
               this.toastMessage = notif.message;
               this.showToast = true;
-              setTimeout(() => this.showToast = false, 2500);
+              setTimeout(() => this.showToast = false, 5500);
             }
           },
           error: err => console.error('WebSocket subscription error:', err)

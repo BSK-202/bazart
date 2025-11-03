@@ -24,7 +24,7 @@ import java.util.Optional;
 public class ClientController {
 
     private final ClientService clientService;
-    private final String UPLOAD_DIR = "assets/user/";
+    private final String UPLOAD_DIR = "backend/assets/user/";
 
     public ClientController(ClientService clientService) {
         this.clientService = clientService;
@@ -69,6 +69,76 @@ public class ClientController {
         }
     }
 
+    @PostMapping("/{clientId}/photo")
+    public ResponseEntity<?> uploadProfilePhoto(
+            @PathVariable Long clientId,
+            @RequestParam("photoProfil") MultipartFile file) {
+
+        try {
+            System.out.println("📤 Upload de photo de profil pour le client ID: " + clientId);
+
+            Optional<Client> clientOpt = clientService.getClientById(clientId);
+            if (clientOpt.isEmpty()) {
+                return ResponseEntity.status(404).body("Client non trouvé");
+            }
+
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest().body("Aucun fichier fourni");
+            }
+
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest().body("Le fichier doit être une image");
+            }
+
+            if (file.getSize() > 5 * 1024 * 1024) {
+                return ResponseEntity.badRequest().body("L'image ne doit pas dépasser 5MB");
+            }
+
+            String originalFileName = file.getOriginalFilename();
+            String fileExtension = ".jpg";
+
+            if (originalFileName != null && originalFileName.contains(".")) {
+                fileExtension = originalFileName.substring(originalFileName.lastIndexOf(".")).toLowerCase();
+            }
+
+            String newFileName = clientId + fileExtension;
+            Path filePath = Paths.get(UPLOAD_DIR + newFileName);
+
+            // Supprimer l'ancienne image si elle existe
+            Files.deleteIfExists(filePath);
+
+            // Sauvegarder la nouvelle image
+            Files.copy(file.getInputStream(), filePath);
+
+            System.out.println("✅ Photo de profil sauvegardée: " + filePath.toString());
+
+            // Mettre à jour le nom de fichier dans la base de données
+            Client client = clientOpt.get();
+            client.setPhotoprofil(newFileName);
+            clientService.updateClient(client);
+
+            // Construire l'URL complète
+            String profileImageUrl = "http://localhost:8080/api/clients/images/" + newFileName;
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("fileName", newFileName);
+            response.put("profileImageUrl", profileImageUrl);
+            response.put("photoProfil", profileImageUrl); // ✅ Champ que le frontend attend
+            response.put("message", "Photo de profil uploadée avec succès");
+
+            return ResponseEntity.ok(response);
+
+        } catch (IOException e) {
+            System.err.println("❌ Erreur lors de l'upload de la photo: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erreur lors de l'upload de la photo: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("❌ Erreur inattendue: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erreur serveur: " + e.getMessage());
+        }
+    }
     @GetMapping("/{id}")
     public ResponseEntity<?> getClientById(@PathVariable Long id) {
         try {
@@ -250,6 +320,61 @@ public class ClientController {
 
         } catch (Exception e) {
             System.err.println("❌ Erreur lors de la mise à jour: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Erreur serveur: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/{clientId}")
+    public ResponseEntity<?> updateClient(
+            @PathVariable Long clientId,
+            @RequestBody Map<String, Object> clientData) {
+
+        try {
+            System.out.println("✏️ [BACKEND] Mise à jour du client ID: " + clientId);
+
+            // 🔍 Récupérer le client existant
+            Optional<Client> clientOpt = clientService.getClientById(clientId);
+            if (clientOpt.isEmpty()) {
+                return ResponseEntity.status(404).body("Client non trouvé");
+            }
+
+            Client client = clientOpt.get();
+
+            // 🔄 Mettre à jour les champs s'ils sont présents
+            if (clientData.containsKey("nom")) client.setNom((String) clientData.get("nom"));
+            if (clientData.containsKey("prenom")) client.setPrenom((String) clientData.get("prenom"));
+            if (clientData.containsKey("email")) client.setEmail((String) clientData.get("email"));
+            if (clientData.containsKey("tel")) client.setTel((String) clientData.get("tel"));
+            if (clientData.containsKey("ville")) client.setVille((String) clientData.get("ville"));
+            if (clientData.containsKey("pays")) client.setPays((String) clientData.get("pays"));
+            if (clientData.containsKey("photoprofil")) client.setPhotoprofil((String) clientData.get("photoprofil"));
+            if (clientData.containsKey("enabled")) client.setEnabled((Boolean) clientData.get("enabled"));
+
+            // 💾 Sauvegarder les modifications
+            Client updatedClient = clientService.updateClient(client);
+
+            // Construire la réponse
+            Map<String, Object> response = new HashMap<>();
+            response.put("idClient", updatedClient.getIdclient());
+            response.put("nom", updatedClient.getNom());
+            response.put("prenom", updatedClient.getPrenom());
+            response.put("email", updatedClient.getEmail());
+            response.put("tel", updatedClient.getTel());
+            response.put("ville", updatedClient.getVille());
+            response.put("pays", updatedClient.getPays());
+            response.put("dateInscription", updatedClient.getDateinscription());
+            response.put("photoProfil", updatedClient.getPhotoprofil() != null
+                    ? "http://localhost:8080/api/clients/images/" + updatedClient.getPhotoprofil()
+                    : null);
+            response.put("enabled", updatedClient.isEnabled());
+
+            System.out.println("✅ Client mis à jour avec succès: " + updatedClient.getNom());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la mise à jour du client: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(500).body("Erreur serveur: " + e.getMessage());
         }
