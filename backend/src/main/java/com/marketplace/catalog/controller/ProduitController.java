@@ -270,6 +270,16 @@ public class ProduitController {
             System.out.println("⚠️ Date de publication est null");
             response.setDatepublication(LocalDateTime.now().toString());
         }
+        // ✅ AJOUTER CES CHAMPS POUR L'ÉDITION
+        if (produit.getCategorie() != null) {
+            response.setCategorieId(produit.getCategorie().getIdCategorie());
+            response.setCategorieNom(produit.getCategorie().getNomCategorie());
+
+            // ✅ AJOUTER L'ID DU DOMAINE POUR PRÉ-REMPLISSAGE
+            if (produit.getCategorie().getDomaine() != null) {
+                response.setDomaineId(produit.getCategorie().getDomaine().getIdDomaine());
+            }
+        }
 
         // ✅ NOUVEAU : Date d'enchère
         if (produit.getDateEnchere() != null) {
@@ -478,6 +488,11 @@ public class ProduitController {
             return ResponseEntity.status(500).body("Erreur lors du démarrage de l'enchère: " + e.getMessage());
         }
     }
+    // AJOUTER CETTE VÉRIFICATION avant d'ajouter une nouvelle image
+    private boolean isImageAlreadyExists(List<ProduitImage> existingImages, String fileName) {
+        return existingImages.stream()
+                .anyMatch(img -> fileName.equals(img.getUrl()));
+    }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateProduit(
@@ -517,16 +532,15 @@ public class ProduitController {
             }
 
 // Remplacer cette partie:
+            // Dans la méthode updateProduit, remplacer la partie gestion des images :
+
+// 📷 GESTION DES IMAGES EXISTANTES - Supprimer celles qui sont marquées
             if (imagesToDeleteJson != null && !imagesToDeleteJson.trim().isEmpty()) {
                 try {
                     List<String> imagesToDelete = new ObjectMapper().readValue(imagesToDeleteJson, new TypeReference<List<String>>() {});
-                    System.out.println("🗑️ Images à supprimer: " + imagesToDelete);
+                    System.out.println("🗑️ Images à supprimer reçues: " + imagesToDelete);
 
-                    // ✅ AJOUTER LA DÉDUPLICATION
-                    Set<String> uniqueImagesToDelete = new HashSet<>(imagesToDelete);
-                    System.out.println("✅ Images uniques à supprimer après déduplication: " + uniqueImagesToDelete);
-
-                    for (String imageName : uniqueImagesToDelete) {
+                    for (String imageName : imagesToDelete) {
                         // Supprimer du système de fichiers
                         Path imagePath = produitFolderPath.resolve(imageName);
                         if (Files.exists(imagePath)) {
@@ -545,29 +559,23 @@ public class ProduitController {
                 }
             }
 
-            // 📷 AJOUTER LES NOUVELLES IMAGES (sans supprimer les existantes)
+// 📷 AJOUTER LES NOUVELLES IMAGES
+
             if (images != null && !images.isEmpty()) {
-                System.out.println("🖼️ Ajout de " + images.size() + " nouvelles images pour le produit ID: " + id);
+                System.out.println("🖼️ Ajout de " + images.size() + " nouvelles images");
 
-                // ❌ PROBLEME: Trouver le prochain index disponible BASÉ SUR LES IMAGES RESTANTES
-                // Ça réutilise les noms des images supprimées !
-                int nextIndex = 1;
-                if (!produit.getImages().isEmpty()) {
-                    nextIndex = produit.getImages().size() + 1; // ❌ Ça réutilise image_2, image_3, etc.
-                }
+                int nextIndex = findNextAvailableImageIndex(produit.getImages());
 
-                // ✅ CORRECTION: Trouver le prochain index DISPONIBLE (sans réutiliser les noms supprimés)
-                 nextIndex = findNextAvailableImageIndex(produit.getImages());
 
-                // Ajouter les nouvelles images
+                // PUIS dans la boucle d'ajout des nouvelles images :
                 for (int i = 0; i < images.size(); i++) {
                     MultipartFile file = images.get(i);
                     String fileExtension = getFileExtension(file.getOriginalFilename());
                     String fileName = "image_" + (nextIndex + i) + fileExtension;
                     Path imagePath = produitFolderPath.resolve(fileName);
 
-                    // Vérifier si le fichier existe déjà (au cas où)
-                    if (!Files.exists(imagePath)) {
+                    // ✅ VÉRIFIER SI L'IMAGE EXISTE DÉJÀ
+                    if (!Files.exists(imagePath) && !isImageAlreadyExists(produit.getImages(), fileName)) {
                         Files.write(imagePath, file.getBytes());
                         System.out.println("✅ Nouvelle image sauvegardée: " + fileName);
 
@@ -576,11 +584,10 @@ public class ProduitController {
                         produitImage.setProduit(produit);
                         produit.getImages().add(produitImage);
                     } else {
-                        System.err.println("⚠️ Image déjà existante, ignorée: " + fileName);
+                        System.out.println("⚠️ Image déjà existante, ignorée: " + fileName);
                     }
                 }
             }
-
             System.out.println("📊 Total images après mise à jour: " + produit.getImages().size());
 
             // 💾 Sauvegarder le produit modifié

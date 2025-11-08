@@ -64,7 +64,7 @@ export class HeaderAdmin implements OnInit, OnDestroy {
           email: parsedAdmin.email || 'admin@bazart.ma'
         };
 
-		this.adminUserId = parsedAdmin.id ?? null; 
+		this.adminUserId = parsedAdmin.id ?? null;
         this.isAuthenticated = true;
         console.log("✅ Admin authentifié via adminToken");
         return;

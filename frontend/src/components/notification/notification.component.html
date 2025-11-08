@@ -1,25 +1,98 @@
-<div class="notification-bell">
-	<button (click)="toggleDropdown()" class="notif-bell-btn">
-	  <svg class="bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-	       stroke-linecap="round" stroke-linejoin="round">
-	    <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
-	    <path d="M13.73 21a2 2 0 01-3.46 0"/>
-	  </svg>
-	  <span class="notif-count" *ngIf="unreadCount() > 0">{{ unreadCount() }}</span>
-	</button>
-  <div class="notif-dropdown" *ngIf="showDropdown">
-    <div *ngIf="notifications.length === 0" class="empty">Aucune notification</div>
-    <div
-      *ngFor="let notif of notifications"
-      [class.unread]="!notif.read"
-      class="notif-item"
-      (click)="onNotificationClick(notif)"
-      style="cursor: pointer;"
-    >
-      <div>{{ notif.message }}</div>
-      <small>{{ notif.createdAt | date:'short' }}</small>
+<div class="notification-container">
+  <!-- Bell Button -->
+  <button (click)="toggleNotificationsSidebar()" class="notif-bell-btn" aria-label="Notifications">
+    <svg class="bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 01-3.46 0"/>
+    </svg>
+    <span class="notif-count" *ngIf="unreadCount() > 0">{{ unreadCount() }}</span>
+  </button>
+
+  <!-- Toast Notification -->
+  <div *ngIf="showToast" class="notif-toast">
+    <svg class="toast-icon" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+    </svg>
+    <span>{{ toastMessage }}</span>
+  </div>
+
+  <!-- Changed from dropdown to main notifications sidebar with list -->
+  <div class="sidebar-overlay" *ngIf="showNotificationsSidebar" (click)="closeSidebar()"></div>
+  <div class="notification-sidebar notifications-list-sidebar" [class.open]="showNotificationsSidebar">
+    <div class="sidebar-header">
+      <h2>Notifications</h2>
+      <button class="close-btn" (click)="closeSidebar()" aria-label="Close notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="notif-list-container">
+      <div *ngIf="notifications.length === 0" class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="empty-icon">
+          <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 01-3.46 0"/>
+        </svg>
+        <p>Aucune notification</p>
+      </div>
+
+      <div
+        *ngFor="let notif of notifications"
+        [class.unread]="!notif.read"
+        class="notif-item"
+        (click)="openNotificationDetail(notif)"
+      >
+        <div class="notif-item-content">
+          <div class="notif-message">{{ notif.message }}</div>
+          <div class="notif-time">{{ notif.createdAt | date:'short' }}</div>
+        </div>
+        <div class="notif-indicator" *ngIf="!notif.read"></div>
+      </div>
     </div>
   </div>
-  <!-- Toast notification at top -->
-  <div *ngIf="showToast" class="notif-toast">{{ toastMessage }}</div>
+
+  <!-- Detail Sidebar (shown when clicking on a notification) -->
+  <div class="notification-sidebar detail-sidebar" [class.open]="selectedNotification">
+    <div class="sidebar-header">
+      <button class="back-btn" (click)="closeDetailSidebar()" aria-label="Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <h2>Détail notification</h2>
+      <div style="width: 40px;"></div>
+    </div>
+
+    <div class="sidebar-content" *ngIf="selectedNotification">
+      <div class="notification-detail">
+        <div class="detail-badge" [class.unread]="!selectedNotification.read">
+          {{ !selectedNotification.read ? 'Non lue' : 'Lue' }}
+        </div>
+
+        <div class="detail-message">{{ selectedNotification.message }}</div>
+
+        <div class="detail-meta">
+          <div class="meta-item">
+            <span class="meta-label">Date</span>
+            <span class="meta-value">{{ selectedNotification.createdAt | date:'longDate' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Heure</span>
+            <span class="meta-value">{{ selectedNotification.createdAt | date:'shortTime' }}</span>
+          </div>
+        </div>
+
+        <div class="detail-full-time">
+          <span class="time-label">Heure complète</span>
+          <span class="time-value">{{ selectedNotification.createdAt | date:'full' }}</span>
+        </div>
+
+        <button class="action-btn" (click)="markAsRead(selectedNotification)">
+          Marquer comme lu
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

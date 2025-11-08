@@ -20,6 +20,10 @@ public class ProduitDTO {
     private boolean aExpertise;
     private String dateenchere;
     private Integer dureeEnchereJours;
+    private Long domaineId;
+    // getters et setters
+    public Long getDomaineId() { return domaineId; }
+    public void setDomaineId(Long domaineId) { this.domaineId = domaineId; }
     // Getters et Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

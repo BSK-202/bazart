@@ -563,28 +563,7 @@
           </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header">
-          <h3 class="font-serif card-title">Notifications</h3>
-          <p class="card-description">Gérez vos préférences de notification</p>
-        </div>
-        <div class="card-content space-y-4">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <svg class="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-              </svg>
-              <div>
-                <p class="font-medium">Alertes d'enchères</p>
-                <p class="text-sm text-muted-foreground">
-                  Recevoir des notifications quand vous êtes surenchéri
-                </p>
-              </div>
-            </div>
-            <button class="btn-outline">Activer</button>
-          </div>
-        </div>
-      </div>
+
 
 		<div class="card">
 		  <div class="card-header">
@@ -676,29 +655,41 @@
                        placeholder="Prix de départ">
               </div>
 
+              <!-- Domaine -->
               <div class="form-group">
                 <label class="form-label font-semibold text-gray-700">Domaine *</label>
                 <select class="form-input border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                        [(ngModel)]="editedProduct.domaineId"
                         (change)="onDomainChange($any($event.target).value)"
-                        [value]="editedProduct.domaineId || ''">
+                        name="domaine">
                   <option value="">Sélectionnez un domaine</option>
                   <option *ngFor="let domaine of domaines"
-                          [value]="domaine.idDomaine">
+                          [value]="domaine.idDomaine"
+                          [selected]="domaine.idDomaine === editedProduct.domaineId">
                     {{ domaine.nomDomaine }}
                   </option>
                 </select>
               </div>
 
+              <!-- Catégorie -->
               <div class="form-group">
                 <label class="form-label font-semibold text-gray-700">Catégorie *</label>
                 <select class="form-input border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                        [(ngModel)]="editedProduct.categorieId">
+                        [(ngModel)]="editedProduct.categorieId"
+                        name="categorie"
+                        [disabled]="!editedProduct.domaineId">
                   <option value="">Sélectionnez une catégorie</option>
                   <option *ngFor="let categorie of filteredCategories"
-                          [value]="categorie.idCategorie">
+                          [value]="categorie.idCategorie"
+                          [selected]="categorie.idCategorie === editedProduct.categorieId">
                     {{ categorie.nomCategorie }}
                   </option>
                 </select>
+
+                <!-- Message d'information -->
+                <div *ngIf="!editedProduct.domaineId" class="text-sm text-orange-600 mt-1">
+                  Veuillez d'abord sélectionner un domaine
+                </div>
               </div>
 
               <div class="form-group">
@@ -760,36 +751,37 @@
               </div>
 
               <!-- Prévisualisation des images améliorée -->
-              <div *ngIf="imagePreviews.length > 0" class="space-y-4">
-                <h4 class="font-semibold text-gray-700">Images sélectionnées ({{ imagePreviews.length }})</h4>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <div *ngFor="let preview of imagePreviews; let i = index"
-                       class="relative group bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-300">
-                    <img [src]="preview"
-                         alt="Preview"
-                         class="w-full h-32 object-cover">
+              <!-- Dans la section de prévisualisation des images -->
+              <div *ngFor="let preview of imagePreviews; let i = index"
+                   class="relative group bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-300">
+                <img [src]="preview"
+                     alt="Preview"
+                     class="w-full h-32 object-cover">
 
-                    <div class="absolute top-2 left-2">
-                      <span *ngIf="i < (imagePreviews.length - newImages.length)"
-                            class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                        Existante
-                      </span>
-                      <span *ngIf="i >= (imagePreviews.length - newImages.length)"
-                            class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-                        Nouvelle
-                      </span>
-                    </div>
-
-                    <button type="button"
-                            class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-80 hover:opacity-100 transition-all transform hover:scale-110"
-                            (click)="removeImage(i)"
-                            title="Supprimer cette image">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                      </svg>
-                    </button>
-                  </div>
+                <div class="absolute top-2 left-2">
+                  <!-- ✅ CORRECTION : Afficher le statut correct -->
+                  <span *ngIf="i < originalImages.length && !imagesToDelete.includes(originalImages[i])"
+                        class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+      Existante
+    </span>
+                  <span *ngIf="i < originalImages.length && imagesToDelete.includes(originalImages[i])"
+                        class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+      Supprimée
+    </span>
+                  <span *ngIf="i >= originalImages.length"
+                        class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+      Nouvelle
+    </span>
                 </div>
+
+                <button type="button"
+                        class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-80 hover:opacity-100 transition-all transform hover:scale-110"
+                        (click)="removeImage(i)"
+                        title="Supprimer cette image">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
               </div>
 
               <div class="text-center p-4 bg-gray-50 rounded-lg">

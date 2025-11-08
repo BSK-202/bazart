@@ -11,7 +11,6 @@ export class AuthService {
   private userDataKey = 'userData';
 
   constructor(private router: Router,  private firebaseAuth: Auth) {}
-
   login(token: string, client: {
     idclient: number;
     nom: string;
@@ -21,12 +20,23 @@ export class AuthService {
     pays: string;
     ville: string;
     photoprofil: string;
+    photoProfil?: string;
     roles: string[];
     enabled: boolean;
   }): void {
     console.log('Login - saving token and user data to localStorage');
+
+    const userDataToStore = {
+      ...client,
+      // Construire l'URL complète de l'image
+      photoProfil: client.photoProfil || this.buildProfileImageUrl(client.photoprofil, client.idclient)
+    };
+
     localStorage.setItem(this.authTokenKey, token);
-    localStorage.setItem(this.userDataKey, JSON.stringify(client)); // ✅ Sauvegarde les infos du client
+    localStorage.setItem(this.userDataKey, JSON.stringify(userDataToStore)); // ✅ CORRIGÉ
+    localStorage.removeItem('currentUser');
+
+    console.log('✅ User data stored with profile image:', userDataToStore.photoProfil);
   }
   logout(): void {
     console.log('Logout - removing token and user data');
@@ -78,6 +88,16 @@ export class AuthService {
       throw new Error('Please verify your email before logging in.');
     }
   }
+  private buildProfileImageUrl(fileName: string, userId: number): string | null {
+    if (!fileName) return null;
 
+    // Si c'est déjà une URL complète, la retourner telle quelle
+    if (fileName.startsWith('http')) {
+      return fileName;
+    }
+
+    // Construire l'URL via le backend Spring Boot
+    return `http://localhost:8080/api/clients/images/${fileName}`;
+  }
 
 }

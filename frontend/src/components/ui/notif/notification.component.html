@@ -1,0 +1,115 @@
+<div class="notification-container">
+  <!-- Notification Button with Badge -->
+  <button
+    class="notification-button"
+    (click)="toggleSidebar()"
+    [attr.aria-label]="'Notifications' + (unreadCount > 0 ? ' - ' + unreadCount + ' non lues' : '')"
+    [class.has-notifications]="unreadCount > 0"
+  >
+    <svg class="notification-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+    </svg>
+
+    <!-- Badge animé -->
+    <span *ngIf="unreadCount > 0" class="notification-badge">
+      {{ unreadCount > 99 ? '99+' : unreadCount }}
+    </span>
+  </button>
+
+  <!-- Overlay -->
+  <div
+    *ngIf="isOpen"
+    class="notification-overlay"
+    [@fadeOverlay]
+    (click)="closeSidebar()"
+  ></div>
+
+  <!-- Sidebar Panel -->
+  <div
+    *ngIf="isOpen"
+    class="notification-sidebar"
+    [@slideIn]
+  >
+    <!-- Header -->
+    <div class="sidebar-header">
+      <div class="header-content">
+        <h2 class="sidebar-title">
+          Notifications
+          <span *ngIf="unreadCount > 0" class="unread-count-badge">
+            {{ unreadCount }}
+          </span>
+        </h2>
+        <button
+          class="close-button"
+          (click)="closeSidebar()"
+          aria-label="Fermer les notifications"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Notifications List -->
+    <div class="notifications-list">
+      <ng-container *ngIf="notifications.length > 0; else noNotifications">
+        <div
+          *ngFor="let notification of notifications"
+          class="notification-item"
+          [ngClass]="['notification-' + notification.type, { unread: !notification.isRead }]"
+          [@notificationItem]
+          (click)="onNotificationClick(notification)"
+        >
+          <!-- Icon -->
+          <div class="notification-icon-box">
+            <span class="notification-emoji">{{ notification.icon }}</span>
+          </div>
+
+          <!-- Content -->
+          <div class="notification-content">
+            <p class="notification-title">{{ notification.title }}</p>
+            <p class="notification-message">{{ notification.message }}</p>
+            <p class="notification-time">{{ getTimeAgo(notification.timestamp) }}</p>
+          </div>
+
+          <!-- Delete button -->
+          <button
+            class="delete-button"
+            (click)="deleteNotification(notification.id, $event)"
+            aria-label="Supprimer la notification"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+
+          <!-- Indicateur non lu -->
+          <div *ngIf="!notification.isRead" class="unread-indicator"></div>
+        </div>
+      </ng-container>
+
+      <ng-template #noNotifications>
+        <div class="empty-state">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          <p class="empty-text">Vous êtes à jour !</p>
+          <p class="empty-subtitle">Aucune nouvelle notification</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- Footer with Clear All button -->
+    <div *ngIf="notifications.length > 0" class="sidebar-footer">
+      <button class="clear-all-button" (click)="clearAllNotifications()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+        Effacer tout
+      </button>
+    </div>
+  </div>
+</div>

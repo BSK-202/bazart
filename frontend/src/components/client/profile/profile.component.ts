@@ -79,6 +79,7 @@ export class UserProfileComponent implements OnInit {
   profilePhotoFile: File | null = null
   isUploadingProfilePhoto = false
   isSavingProfile = false
+  originalImages: string[] = []; // Pour stocker les noms des images originales
 
   // Données pour l'édition complète
   domaines: Domaine[] = []
@@ -312,29 +313,39 @@ export class UserProfileComponent implements OnInit {
       },
     })
   }
-
   onDomainChange(domainId: string) {
-    console.log("🔄 Changement de domaine:", domainId)
+    console.log("🔄 Changement de domaine:", domainId);
 
     if (domainId && domainId !== "") {
-      const url = `${this.API_BASE_URL}/api/categories/domaine/${domainId}`
-      console.log("[API] Appel catégories ->", url)
+      const url = `${this.API_BASE_URL}/api/categories/domaine/${domainId}`;
+      console.log("[API] Appel catégories ->", url);
 
       this.http.get<any[]>(url).subscribe({
         next: (data) => {
-          console.log("[API] Réponse catégories:", data)
-          this.filteredCategories = data || []
+          console.log("[API] Réponse catégories:", data);
+          this.filteredCategories = data || [];
+
+          // ✅ S'assurer que la catégorie sélectionnée est dans la liste
+          if (this.editedProduct?.categorieId && this.filteredCategories.length > 0) {
+            const categoryExists = this.filteredCategories.some(
+              cat => cat.idCategorie === this.editedProduct!.categorieId
+            );
+
+            if (!categoryExists) {
+              console.warn("⚠️ La catégorie sélectionnée n'existe pas dans ce domaine, réinitialisation...");
+              this.editedProduct.categorieId = undefined;
+            }
+          }
         },
         error: (err) => {
-          console.error("[API] Erreur lors de la récupération des catégories:", err)
-          this.filteredCategories = []
+          console.error("[API] Erreur lors de la récupération des catégories:", err);
+          this.filteredCategories = [];
         },
-      })
+      });
     } else {
-      this.filteredCategories = []
+      this.filteredCategories = [];
     }
   }
-
   private loadUserProducts(userId: number) {
     const url = `${this.API_BASE_URL}/api/produits/vendeur/${userId}`;
 
@@ -899,95 +910,69 @@ export class UserProfileComponent implements OnInit {
       }
     });
   }
-
-  openFullEditProduct(produit: Produit): void {
-    console.log("🖊️ Ouverture édition complète du produit:", produit)
-
-    this.isFullEditProduct = true
-
-    // ✅ Copier TOUS les champs du produit
-    this.editedProduct = {
-      ...produit,
-      // S'assurer que tous les champs sont présents
-      prixFin: produit.prixFin || null,
-      aExpertise: produit.aExpertise || false,
-      categorieId: produit.categorieId,
-      domaineId: produit.domaineId,
-      vendeurId: produit.vendeurId || this.user?.id,
-      etat: produit.etat,
-    }
-
-    console.log("📋 Produit édité initialisé:", this.editedProduct)
-
-    // ✅ Réinitialiser les listes d'images
-    this.imagePreviews = []
-    this.newImages = []
-    this.imagesToDelete = []
-
-    // ✅ Charger les images existantes
-    if (produit.images && produit.images.length > 0) {
-      const imagesToLoad = produit.images.slice(0, 3)
-      this.imagePreviews = imagesToLoad.map((img) => {
-        const imageUrl = this.getProduitImageUrl(produit.id, img)
-        console.log(`🖼️ Image chargée: ${img} -> ${imageUrl}`)
-        return imageUrl
-      })
-      console.log(`📸 Total d'images chargées: ${this.imagePreviews.length}`)
-
-      if (produit.images.length > 3) {
-        const ignoredImages = produit.images.slice(3)
-        this.imagesToDelete.push(...ignoredImages)
-        console.log(`🗑️ ${ignoredImages.length} image(s) excédentaire(s) marquée(s) pour suppression`)
-      }
-    } else {
-      console.warn("⚠️ Aucune image trouvée pour ce produit")
-    }
-
-    // ✅ Charger la catégorie et le domaine
-    this.loadProductCategoryAndDomain(produit)
-  }
-
   private loadProductCategoryAndDomain(product: Produit) {
-    console.log("🔍 Chargement catégorie et domaine pour le produit:", product.id)
-    console.log("   - categorieId:", product.categorieId)
-    console.log("   - categorieNom:", product.categorieNom)
+    console.log("🔍 Chargement catégorie et domaine pour le produit:", product.id);
+    console.log("   - categorieId:", product.categorieId);
+    console.log("   - categorieNom:", product.categorieNom);
+    console.log("   - domaineId:", product.domaineId);
 
+    // ✅ APPROCHE 1: Si on a déjà le domaineId, l'utiliser directement
+    if (product.domaineId) {
+      console.log("✅ Utilisation du domaineId existant:", product.domaineId);
+      this.editedProduct!.domaineId = product.domaineId;
+
+      // Charger les catégories de ce domaine
+      this.onDomainChange(product.domaineId.toString());
+
+      // Définir la catégorie après un court délai
+      setTimeout(() => {
+        if (this.editedProduct) {
+          this.editedProduct.categorieId = product.categorieId;
+          console.log("✅ Catégorie définie:", this.editedProduct.categorieId);
+        }
+      }, 200);
+
+      return;
+    }
+
+    // ✅ APPROCHE 2: Si on n'a pas le domaineId mais on a le categorieId
     if (product.categorieId) {
-      const categoryUrl = `${this.API_BASE_URL}/api/categories/${product.categorieId}`
-      console.log("📡 Appel API catégorie:", categoryUrl)
+      console.log("🔄 Recherche du domaine via la catégorie:", product.categorieId);
+
+      const categoryUrl = `${this.API_BASE_URL}/api/categories/${product.categorieId}`;
+      console.log("📡 Appel API catégorie:", categoryUrl);
 
       this.http.get<any>(categoryUrl).subscribe({
         next: (category) => {
-          console.log("✅ Catégorie récupérée:", category)
+          console.log("✅ Catégorie récupérée:", category);
 
           if (category && category.domaine) {
-            console.log("   - Domaine trouvé:", category.domaine.nomDomaine, "(ID:", category.domaine.idDomaine, ")")
+            console.log("   - Domaine trouvé:", category.domaine.nomDomaine, "(ID:", category.domaine.idDomaine, ")");
 
             // ✅ Définir le domaine
-            this.editedProduct!.domaineId = category.domaine.idDomaine
+            this.editedProduct!.domaineId = category.domaine.idDomaine;
 
             // ✅ Charger les catégories du domaine
-            this.onDomainChange(category.domaine.idDomaine.toString())
+            this.onDomainChange(category.domaine.idDomaine.toString());
 
             // ✅ Attendre que les catégories soient chargées avant de définir la catégorie
             setTimeout(() => {
               if (this.editedProduct) {
-                this.editedProduct.categorieId = product.categorieId
-                console.log("✅ Catégorie définie:", this.editedProduct.categorieId)
+                this.editedProduct.categorieId = product.categorieId;
+                console.log("✅ Catégorie définie:", this.editedProduct.categorieId);
               }
-            }, 150)
+            }, 300);
           } else {
-            console.warn("⚠️ Domaine non trouvé dans la catégorie")
+            console.warn("⚠️ Domaine non trouvé dans la catégorie");
           }
         },
         error: (err) => {
-          console.error("❌ Erreur lors du chargement de la catégorie:", err)
-          console.log("🔄 Tentative de chargement alternatif...")
-          this.tryAlternativeCategoryLoad(product)
+          console.error("❌ Erreur lors du chargement de la catégorie:", err);
+          this.tryAlternativeCategoryLoad(product);
         },
-      })
+      });
     } else {
-      console.warn("⚠️ Aucun categorieId trouvé pour ce produit")
+      console.warn("⚠️ Aucun categorieId trouvé pour ce produit");
     }
   }
 
@@ -1041,10 +1026,67 @@ export class UserProfileComponent implements OnInit {
     }
   }
 
+
+// Remplacer les méthodes existantes par celles-ci :
+  openFullEditProduct(produit: Produit): void {
+    console.log("🖊️ Ouverture édition complète du produit:", produit);
+
+    this.isFullEditProduct = true;
+
+    // Copier le produit
+    this.editedProduct = {
+      ...produit,
+      prixFin: produit.prixFin || null,
+      aExpertise: produit.aExpertise || false,
+      categorieId: produit.categorieId,
+      domaineId: produit.domaineId,
+      vendeurId: produit.vendeurId || this.user?.id,
+      etat: produit.etat,
+    };
+
+    console.log("📝 Produit à éditer:", {
+      nom: this.editedProduct.nom,
+      domaineId: this.editedProduct.domaineId,
+      categorieId: this.editedProduct.categorieId
+    });
+
+    // ✅ CORRECTION : ÉLIMINER LES DOUBLONS des images
+    this.originalImages = this.removeDuplicateImages(produit.images || []);
+    this.imagePreviews = [];
+    this.newImages = [];
+    this.imagesToDelete = [];
+
+    console.log("🖼️ Images après suppression des doublons:", this.originalImages);
+
+    // Charger les aperçus des images UNIQUES
+    this.originalImages.forEach((img, index) => {
+      const imageUrl = this.getProduitImageUrl(produit.id, img);
+      this.imagePreviews.push(imageUrl);
+      console.log(`🖼️ Image unique [${index}]: ${img}`);
+    });
+
+    // ✅ CORRECTION : Charger immédiatement le domaine et la catégorie
+    this.loadProductCategoryAndDomain(produit);
+  }
+
+// ✅ NOUVELLE MÉTHODE : Supprimer les doublons d'images
+  private removeDuplicateImages(images: string[]): string[] {
+    const uniqueImages: string[] = [];
+    const seen = new Set<string>();
+
+    images.forEach(img => {
+      if (!seen.has(img)) {
+        seen.add(img);
+        uniqueImages.push(img);
+      }
+    });
+
+    console.log(`🧹 Nettoyage doublons: ${images.length} → ${uniqueImages.length} images`);
+    return uniqueImages;
+  }
   private handleFiles(files: FileList): void {
     console.log("📁 Fichiers reçus:", files.length);
 
-    // Calculer combien d'images on peut encore ajouter (maximum 10 par exemple)
     const maxTotalImages = 10;
     const remainingSlots = maxTotalImages - this.imagePreviews.length;
 
@@ -1054,11 +1096,9 @@ export class UserProfileComponent implements OnInit {
     }
 
     const filesToAdd = Math.min(files.length, remainingSlots);
-    console.log(`📥 Ajout de ${filesToAdd} image(s) sur ${files.length} reçues`);
 
     for (let i = 0; i < filesToAdd; i++) {
       const file = files[i];
-      console.log("📄 Traitement du fichier:", file.name, file.type, file.size);
 
       if (!file.type.startsWith("image/")) {
         alert("Veuillez sélectionner uniquement des images");
@@ -1073,7 +1113,7 @@ export class UserProfileComponent implements OnInit {
       const reader = new FileReader();
       reader.onload = (e) => {
         this.imagePreviews.push(e.target?.result as string);
-        console.log("🖼️ Aperçu ajouté, total:", this.imagePreviews.length);
+        console.log("🖼️ Nouvel aperçu ajouté, total:", this.imagePreviews.length);
       };
       reader.readAsDataURL(file);
     }
@@ -1084,42 +1124,61 @@ export class UserProfileComponent implements OnInit {
   }
 
 
+
   removeImage(index: number): void {
     console.log("🗑️ Suppression de l'image à l'index:", index);
-    console.log("📊 Avant suppression - Previews:", this.imagePreviews.length, "Nouvelles:", this.newImages.length, "À supprimer:", this.imagesToDelete.length);
+    console.log("📊 Avant suppression:", {
+      previews: this.imagePreviews.length,
+      original: this.originalImages.length,
+      nouvelles: this.newImages.length,
+      àSupprimer: this.imagesToDelete.length
+    });
 
-    const existingImagesCount = this.imagePreviews.length - this.newImages.length;
+    // Déterminer si c'est une image existante ou nouvelle
+    const isExistingImage = index < this.originalImages.length;
 
-    if (index < existingImagesCount) {
-      // Image existante
-      const imageToDelete = this.editedProduct?.images?.[index];
-      if (imageToDelete) {
-        // ✅ CORRECTION: Vérifier si l'image n'est pas déjà dans la liste
-        if (imageToDelete && !this.imagesToDelete.includes(imageToDelete)) {
-          this.imagesToDelete.push(imageToDelete);
-        } else {
-          console.log("⚠️ Image déjà dans la liste de suppression:", imageToDelete);
-        }
+    if (isExistingImage) {
+      // ✅ CORRECTION : Image existante - la marquer pour suppression
+      const imageName = this.originalImages[index];
+      if (imageName && !this.imagesToDelete.includes(imageName)) {
+        this.imagesToDelete.push(imageName);
+        console.log("🗑️ Image existante marquée pour suppression:", imageName);
       }
+
+      // Retirer de la liste des originales ET des previews
+      this.originalImages.splice(index, 1);
+      this.imagePreviews.splice(index, 1);
+
     } else {
-      // Nouvelle image
-      const newImageIndex = index - existingImagesCount;
+      // ✅ CORRECTION : Nouvelle image - calculer l'index correct
+      const newImageIndex = index - this.originalImages.length;
       if (newImageIndex >= 0 && newImageIndex < this.newImages.length) {
-        const removedFile = this.newImages.splice(newImageIndex, 1);
-        console.log("📝 Nouvelle image retirée:", removedFile[0]?.name);
+        this.newImages.splice(newImageIndex, 1);
+        this.imagePreviews.splice(index, 1);
+        console.log("📝 Nouvelle image retirée");
       }
     }
 
-    // Supprimer de l'affichage
-    this.imagePreviews.splice(index, 1);
-
-    console.log("📊 Après suppression - Previews:", this.imagePreviews.length, "Nouvelles:", this.newImages.length, "À supprimer:", this.imagesToDelete);
+    console.log("📊 Après suppression:", {
+      previews: this.imagePreviews.length,
+      original: this.originalImages.length,
+      nouvelles: this.newImages.length,
+      àSupprimer: this.imagesToDelete.length
+    });
   }
 
 
+// ✅ NOUVELLE MÉTHODE pour obtenir le statut des images
+  getImageStatus(index: number): string {
+    if (index < this.originalImages.length) {
+      return this.imagesToDelete.includes(this.originalImages[index]) ? 'supprimée' : 'existante';
+    }
+    return 'nouvelle';
+  }
   saveFullProduct(): void {
     if (!this.editedProduct) return;
 
+    // Validation
     if (this.imagePreviews.length < 3) {
       alert("Veuillez ajouter au moins 3 images");
       return;
@@ -1127,7 +1186,7 @@ export class UserProfileComponent implements OnInit {
 
     const formData = new FormData();
 
-    // ✅ CORRECTION: Utiliser le bon format pour produitData
+    // Données du produit
     const produitData = {
       nom: this.editedProduct.nom,
       description: this.editedProduct.description,
@@ -1139,30 +1198,32 @@ export class UserProfileComponent implements OnInit {
       vendeurId: this.editedProduct.vendeurId || this.user?.id,
     };
 
-    formData.append("produit", new Blob([JSON.stringify(produitData)], { type: "application/json" }));
+    formData.append("produit", new Blob([JSON.stringify(produitData)], {
+      type: "application/json"
+    }));
 
-    // ✅ CORRECTION: Ajouter seulement les NOUVELLES images
+    // ✅ CORRECTION : Ajouter les NOUVELLES images
     this.newImages.forEach((file, index) => {
       formData.append("images", file, file.name);
+      console.log(`📸 Nouvelle image ajoutée: ${file.name}`);
     });
 
-    // ✅ CORRECTION: Envoyer les images à supprimer SEULEMENT s'il y en a
+    // ✅ CORRECTION : Envoyer les images à supprimer
     if (this.imagesToDelete.length > 0) {
       formData.append("imagesToDelete", JSON.stringify(this.imagesToDelete));
       console.log("🗑️ Images à supprimer envoyées:", this.imagesToDelete);
     } else {
-      // Si aucune image à supprimer, envoyer un tableau vide
-      formData.append("imagesToDelete", JSON.stringify([]));
+      formData.append("imagesToDelete", "[]");
     }
 
     const url = `${this.API_BASE_URL}/api/produits/${this.editedProduct.id}`;
 
-    console.log("📤 Envoi de la modification du produit:", {
+    console.log("📤 Envoi modification produit:", {
       produitId: this.editedProduct.id,
       nouvellesImages: this.newImages.length,
       imagesASupprimer: this.imagesToDelete.length,
-      totalImagesApres: this.imagePreviews.length,
-      imagesToDelete: this.imagesToDelete
+      imagesRestantes: this.originalImages.length - this.imagesToDelete.length,
+      totalFinal: this.imagePreviews.length
     });
 
     this.http.put(url, formData).subscribe({
@@ -1170,7 +1231,6 @@ export class UserProfileComponent implements OnInit {
         console.log("✅ Produit mis à jour avec succès:", response);
         alert("🎉 Produit mis à jour avec succès !");
 
-        // Recharger les données
         if (this.user?.id) {
           this.loadUserProducts(this.user.id);
         }
@@ -1179,8 +1239,8 @@ export class UserProfileComponent implements OnInit {
       },
       error: (error) => {
         console.error("❌ Erreur lors de la mise à jour:", error);
-
         let errorMessage = "Erreur lors de la mise à jour du produit";
+
         if (error.status === 400) {
           errorMessage = "Données invalides. Vérifiez les champs.";
         } else if (error.status === 404) {
@@ -1190,7 +1250,7 @@ export class UserProfileComponent implements OnInit {
         }
 
         alert(`❌ ${errorMessage}`);
-      },
+      }
     });
   }
 
