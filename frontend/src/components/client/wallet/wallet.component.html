@@ -1,5 +1,9 @@
 <div class="wallet-container">
-  <h2>💰 Mon Portefeuille</h2>
+  <!-- Centrer le titre et ajouter une phrase significative -->
+  <div class="page-header">
+    <h1 class="page-title">Portefeuille Électronique</h1>
+    <p class="page-tagline">Gérez vos finances avec sécurité et transparence</p>
+  </div>
 
   <div class="wallet-layout">
     <!-- Section gauche : Recharge -->
@@ -8,7 +12,10 @@
         <div class="balance-header">
           <h3>Solde Actuel</h3>
           <button (click)="refreshAll()" class="refresh-btn" title="Actualiser" [disabled]="isLoading">
-            {{ isLoading ? '⏳' : '🔄' }}
+            <svg *ngIf="!isLoading" class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+            </svg>
+            <span *ngIf="isLoading">⏳</span>
           </button>
         </div>
         <div class="balance-amount">
@@ -17,7 +24,13 @@
       </div>
 
       <div class="recharge-card">
-        <h3>💳 Recharger le Portefeuille</h3>
+        <h3>
+          <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+            <path d="M1 10h22"></path>
+          </svg>
+          Recharger le Portefeuille
+        </h3>
 
         <div class="form">
           <label for="amount">Montant à recharger (MAD)</label>
@@ -51,7 +64,13 @@
             [disabled]="isLoading || amountToAdd <= 0"
             class="pay-btn"
           >
-            <span *ngIf="!isLoading">💳 Recharger {{ amountToAdd | currency:currency:'symbol':'1.2-2' }}</span>
+            <span *ngIf="!isLoading">
+              <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="1"></circle>
+                <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.98 2.98l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m2.98-2.98l4.24-4.24M19.78 19.78l-4.24-4.24m-2.98-2.98l-4.24-4.24M23 12h-6m-6 0H5"/>
+              </svg>
+              Recharger {{ amountToAdd | currency:currency:'symbol':'1.2-2' }}
+            </span>
             <span *ngIf="isLoading">⏳ Recharge en cours...</span>
           </button>
         </div>
@@ -67,7 +86,13 @@
     <div class="right-section">
       <div class="history-card">
         <div class="history-header">
-          <h3>📊 Historique des Opérations</h3>
+          <h3>
+            <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <polyline points="19 12 12 19 5 12"></polyline>
+            </svg>
+            Historique des Opérations
+          </h3>
           <div class="history-controls">
             <select
               [(ngModel)]="selectedOperationType"
@@ -85,7 +110,10 @@
               [disabled]="historyLoading"
               title="Actualiser l'historique"
             >
-              {{ historyLoading ? '⏳' : '🔄' }}
+              <svg *ngIf="!historyLoading" class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+              </svg>
+              <span *ngIf="historyLoading">⏳</span>
             </button>
           </div>
         </div>
@@ -105,7 +133,12 @@
               class="history-item {{getOperationClass(operation.operationType)}}"
             >
               <div class="operation-icon">
-                {{ getOperationIcon(operation.operationType) }}
+                <svg *ngIf="operation.operationType === 'CREDIT'" class="icon-operation" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M12 5v14M5 12h14"></path>
+                </svg>
+                <svg *ngIf="operation.operationType === 'DEBIT'" class="icon-operation" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M5 12h14"></path>
+                </svg>
               </div>
 
               <div class="operation-details">

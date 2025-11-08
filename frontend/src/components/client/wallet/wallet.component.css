@@ -1,8 +1,30 @@
 .wallet-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 2rem;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Ajouter des styles pour le titre centré et la phrase significative */
+.page-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.page-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 2.5em;
+  font-weight: 700;
+  color: #2c3e50;
+  letter-spacing: -0.5px;
+}
+
+.page-tagline {
+  margin: 0;
+  font-size: 1.1em;
+  color: #7f8c8d;
+  font-weight: 300;
+  line-height: 1.6;
 }
 
 .wallet-layout {
@@ -19,12 +41,14 @@
   gap: 20px;
 }
 
-.balance-card, .recharge-card {
+.balance-card,
+.recharge-card,
+.history-card {
   background: white;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  border: 1px solid #e1e5e9;
+  padding: 2rem;
+  border-radius: 1.25rem;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f4f8;
 }
 
 .balance-header {
@@ -41,17 +65,65 @@
 }
 
 .balance-amount {
-  font-size: 2.5em;
-  font-weight: bold;
-  color: #27ae60;
+  font-size: 2.8em;
+  font-weight: 700;
+  color: #2b6cb0;
   text-align: center;
-  margin: 10px 0;
+  margin: 15px 0;
+}
+
+.refresh-btn {
+  background: #f0f4f8;
+  color: #2b6cb0;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.refresh-btn:disabled {
+  background: #e2e8f0;
+  color: #a0aec0;
+  cursor: not-allowed;
+}
+
+/* Ajouter les styles pour les icônes SVG */
+.icon-svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke-width: 2;
+}
+
+.icon-inline {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke-width: 2;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.icon-operation {
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 2;
 }
 
 .recharge-card h3 {
   margin: 0 0 20px 0;
   color: #2c3e50;
   font-size: 1.2em;
+  display: flex;
+  align-items: center;
 }
 
 .form {
@@ -68,15 +140,17 @@
 
 .amount-input {
   padding: 12px;
-  border: 2px solid #bdc3c7;
-  border-radius: 8px;
+  border: 1px solid #c3dafe;
+  border-radius: 0.75rem;
   font-size: 16px;
-  transition: border-color 0.3s;
+  transition: all 0.3s;
+  background: #f8fafc;
 }
 
 .amount-input:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #2b6cb0;
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.15);
 }
 
 .quick-amounts p {
@@ -87,53 +161,60 @@
 
 .quick-buttons {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
 }
 
 .quick-amount-btn {
-  background: #ecf0f1;
-  border: 2px solid #bdc3c7;
+  background: #ebf8ff;
+  border: 1px solid #c3dafe;
+  color: #2b6cb0;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.3s;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .quick-amount-btn:hover {
-  background: #d5dbdb;
-  border-color: #95a5a6;
+  background: #d0eeff;
+  border-color: #90cdf4;
 }
 
 .quick-amount-btn.active {
-  background: #3498db;
+  background: #2b6cb0;
   color: white;
-  border-color: #2980b9;
+  border-color: #2c5282;
 }
 
 .pay-btn {
-  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  background: linear-gradient(135deg, #2b6cb0, #4c76b9);
   color: white;
   border: none;
   padding: 15px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: 0.75rem;
+  font-size: 17px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(43, 108, 176, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .pay-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #229954, #27ae60);
+  background: linear-gradient(135deg, #2c5282, #2b6cb0);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+  box-shadow: 0 6px 20px rgba(43, 108, 176, 0.4);
 }
 
 .pay-btn:disabled {
   background: #bdc3c7;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 /* Section droite */
@@ -143,13 +224,8 @@
 }
 
 .history-card {
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  border: 1px solid #e1e5e9;
-  height: fit-content;
-  max-height: 600px;
+  height: auto;
+  max-height: none;
   display: flex;
   flex-direction: column;
 }
@@ -165,6 +241,8 @@
   margin: 0;
   color: #2c3e50;
   font-size: 1.2em;
+  display: flex;
+  align-items: center;
 }
 
 .history-controls {
@@ -174,30 +252,16 @@
 }
 
 .filter-select {
-  padding: 8px 12px;
-  border: 2px solid #bdc3c7;
-  border-radius: 6px;
-  background: white;
+  padding: 10px 12px;
+  border: 1px solid #c3dafe;
+  border-radius: 0.5rem;
+  background: #f8fafc;
   cursor: pointer;
+  transition: all 0.3s;
 }
 
-.refresh-btn {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: #2980b9;
-}
-
-.refresh-btn:disabled {
-  background: #bdc3c7;
-  cursor: not-allowed;
+.filter-select:hover {
+  border-color: #90cdf4;
 }
 
 .history-content {
@@ -205,7 +269,8 @@
   overflow-y: auto;
 }
 
-.loading-history, .no-history {
+.loading-history,
+.no-history {
   text-align: center;
   padding: 40px 20px;
   color: #7f8c8d;
@@ -221,24 +286,32 @@
   display: flex;
   gap: 15px;
   padding: 15px;
-  border-radius: 8px;
-  border-left: 4px solid #bdc3c7;
+  border-radius: 0.75rem;
+  border-left: 4px solid #e2e8f0;
   transition: all 0.3s;
 }
 
 .history-item:hover {
-  background: #f8f9fa;
-  transform: translateX(2px);
+  background: #f8fafc;
+  transform: translateX(3px);
 }
 
 .credit-operation {
-  border-left-color: #27ae60;
-  background: #f0f9f4;
+  border-left-color: #2b6cb0;
+  background: #f0f8ff;
+}
+
+.credit-operation .icon-operation {
+  color: #2b6cb0;
 }
 
 .debit-operation {
-  border-left-color: #e74c3c;
-  background: #fdf0f0;
+  border-left-color: #e53e3e;
+  background: #fff0f0;
+}
+
+.debit-operation .icon-operation {
+  color: #e53e3e;
 }
 
 .operation-icon {
@@ -272,11 +345,11 @@
 }
 
 .operation-amount.positive {
-  color: #27ae60;
+  color: #2b6cb0;
 }
 
 .operation-amount:not(.positive) {
-  color: #e74c3c;
+  color: #e53e3e;
 }
 
 .operation-description {
@@ -317,15 +390,15 @@
 }
 
 .message.error {
-  background: #ffe6e6;
-  color: #c0392b;
-  border: 1px solid #ffcccc;
+  background: #fef2f2;
+  color: #c53030;
+  border: 1px solid #fed7d7;
 }
 
 .message.success {
-  background: #e6ffed;
-  color: #27ae60;
-  border: 1px solid #ccffcc;
+  background: #f0fff4;
+  color: #2b6cb0;
+  border: 1px solid #c6f6d5;
 }
 
 /* Modal de confirmation */
@@ -335,11 +408,19 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .modal-content {
@@ -347,9 +428,11 @@
   padding: 2rem;
   border-radius: 12px;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   max-width: 400px;
   width: 90%;
+  position: relative;
+  z-index: 1;
 }
 
 .modal-content h3 {
@@ -388,22 +471,22 @@
 }
 
 .confirm-btn {
-  background: #27ae60;
+  background: #2b6cb0;
   color: white;
 }
 
 .confirm-btn:hover:not(:disabled) {
-  background: #229954;
+  background: #2c5282;
   transform: translateY(-1px);
 }
 
 .cancel-btn {
-  background: #e74c3c;
+  background: #e53e3e;
   color: white;
 }
 
 .cancel-btn:hover:not(:disabled) {
-  background: #c0392b;
+  background: #c53030;
   transform: translateY(-1px);
 }
 
@@ -415,13 +498,21 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .page-title {
+    font-size: 1.8em;
+  }
+
+  .page-tagline {
+    font-size: 1em;
+  }
+
   .wallet-layout {
     grid-template-columns: 1fr;
     gap: 20px;
   }
 
   .quick-buttons {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .modal-actions {

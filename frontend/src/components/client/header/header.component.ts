@@ -8,7 +8,7 @@ interface User {
   name: string;
   email: string;
   id?: number;
-  photoProfil?: string; // URL complète de l'image
+  photoProfil?: string;
 }
 
 @Component({
@@ -24,6 +24,8 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isDropdownOpen = false;
   userProfileImage: string = '';
   showProfileImage: boolean = false;
+  currentRoute: string = '';
+  isFavoritesActive: boolean = false;
   private routerSubscription: Subscription | undefined;
 
   constructor(private router: Router) {}
@@ -32,9 +34,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.checkAuthState();
     this.routerSubscription = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe(() => {
+      .subscribe((event: any) => {
         this.checkAuthState();
+        this.updateActiveState(event.url);
       });
+
+    // Initialiser l'état actif
+    this.updateActiveState(this.router.url);
   }
 
   ngOnDestroy() {
@@ -43,13 +49,26 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
+  private updateActiveState(url: string) {
+    this.currentRoute = url.split('?')[0]; // Enlever les query params
+
+    // Vérifier si on est dans la section favoris
+    this.isFavoritesActive = url.includes('favorites') ||
+      (this.currentRoute === '/profil' &&
+        (this.router.getCurrentNavigation()?.extras?.state?.['activeTab'] === 'favorites' ||
+          new URLSearchParams(window.location.search).get('tab') === 'favorites'));
+  }
 
   navigateToProfileSection(section: string): void {
     this.closeDropdown();
 
+    // Mettre à jour l'état actif immédiatement
+    if (section === 'favorites') {
+      this.isFavoritesActive = true;
+    }
+
     // Si nous sommes déjà sur la page de profil, on utilise le state pour changer d'onglet
     if (this.router.url === '/profil' || this.router.url.startsWith('/profil')) {
-      // Émettre un événement ou utiliser un service pour communiquer avec le composant profil
       this.router.navigate(['/profil'], {
         state: { activeTab: section },
         queryParams: { tab: section }

@@ -1,5 +1,4 @@
 <main>
-  <!-- Hero Section -->
   <section class="hero-section">
     <div class="container text-center">
       <h1 class="hero-title">Vendez Votre Artisanat</h1>
@@ -9,7 +8,6 @@
     </div>
   </section>
 
-  <!-- Benefits Section -->
   <section class="benefits-section">
     <div class="container">
       <div class="benefits-grid">
@@ -30,16 +28,16 @@
         </div>
       </div>
 
-      <!-- Form Section -->
       <div class="form-container">
         <div class="form-card">
           <div class="form-header">
             <h2 class="form-title">Publier un Produit </h2>
             <p class="form-description">Remplissez les informations sur votre article</p>
           </div>
+          <form (submit)="onSubmit()" class="form">
 
-          <div class="form-content">
-            <form (submit)="onSubmit()" class="form">
+            <div class="form-grid">
+
               <div class="form-group">
                 <label for="title" class="form-label">Titre de l'article *</label>
                 <input
@@ -53,7 +51,19 @@
                 />
               </div>
 
-              <!-- Domaine -->
+              <div class="form-group">
+                <label for="startingPrice" class="form-label">Prix de départ (DH) *</label>
+                <input
+                  id="startingPrice"
+                  type="number"
+                  placeholder="1000"
+                  [(ngModel)]="formData.startingPrice"
+                  name="startingPrice"
+                  class="form-input"
+                  required
+                />
+              </div>
+
               <div class="form-group">
                 <label for="domain" class="form-label">Domaine *</label>
                 <select
@@ -68,11 +78,8 @@
                     {{ dom.nomDomaine }}
                   </option>
                 </select>
-
-
               </div>
 
-              <!-- Catégorie (lié au domaine choisi) -->
               <div class="form-group">
                 <label for="category" class="form-label">Catégorie *</label>
                 <select
@@ -88,7 +95,6 @@
                 </select>
               </div>
 
-              <!-- Expertisé -->
               <div class="form-group">
                 <label class="form-label">
                   <input type="checkbox" [(ngModel)]="formData.isExpertised" name="isExpertised" />
@@ -96,7 +102,6 @@
                 </label>
               </div>
 
-              <!-- Choix supplémentaires si expertisé -->
               <div class="form-group" *ngIf="formData.isExpertised">
                 <label class="form-label">Méthode d'expertise *</label>
                 <select [(ngModel)]="formData.expertiseType" name="expertiseType" class="form-select" required>
@@ -106,8 +111,7 @@
                 </select>
               </div>
 
-
-              <div class="form-group">
+              <div class="form-group full-width">
                 <label for="description" class="form-label">Description *</label>
                 <textarea
                   id="description"
@@ -119,28 +123,9 @@
                 ></textarea>
               </div>
 
-              <div class="form-row">
-                <div class="form-group">
-                  <label for="startingPrice" class="form-label">Prix de départ (DH) *</label>
-                  <input
-                    id="startingPrice"
-                    type="number"
-                    placeholder="1000"
-                    [(ngModel)]="formData.startingPrice"
-                    name="startingPrice"
-                    class="form-input"
-                    required
-                  />
-                </div>
-
-
-              </div>
-
-              <!-- Upload Section améliorée -->
-              <div class="form-group">
+              <div class="form-group full-width">
                 <label class="form-label">Photos *</label>
 
-                <!-- Zone d'upload principale -->
                 <div
                   class="upload-area"
                   [class.drag-over]="isDragOver"
@@ -171,7 +156,6 @@
                   </p>
                 </div>
 
-                <!-- Prévisualisation des images -->
                 <div class="image-previews" *ngIf="imagePreviews.length > 0">
                   <div
                     *ngFor="let preview of imagePreviews; let i = index"
@@ -186,23 +170,21 @@
                   </div>
                 </div>
               </div>
-
-              <div class="form-actions">
-                <button type="submit" class="btn-primary">
-                  Créer l'Enchère
-                </button>
-                <button type="button" class="btn-secondary" (click)="onPreview()">
-                  Aperçu
-                </button>
-              </div>
-            </form>
+            </div> <div class="form-actions">
+            <button type="submit" class="btn-primary">
+              Créer l'Enchère
+            </button>
+            <button type="button" class="btn-secondary" (click)="onPreview()">
+              Aperçu
+            </button>
           </div>
+
+          </form>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Info Section -->
   <section class="info-section">
     <div class="container">
       <div class="info-content">

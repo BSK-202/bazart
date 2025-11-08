@@ -4,6 +4,7 @@
   position: sticky;
   top: 0;
   z-index: 50;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .container {
@@ -56,47 +57,86 @@
   color: #4a5568;
   text-decoration: none;
   transition: color 0.3s ease;
+  position: relative;
+  padding: 0.5rem 0;
 }
 
 .nav-link:hover {
   color: #2b6cb0;
 }
 
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #2b6cb0;
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* Actions Section - Réorganisée */
 .actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
 }
+
 .action-buttons {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
-
+/* Styles unifiés pour les boutons d'icônes */
+/* Styles unifiés pour les boutons d'icônes - NOUVEAU STYLE CHIC */
 .icon-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: none;
-  border: none;
-  padding: 0.5rem;
-  border-radius: 0.375rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  /* Retrait du fond et de la bordure par défaut pour un look minimaliste */
+  background: transparent; /* Changement ici */
+  border: 1px solid transparent; /* Changement ici */
+  border-radius: 50%; /* Rendre le bouton parfaitement rond */
   cursor: pointer;
   color: #4a5568;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Transition plus sophistiquée */
+  position: relative;
+  /* Centrer l'icône SVG dans le bouton */
+  padding: 0;
 }
 
 .icon-button:hover {
-  background-color: #f7fafc;
-  color: #2b6cb0;
+  background-color: #f0f4f8; /* Fond subtil au survol */
+  color: #2b6cb0; /* Couleur d'icône plus vive au survol */
+  border-color: #e2e8f0; /* Bordure légère au survol */
+  transform: scale(1.05); /* Petite animation d'agrandissement */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Ombre très légère */
 }
 
+/* Assurez-vous que l'icône reste centrée et à la bonne taille */
 .icon {
   width: 1.25rem;
   height: 1.25rem;
+  stroke-width: 1.8; /* Légèrement plus fin pour un look plus "pro" */
 }
 
+/* Styles pour le composant de notification */
+/* S'assurer que le wrapper s'aligne */
+.notification-wrapper {
+  display: flex;
+  align-items: center;
+  /* Optionnel : Rendre le wrapper une source de positionnement pour le badge */
+  position: relative; /* Déjà présent dans icon-button, mais utile ici */
+}
+/* User Menu Styles */
 .user-menu {
   position: relative;
 }
@@ -117,8 +157,8 @@
   width: 14rem;
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   padding: 0.5rem;
   opacity: 0;
   visibility: hidden;
@@ -127,28 +167,20 @@
   z-index: 100;
 }
 
-/* Nouvelle classe pour afficher le dropdown */
 .dropdown-content.show {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
 }
 
-/* Supprimer l'ancien hover CSS qui causait des problèmes */
-/* .user-dropdown:hover .dropdown-content {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-} */
-
-/* Styles pour l'image de profil */
+/* Profile Image Styles */
 .profile-button {
-  padding: 0.25rem;
+  padding: 0; /* Retrait du padding car l'icon-button a déjà une taille définie */
 }
 
 .profile-image-container {
-  width: 2rem;
-  height: 2rem;
+  width: 2.5rem; /* Légèrement plus grand */
+  height: 2.5rem;
   border-radius: 50%;
   overflow: hidden;
   display: flex;
@@ -156,6 +188,10 @@
   justify-content: center;
   background-color: #f7fafc;
   border: 2px solid #e2e8f0;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.profile-button:hover .profile-image-container {
+  border-color: #2b6cb0;
 }
 
 .profile-image {
@@ -172,12 +208,15 @@
   color: #718096;
 }
 
-/* Styles pour le dropdown avec image */
+/* User Info in Dropdown */
 .user-info-with-image {
   display: flex;
   align-items: center;
-  padding: 0.5rem;
+  padding: 0.75rem;
   gap: 0.75rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .user-avatar-container {
@@ -213,19 +252,19 @@
 
 .user-name {
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   margin: 0;
   color: #1a202c;
 }
 
 .user-email {
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  color: #718096;
   margin: 0;
-  color: #1a202c;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;}
+  text-overflow: ellipsis;
+}
 
 .dropdown-separator {
   height: 1px;
@@ -237,15 +276,16 @@
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.75rem;
   font-size: 0.875rem;
   color: #4a5568;
   text-decoration: none;
   border: none;
   background: none;
   cursor: pointer;
-  border-radius: 0.25rem;
+  border-radius: 0.5rem;
   transition: all 0.3s ease;
+  gap: 0.5rem;
 }
 
 .dropdown-item:hover {
@@ -253,55 +293,63 @@
   color: #2b6cb0;
 }
 
+.user-trigger:hover .profile-image-container { /* Utilisation de .user-trigger:hover pour l'effet */
+  border-color: #2b6cb0;
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.3); /* Effet d'anneau autour du profil */
+}
+
+/* Bouton Déconnexion dans le dropdown - plus de contraste */
 .logout {
   color: #e53e3e;
+  font-weight: 600; /* Mise en gras pour l'action principale */
 }
 
 .logout:hover {
   color: #c53030;
   background-color: #fed7d7;
 }
-
 .logout-icon {
   width: 1rem;
   height: 1rem;
-  margin-right: 0.5rem;
 }
 
+/* Sell Button */
 .sell-button {
   display: none;
-  background: #2b6cb0;
+  background: linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%);
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   text-decoration: none;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(43, 108, 176, 0.2);
 }
 
 .sell-button:hover {
-  background: #2c5282;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(43, 108, 176, 0.3);
 }
 
-@media (min-width: 768px) {
-  .sell-button {
-    display: block;
-  }
-}
+/* Admin Button */
 .admin-button {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-right: 8px;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .admin-button:hover {
@@ -309,18 +357,66 @@
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
-/* Ajuster l'espacement des boutons */
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* Responsive Design */
+@media (min-width: 768px) {
+  .sell-button {
+    display: block;
+  }
+
+  .actions {
+    gap: 1rem;
+  }
+
+  .action-buttons {
+    gap: 0.75rem;
+  }
 }
 
-/* Pour les écrans mobiles */
 @media (max-width: 768px) {
   .admin-button {
-    padding: 6px 12px;
-    font-size: 12px;
-    margin-right: 4px;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
   }
+
+  .icon-button {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+/* Badge pour les compteurs de notifications/favoris */
+.icon-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.25rem;
+  border-radius: 0.625rem;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  border: 2px solid white;
+}
+
+/* Style pour le lien actif */
+.nav-link.active {
+  color: #2b6cb0;
+  font-weight: 600;
+}
+
+.nav-link.active::after {
+  width: 100%;
+}
+
+/* Style pour les boutons d'icônes actifs */
+.icon-button.active {
+  color: #2b6cb0;
+  background-color: #f0f4f8;
+  border-color: #2b6cb0;
 }

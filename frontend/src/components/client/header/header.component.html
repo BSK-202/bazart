@@ -10,24 +10,34 @@
 
       <!-- Navigation -->
       <nav class="navigation">
-        <a routerLink="/" class="nav-link">Accueil</a>
-        <a routerLink="/encheres" class="nav-link">Enchères</a>
-        <a routerLink="/categories" class="nav-link">Catégories</a>
-        <a routerLink="/wallet" class="nav-link">My Wallet</a>
-        <a routerLink="/contact" class="nav-link">Contact</a>
+        <a routerLink="/"
+           class="nav-link"
+           [class.active]="currentRoute === '/'"
+           routerLinkActive="active"
+           [routerLinkActiveOptions]="{ exact: true }">Accueil</a>
+        <a routerLink="/vendre"
+           class="nav-link"
+           [class.active]="currentRoute === '/vendre'"
+           routerLinkActive="active">Vendre</a>
+        <a routerLink="/wallet"
+           class="nav-link"
+           [class.active]="currentRoute === '/wallet'"
+           routerLinkActive="active">My Wallet</a>
       </nav>
-
       <!-- Actions -->
       <div class="actions">
-        <button class="icon-button" aria-label="Recherche">
+        <button class="icon-button"
+                [class.active]="currentRoute === '/recherche'"
+                aria-label="Recherche">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
         </button>
 
         <ng-container *ngIf="isAuthenticated">
-          <!-- MODIFICATION ICI : Icône cœur qui redirige vers les favoris -->
+          <!-- Icône cœur qui redirige vers les favoris -->
           <button class="icon-button"
+                  [class.active]="isFavoritesActive"
                   aria-label="Favoris"
                   (click)="navigateToProfileSection('favorites')">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -99,12 +109,9 @@
           </button>
         </ng-container>
 
-        <!-- Boutons Vendre et Espace Admin côte à côte -->
-        <div class="action-buttons">
-          <button class="sell-button" routerLink="/vendre">
-            Vendre
-          </button>
-        </div>
+        <!--
+        Boutons Vendre et Espace Admin côte à côte -->
+
       </div>
     </div>
   </div>
