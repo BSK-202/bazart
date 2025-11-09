@@ -18,33 +18,24 @@ public class EmailNotificationSender implements NotificationSender {
     @Value("${app.mail.from:no-reply@bazart.com}")
     private String fromAddress;
 
-    @Value("${app.mail.reply.to:}")
-    private String replyToAddress;
-
     @Override
     public void send(Notification notification, Long userId, String templateMessage) {
-        clientRepository.findEmailById(userId).ifPresent(email -> {
+        System.out.println("Appel EmailNotificationSender.send pour userId=" + userId); // <--- DEBUG
+
+        clientRepository.findEmailById(userId).ifPresentOrElse(email -> {
+            System.out.println("Email trouvé pour userId=" + userId + " = " + email); // <--- DEBUG
             try {
                 SimpleMailMessage msg = new SimpleMailMessage();
                 msg.setTo(email);
                 msg.setSubject("Bazart - Nouvelle notification");
                 msg.setText(templateMessage);
-
-                // Définit l'expéditeur (visible aux destinataires)
                 msg.setFrom(fromAddress);
-
-                // Optionnel : définit un Reply-To si tu veux que les réponses aillent autre part
-                if (replyToAddress != null && !replyToAddress.isBlank()) {
-                    msg.setReplyTo(replyToAddress);
-                }
-
                 mailSender.send(msg);
                 System.out.println("Email envoyé à " + email + " pour userId=" + userId);
             } catch (Exception ex) {
-                // Remplacer par logger.error en production
                 System.err.println("Erreur envoi email à " + email + " : " + ex.getMessage());
             }
-        });
+        }, () -> System.out.println("Aucun email trouvé pour userId=" + userId));
     }
 
     @Override
