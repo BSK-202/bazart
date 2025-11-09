@@ -55,7 +55,7 @@
 
           <div class="auction-content">
             <h3 class="auction-title">{{ produit.nom }}</h3>
-            <p class="auction-description">{{ produit.description }}</p>
+            {{ produit.description | slice:0:120 }}{{ produit.description.length > 120 ? '...' : '' }}
             <div class="auction-price">{{ produit.prixDebut }} DH</div>
 
             <!-- Section des interactions - IMPORTANT: stopPropagation() -->

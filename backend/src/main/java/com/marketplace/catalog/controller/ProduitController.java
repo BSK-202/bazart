@@ -212,8 +212,8 @@ public class ProduitController {
             // Récupère tous les admins
             List<Admin> allAdmins = adminService.getAllAdmins();
             Set<Long> adminIds = allAdmins.stream()
-                .map(Admin::getId)
-                .collect(Collectors.toSet());
+                    .map(Admin::getId)
+                    .collect(Collectors.toSet());
 
             Map<String, Object> adminNotifData = new HashMap<>();
             adminNotifData.put("productName", finalProduit.getNom());
@@ -222,9 +222,9 @@ public class ProduitController {
 
             if (!adminIds.isEmpty()) {
                 notificationService.processEvent(
-                    NotificationType.ADMIN_ALERT,
-                    adminIds,
-                    adminNotifData
+                        NotificationType.ADMIN_ALERT,
+                        adminIds,
+                        adminNotifData
                 );
             }
 
@@ -391,9 +391,9 @@ public class ProduitController {
             }
 
             notificationService.processEvent(
-                notifType,
-                recipients,
-                notifData
+                    notifType,
+                    recipients,
+                    notifData
             );
             // === NOTIFICATION LOGIC ENDS HERE ===
             System.out.println("✅ État produit mis à jour: " + updatedProduit.getEtat());
@@ -501,9 +501,7 @@ public class ProduitController {
             @RequestPart(value = "images", required = false) List<MultipartFile> images,
             @RequestPart(value = "imagesToDelete", required = false) String imagesToDeleteJson) {
 
-        HttpHeaders headers = null;
         try {
-
             System.out.println("✏️ [BACKEND] Modification du produit ID: " + id);
 
             // 🔍 Récupérer le produit existant
@@ -531,70 +529,43 @@ public class ProduitController {
                 Files.createDirectories(produitFolderPath);
             }
 
-// Remplacer cette partie:
-            // Dans la méthode updateProduit, remplacer la partie gestion des images :
-
-// 📷 GESTION DES IMAGES EXISTANTES - Supprimer celles qui sont marquées
+            // 📷 GESTION DE LA SUPPRESSION DES IMAGES VIA LE SERVICE
             if (imagesToDeleteJson != null && !imagesToDeleteJson.trim().isEmpty()) {
                 try {
                     List<String> imagesToDelete = new ObjectMapper().readValue(imagesToDeleteJson, new TypeReference<List<String>>() {});
                     System.out.println("🗑️ Images à supprimer reçues: " + imagesToDelete);
 
+                    // Supprimer les fichiers du dossier
                     for (String imageName : imagesToDelete) {
-                        // Supprimer du système de fichiers
                         Path imagePath = produitFolderPath.resolve(imageName);
                         if (Files.exists(imagePath)) {
                             Files.delete(imagePath);
                             System.out.println("✅ Image supprimée du dossier: " + imageName);
                         }
-
-                        // Supprimer de la base de données
-                        boolean removed = produit.getImages().removeIf(img -> imageName.equals(img.getUrl()));
-                        if (removed) {
-                            System.out.println("✅ Image supprimée de la base: " + imageName);
-                        }
                     }
+
+                    // Supprimer de la base de données via le service
+                    produitService.deleteProduitImages(produit, imagesToDelete);
+
                 } catch (Exception e) {
                     System.err.println("⚠️ Erreur lors du traitement des images à supprimer: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
 
-// 📷 AJOUTER LES NOUVELLES IMAGES
-
+            // 📷 GESTION DE L'AJOUT DES NOUVELLES IMAGES VIA LE SERVICE
             if (images != null && !images.isEmpty()) {
-                System.out.println("🖼️ Ajout de " + images.size() + " nouvelles images");
-
-                int nextIndex = findNextAvailableImageIndex(produit.getImages());
-
-
-                // PUIS dans la boucle d'ajout des nouvelles images :
-                for (int i = 0; i < images.size(); i++) {
-                    MultipartFile file = images.get(i);
-                    String fileExtension = getFileExtension(file.getOriginalFilename());
-                    String fileName = "image_" + (nextIndex + i) + fileExtension;
-                    Path imagePath = produitFolderPath.resolve(fileName);
-
-                    // ✅ VÉRIFIER SI L'IMAGE EXISTE DÉJÀ
-                    if (!Files.exists(imagePath) && !isImageAlreadyExists(produit.getImages(), fileName)) {
-                        Files.write(imagePath, file.getBytes());
-                        System.out.println("✅ Nouvelle image sauvegardée: " + fileName);
-
-                        ProduitImage produitImage = new ProduitImage();
-                        produitImage.setUrl(fileName);
-                        produitImage.setProduit(produit);
-                        produit.getImages().add(produitImage);
-                    } else {
-                        System.out.println("⚠️ Image déjà existante, ignorée: " + fileName);
-                    }
-                }
+                produitService.addProduitImages(produit, images, produitFolderPath);
             }
-            System.out.println("📊 Total images après mise à jour: " + produit.getImages().size());
+
+            System.out.println("📊 Total images après mise à jour: " + (produit.getImages() != null ? produit.getImages().size() : 0));
 
             // 💾 Sauvegarder le produit modifié
             Produit updatedProduit = produitService.saveProduit(produit);
 
             System.out.println("✅ Produit mis à jour avec succès : " + updatedProduit.getNom());
             return ResponseEntity.ok(convertToDTO(updatedProduit));
+
         } catch (Exception e) {
             System.err.println("❌ Erreur lors de la modification du produit : " + e.getMessage());
             e.printStackTrace();

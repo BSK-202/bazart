@@ -1371,6 +1371,57 @@ export class UserProfileComponent implements OnInit {
   }
 
 
+  getEnchereStatus(produit: any): string {
+    if (!produit.dateenchere) return 'Nouvelle';
 
+    const now = new Date();
+    const startDate = new Date(produit.dateenchere);
+    const diffTime = Math.abs(now.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) return '1er jour';
+    if (diffDays < 7) return `${diffDays} jours`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} semaines`;
+
+    return 'Long terme';
+  }
+
+  getProductStatusClass(produit: any): string {
+    if (produit.etat === 'pending') return 'status-pending';
+    if (produit.etat === 'active') return 'status-active';
+    return 'status-draft';
+  }
+
+  getProductStatusText(produit: any): string {
+    if (produit.etat === 'pending') return 'En attente';
+    if (produit.etat === 'active') return 'Actif';
+    return 'Brouillon';
+  }
+
+  getFavoriteCount(produit: any): number {
+    // Implémentez cette méthode selon votre logique métier
+    return produit.nombreFavoris || 0;
+  }
+
+  getPerformanceScore(produit: any): number {
+    // Calcule un score de performance basé sur les interactions
+    const views = produit.nombreInteractions || 0;
+    const favorites = this.getFavoriteCount(produit);
+    const comments = produit.nombreCommentaires || 0;
+
+    const score = Math.min((views * 0.4 + favorites * 0.4 + comments * 0.2) * 10, 100);
+    return Math.round(score);
+  }
+// Méthode pour contacter l'acheteur
+  contactBuyer(produit: Produit): void {
+    if (!produit.acheteurNom) {
+      alert('Aucun acheteur spécifié pour ce produit');
+      return;
+    }
+
+    console.log('📧 Contact de l\'acheteur:', produit.acheteurNom);
+    // Implémentez la logique de contact ici (ouverture de chat, email, etc.)
+    alert(`Fonctionnalité de contact avec ${produit.acheteurNom} bientôt disponible!`);
+  }
 
 }

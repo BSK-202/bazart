@@ -1,6 +1,10 @@
 package com.marketplace.catalog.service;
 
 import com.marketplace.catalog.entity.Produit;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,5 +17,8 @@ public interface ProduitService {
     List<Produit> getProduitsEnAttente();
     long countProduitsEnAttente();
     List<Produit> getProduitsByVendeur(Long vendeurId);
+    // 🆕 NOUVELLES MÉTHODES POUR LA GESTION DES IMAGES
+    void deleteProduitImages(Produit produit, List<String> imageUrlsToDelete);
+    void addProduitImages(Produit produit, List<MultipartFile> newImages, Path produitFolderPath) throws IOException;
 
 }
