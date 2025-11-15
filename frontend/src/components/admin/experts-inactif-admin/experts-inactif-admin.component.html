@@ -1,0 +1,40 @@
+<div class="container">
+  <h2>Experts Inactifs</h2>
+
+  <div *ngIf="loading">Chargement...</div>
+  <div *ngIf="error" class="error-message">{{ error }}</div>
+
+  <div class="experts-container">
+    <div *ngFor="let expert of experts; let i = index" class="expert-card">
+
+      <!-- Changé: expert.client?.photoprofil au lieu de expert.client?.photoProfil -->
+      <ng-container *ngIf="expert.client?.photoprofil && expert.client.photoprofil !== 'assets/default-profile.png'; else placeholder">
+        <img
+          [src]="expert.client.photoprofil"
+          alt="Photo Profil"
+          class="profile-img"
+          (error)="onImageError($event, expert)"
+          (load)="onImageLoad($event, expert)"
+        >
+      </ng-container>
+
+      <ng-template #placeholder>
+        <p>LOG: Aucune photo disponible - utilisation placeholder</p>
+        <img src="assets/default-profile.png" alt="Photo par défaut" class="profile-img">
+      </ng-template>
+
+      <h3>{{ expert.client?.fullName }}</h3>
+
+      <p><strong>Domaine:</strong> {{ expert.domaine.nomDomaine }}</p>
+      <p><strong>Expérience:</strong> {{ expert.anneesExperience }} ans</p>
+
+      <!-- 🆕 BOUTON ACTIF AVEC NAVIGATION -->
+      <button (click)="viewExpertDetails(expert.id)" class="btn-details">
+        Voir détails
+      </button>
+
+    </div>
+  </div>
+
+  <p *ngIf="!loading && experts.length === 0">Aucun expert inactif à afficher</p>
+</div>

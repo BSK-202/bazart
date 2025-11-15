@@ -152,6 +152,122 @@
           <div *ngIf="error" class="error-message">
             {{ error }}
           </div>
+          <!-- Type de compte -->
+          <div class="form-group">
+            <label class="form-label">Type de compte</label>
+            <div>
+              <label>
+                <input type="radio" name="userType" value="client" [(ngModel)]="userType" /> Client
+              </label>
+              <label style="margin-left: 20px;">
+                <input type="radio" name="userType" value="expert" [(ngModel)]="userType" /> Expert
+              </label>
+            </div>
+          </div>
+
+          <!-- Champs Expert -->
+          <div *ngIf="userType === 'expert'" class="expert-section">
+            <h3>Informations Expert</h3>
+
+            <div class="form-group">
+              <label for="biography" class="form-label">Biographie</label>
+              <textarea id="biography" [(ngModel)]="biography" name="biography" class="form-input" rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Années d’expérience</label>
+              <input type="number" [(ngModel)]="nombreAnneesExperience" name="nombreAnneesExperience" class="form-input" />
+            </div>
+
+
+            <div class="form-group">
+              <label class="form-label">Domaine</label>
+              <select
+                [(ngModel)]="domaineId"
+                name="domaineId"
+                class="form-input"
+                (change)="onDomaineChange()"
+                required
+              >
+                <option value="">-- Sélectionner un domaine --</option>
+                <option *ngFor="let d of domaines" [value]="d.idDomaine">
+                  {{ d.nomDomaine }}
+                </option>
+              </select>
+
+            </div>
+            <div class="form-group">
+            <label class="form-label">liste des Categories </label>
+            <div class="categories-box">
+
+              <div *ngFor="let c of categories" class="category-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    [value]="c.idCategorie"
+                    (change)="onCategoryChange($event)"
+                    [checked]="categoriesIds.includes(c.idCategorie)"
+                  >
+                  {{ c.nomCategorie }}
+                </label>
+              </div>
+            </div>
+              <small class="form-help">Vous pouvez cocher une ou plusieurs Catégories </small>
+            </div>
+
+
+            <!-- Langues -->
+            <div class="form-group">
+              <label class="form-label">Langues parlées</label>
+              <div class="languages-box">
+                <div *ngFor="let langue of languesDisponibles" class="language-item">
+                  <label>
+                    <input
+                      type="checkbox"
+                      [value]="langue"
+                      (change)="onLangueChange($event)"
+                      [checked]="langues.includes(langue)"
+                    >
+                    {{ langue }}
+                  </label>
+                </div>
+              </div>
+              <small class="form-help">Vous pouvez cocher une ou plusieurs langues</small>
+            </div>
+
+
+
+
+            <div class="form-group">
+              <label class="form-label">Signatures (images)</label>
+
+              <!-- Input multiple pour sélectionner plusieurs fichiers -->
+              <input
+                type="file"
+                (change)="onSignatureSelected($event)"
+                multiple
+                accept="image/*"
+                class="form-input"
+              />
+              <small class="form-help">Maximum 5 images. Formats: JPG, PNG, GIF. Max 2MB par image.</small>
+
+              <!--  AJOUT : Affichage des signatures sélectionnées -->
+              <div *ngIf="selectedSignatureNames.length > 0" class="selected-signatures">
+                <h4>Signatures sélectionnées:</h4>
+                <div *ngFor="let fileName of selectedSignatureNames; let i = index" class="signature-item">
+                  <span class="file-name">{{ fileName }}</span>
+                  <button
+                    type="button"
+                    class="remove-btn"
+                    (click)="removeSignature(i)"
+                    title="Supprimer cette signature"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Bouton de soumission plus petit -->
           <button
@@ -161,6 +277,7 @@
           >
             {{ loading ? "Création..." : "Créer mon compte" }}
           </button>
+
         </form>
 
         <div class="form-footer">

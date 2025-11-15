@@ -324,3 +324,22 @@
     margin-right: 4px;
   }
 }
+
+.expert-badge {
+  margin-top: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.expert-badge.active {
+  background: #e4ffe4;
+  color: #0d7a0d;
+}
+
+.expert-badge.pending {
+  background: #fff5d6;
+  color: #a67600;
+}

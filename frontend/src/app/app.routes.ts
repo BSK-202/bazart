@@ -16,7 +16,10 @@ import { WalletComponent } from '../components/client/wallet/wallet.component';
 import { AdminAuthGuard } from '../services/admin-auth.guard';
 import { UserProfileComponent } from '../components/client/profile/profile.component';
 import { ProductDetailComponent } from '../components/client/Product-detail/Product-detail.component';
-
+import {ExpertsInactifsComponent} from  '../components/admin/experts-inactif-admin/experts-inactif-admin.component';
+import { ExpertDetailsComponent } from '../components/admin/expert-details-admin/expert-details-admin.component';
+import {ExpertsActifsAdminComponent} from '../components/admin/experts-actifs-admin/experts-actifs-admin.component';
+import { SingupexpertComponent } from '../components/signupexpert/signupexpert.component';
 export const routes: Routes = [
   // ===== ROUTES PUBLIQUES CLIENT =====
   {
@@ -38,6 +41,10 @@ export const routes: Routes = [
   {
     path: 'inscription',
     component: SignupComponent
+  },
+  {
+    path: 'demande-expertise',
+    component: SingupexpertComponent
   },
   {
     path: 'vendre',
@@ -77,8 +84,23 @@ export const routes: Routes = [
     component: CategoryDetailAdminComponent,
     canActivate: [AdminAuthGuard]
   },
+  {
+    path: 'experts-inactifs-admin',
+    component: ExpertsInactifsComponent,
+    canActivate: [AdminAuthGuard]
+  },
+  {
+    path: 'expert-details-admin/:id',
+    component: ExpertDetailsComponent,
+    canActivate: [AdminAuthGuard]
+  },
+  {
+    path: 'experts-actifs-admin',
+    component: ExpertsActifsAdminComponent,
+    canActivate: [AdminAuthGuard]
+  },
 
-  // ===== ROUTES PAR DÉFAUT =====
+
   {
     path: '',
     redirectTo: '/domaines',
@@ -99,6 +121,7 @@ export const routes: Routes = [
     path: '**',
     redirectTo: '/domaines'
   },
+
 
 
 ];

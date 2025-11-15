@@ -8,7 +8,7 @@ interface User {
   name: string;
   email: string;
   id?: number;
-  photoProfil?: string; // URL complète de l'image
+  photoProfil?: string;
 }
 
 @Component({
@@ -19,17 +19,27 @@ interface User {
   styleUrls: ['./header.component.css']
 })
 export class HeaderComponent implements OnInit, OnDestroy {
+
   isAuthenticated = false;
   user: User | null = null;
+
   isDropdownOpen = false;
+
   userProfileImage: string = '';
   showProfileImage: boolean = false;
-  private routerSubscription: Subscription | undefined;
+
+  // 🔹 NOUVEAU
+  isExpert: boolean = false;
+  isExpertActive: boolean = false;
+
+  private routerSubscription?: Subscription;
 
   constructor(private router: Router) {}
 
   ngOnInit() {
     this.checkAuthState();
+
+    // Refresh auth on navigation
     this.routerSubscription = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => {
@@ -38,35 +48,20 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.routerSubscription) {
-      this.routerSubscription.unsubscribe();
-    }
+    this.routerSubscription?.unsubscribe();
   }
-
 
   navigateToProfileSection(section: string): void {
     this.closeDropdown();
-
-    // Si nous sommes déjà sur la page de profil, on utilise le state pour changer d'onglet
-    if (this.router.url === '/profil' || this.router.url.startsWith('/profil')) {
-      // Émettre un événement ou utiliser un service pour communiquer avec le composant profil
-      this.router.navigate(['/profil'], {
-        state: { activeTab: section },
-        queryParams: { tab: section }
-      });
-    } else {
-      // Si nous ne sommes pas sur le profil, on navigue vers le profil avec l'état
-      this.router.navigate(['/profil'], {
-        state: { activeTab: section },
-        queryParams: { tab: section }
-      });
-    }
+    this.router.navigate(['/profil'], {
+      state: { activeTab: section },
+      queryParams: { tab: section }
+    });
   }
 
-  private checkAuthState() {
+  private async checkAuthState() {
     const authToken = localStorage.getItem('authToken');
     const userData = localStorage.getItem('userData');
-    console.log("dataStorage:", userData);
 
     if (authToken && userData) {
       try {
@@ -81,16 +76,19 @@ export class HeaderComponent implements OnInit, OnDestroy {
           photoProfil: parsedUser.photoProfil
         };
 
+        this.isAuthenticated = true;
+
+        // Photo profil
         if (this.user.photoProfil) {
           this.userProfileImage = this.user.photoProfil;
           this.showProfileImage = true;
-          console.log('🖼️ Profile image URL from auth service:', this.userProfileImage);
         } else {
           this.showProfileImage = false;
-          console.log('❌ No profile image URL found');
         }
 
-        this.isAuthenticated = true;
+        // 🔥 Vérifier si l'utilisateur est expert via API
+        await this.checkExpertStatus(this.user.id!);
+
       } catch (e) {
         console.error('Error parsing user data:', e);
         this.logout();
@@ -100,12 +98,33 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.user = null;
       this.userProfileImage = '';
       this.showProfileImage = false;
+
+      // Reset expert status
+      this.isExpert = false;
+      this.isExpertActive = false;
     }
   }
 
-  // Gérer l'erreur de chargement d'image
+  /** 🔥 Appel API pour vérifier si cet utilisateur est expert */
+  private async checkExpertStatus(clientId: number) {
+    try {
+      const response = await fetch(`http://localhost:8080/api/experts/check-expert/${clientId}`);
+      const data = await response.json();
+
+      this.isExpert = data.isExpert;
+      this.isExpertActive = data.isActive;
+
+      console.log('Expert status:', data);
+
+    } catch (error) {
+      console.error('Erreur API expert:', error);
+
+      this.isExpert = false;
+      this.isExpertActive = false;
+    }
+  }
+
   onImageError() {
-    console.log('Profile image not found, using default icon');
     this.showProfileImage = false;
   }
 
@@ -129,10 +148,21 @@ export class HeaderComponent implements OnInit, OnDestroy {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
     this.isAuthenticated = false;
+
     this.user = null;
     this.userProfileImage = '';
     this.showProfileImage = false;
+
     this.isDropdownOpen = false;
+
+    this.isExpert = false;
+    this.isExpertActive = false;
+
     window.location.href = '/';
   }
+  goToBecomeExpert() {
+    this.closeDropdown();
+    this.router.navigate(['/demande-expertise']);
+  }
+
 }

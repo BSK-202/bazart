@@ -101,4 +101,12 @@ public class ClientServiceImpl implements ClientService {
         }
         return clientRepository.save(client);
     }
+
+    public void updateEmailVerified(String email) {
+        Client client = clientRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Client not found"));
+        client.setEmailVerified(true);
+        clientRepository.save(client);
+    }
+
 }

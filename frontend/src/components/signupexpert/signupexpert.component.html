@@ -1,0 +1,77 @@
+<section class="signup-section">
+  <div class="container">
+    <div class="form-container">
+
+      <div class="text-center mb-8">
+        <h1 class="section-title">Inscription Expert</h1>
+        <p class="section-subtitle">Devenez expert et commencez à expertiser</p>
+      </div>
+
+      <div class="form-card">
+        <form (submit)="onSubmit($event)" class="form">
+
+          <!-- Biographie -->
+          <div class="form-group">
+            <label class="form-label">Biographie *</label>
+            <textarea class="form-input" rows="3" [(ngModel)]="biography" name="biography" required></textarea>
+          </div>
+
+          <!-- Expérience -->
+          <div class="form-group">
+            <label class="form-label">Années d’expérience *</label>
+            <input type="number" class="form-input" [(ngModel)]="nombreAnneesExperience" name="nombreAnneesExperience" required />
+          </div>
+
+          <!-- Domaine -->
+          <div class="form-group">
+            <label class="form-label">Domaine *</label>
+            <select class="form-input" [(ngModel)]="domaineId" name="domaineId" required (change)="onDomaineChange()">
+              <option value="">Sélectionnez...</option>
+              <option *ngFor="let d of domaines" [value]="d.idDomaine">{{ d.nomDomaine }}</option>
+            </select>
+          </div>
+
+          <!-- Catégories -->
+          <div class="form-group">
+            <label class="form-label">Catégories *</label>
+            <div class="categories-box">
+              <div *ngFor="let c of categories" class="category-item">
+                <label>
+                  <input type="checkbox" [value]="c.idCategorie" (change)="onCategoryChange($event)" /> {{ c.nomCategorie }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Langues -->
+          <div class="form-group">
+            <label class="form-label">Langues *</label>
+            <div class="languages-box">
+              <div *ngFor="let l of languesDisponibles">
+                <label>
+                  <input type="checkbox" [value]="l" (change)="onLangueChange($event)" /> {{ l }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Signatures -->
+          <div class="form-group">
+            <label class="form-label">Signatures (max 5)</label>
+            <input type="file" accept="image/*" multiple (change)="onSignatureSelected($event)" />
+            <div *ngFor="let s of selectedSignatureNames; let i = index">
+              {{ s }} <button (click)="removeSignature(i)" type="button">X</button>
+            </div>
+          </div>
+
+          <!-- Erreur -->
+          <div *ngIf="error" class="error-message">{{ error }}</div>
+
+          <button class="submit-button" type="submit">{{ loading ? "Création..." : "Créer compte Expert" }}</button>
+
+        </form>
+      </div>
+
+    </div>
+  </div>
+</section>
