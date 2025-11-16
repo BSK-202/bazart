@@ -333,3 +333,28 @@
   -moz-user-select: none;
   -ms-user-select: none;
 }
+/* Styles pour les différents états */
+.status-published {
+  background-color: #28a745;
+  color: white;
+}
+
+.status-auction {
+  background-color: #ffc107;
+  color: black;
+}
+
+.status-sold {
+  background-color: #dc3545;
+  color: white;
+}
+
+.time-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}

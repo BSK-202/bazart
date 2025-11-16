@@ -50,7 +50,9 @@
           <!-- Contenu de la carte -->
           <div class="auction-image">
             <img [src]="produit.imagePrincipale" [alt]="produit.nom" class="item-image">
-            <div class="time-badge">En cours</div>
+            <div class="time-badge" [class]="getEtatClass(produit.etat)">
+              {{ getEtatDisplayText(produit.etat) }}
+            </div>
           </div>
 
           <div class="auction-content">
