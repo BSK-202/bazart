@@ -1,116 +1,210 @@
 <header class="header">
   <div class="container">
     <div class="header-content">
+
       <!-- Logo -->
       <a routerLink="/" class="logo">
-        <h1 class="logo-text">
-          Bazart<span class="logo-dot">.</span>
-        </h1>
+        <h1 class="logo-text"></h1>
       </a>
 
       <!-- Navigation -->
       <nav class="navigation">
+
         <a routerLink="/"
            class="nav-link"
-           [class.active]="currentRoute === '/'"
            routerLinkActive="active"
-           [routerLinkActiveOptions]="{ exact: true }">Accueil</a>
+           [routerLinkActiveOptions]="{ exact: true }">
+          Accueil
+        </a>
+
         <a routerLink="/vendre"
            class="nav-link"
-           [class.active]="currentRoute === '/vendre'"
-           routerLinkActive="active">Vendre</a>
+           routerLinkActive="active">
+          Vendre
+        </a>
+
+        <a routerLink="/encheres"
+           class="nav-link"
+           routerLinkActive="active">
+          Enchères
+        </a>
+
+        <a routerLink="/categories"
+           class="nav-link"
+           routerLinkActive="active">
+          Catégories
+        </a>
+
         <a routerLink="/wallet"
            class="nav-link"
-           [class.active]="currentRoute === '/wallet'"
-           routerLinkActive="active">My Wallet</a>
+           routerLinkActive="active">
+          My Wallet
+        </a>
+
+        <!-- Expert -->
+        <a *ngIf="isExpert && isExpertActive"
+           routerLink="/expertiser"
+           class="nav-link"
+           routerLinkActive="active">
+          Expertiser
+        </a>
+
+        <a routerLink="/contact"
+           class="nav-link"
+           routerLinkActive="active">
+          Contact
+        </a>
+
       </nav>
+
       <!-- Actions -->
       <div class="actions">
+
+        <!-- Recherche -->
         <button class="icon-button"
-                [class.active]="currentRoute === '/recherche'"
-                aria-label="Recherche">
+                aria-label="Recherche"
+                routerLink="/recherche"
+                routerLinkActive="active">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
         </button>
 
+        <!-- Authenticated User -->
         <ng-container *ngIf="isAuthenticated">
-          <!-- Icône cœur qui redirige vers les favoris -->
+
+          <!-- Favoris -->
           <button class="icon-button"
-                  [class.active]="isFavoritesActive"
                   aria-label="Favoris"
                   (click)="navigateToProfileSection('favorites')">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
             </svg>
           </button>
 
-		  <app-notification [userId]="user?.id ?? null"></app-notification>
+          <!-- Notifications -->
+          <app-notification [userId]="user?.id || null"></app-notification>
 
-          <!-- Menu utilisateur connecté -->
+          <!-- User Menu -->
           <div class="user-menu">
             <div class="user-dropdown">
+
+              <!-- Trigger -->
               <button class="user-trigger icon-button"
                       aria-label="Profil utilisateur"
                       (click)="toggleDropdown()">
+
                 <div class="profile-image-container">
-                  <!-- Afficher l'image seulement si showProfileImage est true -->
                   <img *ngIf="showProfileImage"
                        [src]="userProfileImage"
                        alt="Photo de profil"
                        class="profile-image"
                        (error)="onImageError()">
-                  <!-- Icône par défaut si l'image n'existe pas -->
-                  <svg *ngIf="!showProfileImage" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+
+                  <svg *ngIf="!showProfileImage" class="icon"
+                       viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                   </svg>
                 </div>
               </button>
+
+              <!-- Dropdown -->
               <div class="dropdown-content" [class.show]="isDropdownOpen">
 
+                <!-- User Info -->
                 <div class="user-info-with-image">
                   <div class="user-avatar-container">
                     <img *ngIf="showProfileImage"
                          [src]="userProfileImage"
-                         alt="Photo de profil"
                          class="user-avatar"
                          (error)="onImageError()">
-                    <svg *ngIf="!showProfileImage" class="user-avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+
+                    <svg *ngIf="!showProfileImage" class="user-avatar-icon"
+                         viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
                   </div>
+
                   <div class="user-details">
-                    <p class="user-name">{{ user?.name || 'Utilisateur' }}</p>
-                    <p class="user-email">{{ user?.email || '' }}</p>
+                    <p class="user-name">{{ user?.name }}</p>
+                    <p class="user-email">{{ user?.email }}</p>
                   </div>
                 </div>
+
+                <!-- Badge Expert -->
+                <div *ngIf="isExpert"
+                     class="expert-badge"
+                     [ngClass]="{ 'active': isExpertActive, 'pending': !isExpertActive }">
+                  <ng-container *ngIf="isExpertActive">⭐ Expert</ng-container>
+                  <ng-container *ngIf="!isExpertActive">⏳ Validation en cours</ng-container>
+                </div>
+
                 <div class="dropdown-separator"></div>
-                <a routerLink="/profil" class="dropdown-item" (click)="closeDropdown()">Mon profil</a>
-                <a routerLink="/profil" class="dropdown-item" (click)="navigateToProfileSection('bids')">Mes enchères</a>
-                <a routerLink="/profil" class="dropdown-item" (click)="navigateToProfileSection('favorites')">Mes favoris</a>
+
+                <!-- Menu Items -->
+                <a routerLink="/profil"
+                   class="dropdown-item"
+                   (click)="closeDropdown()">
+                  Mon profil
+                </a>
+
+                <a class="dropdown-item"
+                   (click)="navigateToProfileSection('bids')">
+                  Mes enchères
+                </a>
+
+                <a class="dropdown-item"
+                   (click)="navigateToProfileSection('favorites')">
+                  Mes favoris
+                </a>
+
+                <a *ngIf="!isExpert"
+                   class="dropdown-item"
+                   (click)="goToBecomeExpert()">
+                  Devenir expert
+                </a>
+
                 <div class="dropdown-separator"></div>
+
+                <!-- Logout -->
                 <button class="dropdown-item logout" (click)="logout()">
-                  <svg class="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                  <svg class="logout-icon" viewBox="0 0 24 24"
+                       fill="none" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                   </svg>
                   Déconnexion
                 </button>
+
               </div>
             </div>
           </div>
+
         </ng-container>
 
-        <!-- Bouton de connexion (seulement si NON connecté) -->
+        <!-- Not Authenticated -->
         <ng-container *ngIf="!isAuthenticated">
-          <button class="icon-button" aria-label="Connexion" routerLink="/connexion">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          <button class="icon-button"
+                  aria-label="Connexion"
+                  routerLink="/connexion">
+            <svg class="icon" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
             </svg>
           </button>
         </ng-container>
 
-        <!--
-        Boutons Vendre et Espace Admin côte à côte -->
+        <!-- Vendre -->
+        <div class="action-buttons">
+          <button class="sell-button" routerLink="/vendre">
+            Vendre
+          </button>
+        </div>
 
       </div>
     </div>

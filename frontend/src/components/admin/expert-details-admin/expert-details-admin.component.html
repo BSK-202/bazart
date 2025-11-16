@@ -1,0 +1,149 @@
+<!-- expert-details-admin.component.html -->
+<div class="container">
+  <button (click)="goBack()" class="btn-back">← Retour</button>
+
+  <div *ngIf="loading" class="loading">Chargement des détails...</div>
+
+  <div *ngIf="error" class="error-message">
+    {{ error }}
+    <button (click)="fetchExpertDetails()" class="btn-retry">Réessayer</button>
+  </div>
+
+  <div *ngIf="expert && !loading" class="expert-details">
+    <h2>Détails de l'Expert</h2>
+
+    <!-- Section Informations Personnelles -->
+    <div class="section">
+      <h3>Informations Personnelles</h3>
+      <div class="profile-header">
+        <img
+          [src]="expert.client.photoprofil || 'assets/default-profile.png'"
+          alt="Photo Profil"
+          class="profile-img-large"
+          (error)="onImageError($event)"
+        >
+        <div class="profile-info">
+          <h4>{{ expert.client.fullName }}</h4>
+          <p><strong>Email:</strong> {{ expert.client.email }}</p>
+          <p><strong>Téléphone:</strong> {{ expert.client.tel }}</p>
+          <p><strong>Ville:</strong> {{ expert.client.ville }}, {{ expert.client.pays }}</p>
+          <p><strong>Date d'inscription:</strong> {{ formatDate(expert.client.dateinscription) }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section Expertise -->
+    <div class="section">
+      <h3>Informations Professionnelles</h3>
+      <p><strong>Domaine:</strong> {{ expert.domaine.nomDomaine }}</p>
+      <p><strong>Années d'expérience:</strong> {{ expert.anneesExperience }} ans</p>
+      <p><strong>Statut:</strong>
+        <span [class]="expert.active ? 'status-active' : 'status-inactive'">
+          {{ expert.active ? 'Actif' : 'Inactif' }}
+        </span>
+      </p>
+    </div>
+
+    <!-- Section Biographie -->
+    <div class="section" *ngIf="expert.biography">
+      <h3>Biographie</h3>
+      <p class="biography">{{ expert.biography }}</p>
+    </div>
+
+    <!-- Section Catégories -->
+    <div class="section" *ngIf="expert.categories && expert.categories.length > 0">
+      <h3>Catégories d'expertise</h3>
+      <div class="categories-list">
+        <span *ngFor="let categorie of expert.categories" class="category-tag">
+          {{ categorie.nomCategorie }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Section Langues -->
+    <div class="section" *ngIf="expert.langues && expert.langues.length > 0">
+      <h3>Langues parlées</h3>
+      <div class="languages-list">
+        <span *ngFor="let langue of expert.langues" class="language-tag">
+          {{ langue }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Section Signatures -->
+    <div class="section" *ngIf="expert.signatureImages && expert.signatureImages.length > 0">
+      <h3>Images de signature ({{ expert.signatureImages.length }})</h3>
+
+      <div class="signatures-grid">
+        <div
+          *ngFor="let signature of expert.signatureImages; let i = index"
+          class="signature-item"
+          (click)="openSignatureModal(i)"
+        >
+          <img
+            [src]="getSignatureUrl(signature)"
+            [alt]="'Signature ' + (i + 1)"
+            class="signature-img"
+            (error)="onSignatureError($event, signature)"
+            (load)="onSignatureLoad($event, signature)"
+          >
+          <p class="signature-name">Signature {{ i + 1 }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="section" *ngIf="expert && !expert.active">
+      <button class="btn-activate" (click)="activateExpert()">
+        ✔ Valider l'expert
+      </button>
+    </div>
+
+    <!-- Message si pas de signatures -->
+    <div class="section" *ngIf="!expert.signatureImages || expert.signatureImages.length === 0">
+      <h3>Images de signature</h3>
+      <p class="no-signatures">Aucune image de signature disponible</p>
+    </div>
+  </div>
+
+  <!-- Modal de visualisation des signatures -->
+  <div *ngIf="signatureModalOpen" class="signature-modal-overlay" (click)="closeSignatureModal()">
+    <div class="signature-modal-content" (click)="$event.stopPropagation()">
+
+      <!-- Bouton fermeture -->
+      <button class="modal-close-btn" (click)="closeSignatureModal()">×</button>
+
+      <!-- Navigation gauche -->
+      <button
+        class="nav-btn nav-btn-left"
+        (click)="previousSignature()"
+        [disabled]="currentSignatureIndex === 0"
+      >
+        ‹
+      </button>
+
+      <!-- Image signature -->
+      <div class="signature-image-container">
+        <img
+          [src]="getCurrentSignatureUrl()"
+          [alt]="'Signature ' + (currentSignatureIndex + 1)"
+          class="signature-modal-img"
+          (error)="onModalSignatureError($event)"
+        />
+        <div class="signature-counter">
+          {{ currentSignatureIndex + 1 }} / {{ expert!.signatureImages.length }}
+        </div>
+      </div>
+      <!-- Bouton Valider Expert (affiché uniquement si expert inactif) -->
+
+
+
+      <!-- Navigation droite -->
+      <button
+        class="nav-btn nav-btn-right"
+        (click)="nextSignature()"
+        [disabled]="currentSignatureIndex === expert!.signatureImages.length - 1"
+      >
+        ›
+      </button>
+    </div>
+  </div>
+</div>

@@ -11,8 +11,8 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 	Optional<Client> findByEmail(String email);
 	Optional<Client> findByGoogleId(String googleId);
 	boolean existsByEmail(String email);
-	
-	// Récupère uniquement l'email d'un utilisateur par son id (optimisé)
+
+    // Récupère uniquement l'email d'un utilisateur par son id (optimisé)
     @Query("SELECT c.email FROM Client c WHERE c.id = :id")
     Optional<String> findEmailById(@Param("id") Long id);
 }

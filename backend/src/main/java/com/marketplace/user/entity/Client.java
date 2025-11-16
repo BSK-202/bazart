@@ -40,6 +40,9 @@ public class Client {
 
 	@Column(unique = true)
 	private String googleId;
+    @Column(nullable = false)
+    private boolean emailVerified = false;
+
 
 	@ManyToMany(fetch = FetchType.EAGER)
 	@JoinTable(

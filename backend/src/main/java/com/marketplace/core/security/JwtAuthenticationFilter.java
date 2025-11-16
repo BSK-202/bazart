@@ -41,6 +41,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
+        // Ignorer création et lecture des experts sans JWT
+        if (requestURI.startsWith("/api/experts")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
 
         String header = request.getHeader("Authorization");
         String token = null;
@@ -68,6 +74,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }
+
 
         chain.doFilter(request, response);
     }

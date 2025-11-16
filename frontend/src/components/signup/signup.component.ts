@@ -1,23 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-
-interface ClientDto {
-  idclient?: number;
-  nom: string;
-  prenom: string;
-  email: string;
-  tel: string;
-  pays: string;
-  ville: string;
-  photoprofil: string;
-  roles?: string[];
-  enabled?: boolean;
-}
 
 interface RegisterResponse {
   idclient: number;
@@ -28,8 +15,6 @@ interface RegisterResponse {
   pays: string;
   ville: string;
   photoprofil: string;
-  roles: string[];
-  enabled: boolean;
 }
 
 @Component({
@@ -39,22 +24,39 @@ interface RegisterResponse {
   templateUrl: './signup.component.html',
   styleUrls: ['./signup.component.css']
 })
-export class SignupComponent {
-  // Informations personnelles
-  nom: string = '';
-  prenom: string = '';
-  email: string = '';
-  tel: string = '';
-  pays: string = '';
-  ville: string = '';
-  photoprofil: string = '';
-  // Mot de passe
-  password: string = '';
-  confirmPassword: string = '';
-  error: string = '';
-  loading: boolean = false;
-  selectedFileName: string = '';
+export class SignupComponent implements OnInit {
+
+  // --- Champs Client ---
+  nom = '';
+  prenom = '';
+  email = '';
+  tel = '';
+  pays = '';
+  ville = '';
+  photoprofil = '';
+  password = '';
+  confirmPassword = '';
+  error = '';
+  loading = false;
   selectedFile: File | null = null;
+
+  // --- Type utilisateur ---
+  userType: 'client' | 'expert' = 'client';
+
+  // --- Champs Expert ---
+  biography = '';
+  nombreAnneesExperience = 0;
+  domaineId: number | null = null;
+  categoriesIds: number[] = [];
+  langues: string[] = [];
+  languesDisponibles: string[] = [];
+  dateEmbauche: string | null = null;
+  nombreProduitsExpertise = 0;
+  signatureImages: File[] = [];
+  selectedSignatureNames: string[] = [];
+
+  domaines: any[] = [];
+  categories: any[] = [];
 
   constructor(
     private router: Router,
@@ -62,203 +64,174 @@ export class SignupComponent {
     private authService: AuthService
   ) {}
 
+  async ngOnInit(): Promise<void> {
+    try {
+      this.domaines = await lastValueFrom(this.http.get<any[]>('http://localhost:8080/api/domaines'));
+      this.languesDisponibles = await lastValueFrom(this.http.get<string[]>('http://localhost:8080/api/experts/langues'));
+    } catch (err) {
+      console.error('❌ Erreur chargement domaines/langues', err);
+    }
+  }
+
+  async onDomaineChange(): Promise<void> {
+    if (this.domaineId && !isNaN(Number(this.domaineId))) {
+      try {
+        this.categories = await lastValueFrom(
+          this.http.get<any[]>(`http://localhost:8080/api/categories/domaine/${this.domaineId}`)
+        );
+      } catch (err) {
+        console.error('❌ Erreur chargement catégories', err);
+        this.categories = [];
+      }
+    } else {
+      this.categories = [];
+    }
+  }
+
+  onCategoryChange(event: any): void {
+    const categoryId = Number(event.target.value);
+    if (event.target.checked) {
+      if (!this.categoriesIds.includes(categoryId)) this.categoriesIds.push(categoryId);
+    } else {
+      this.categoriesIds = this.categoriesIds.filter(id => id !== categoryId);
+    }
+  }
+
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file && file.type.match('image.*')) {
+      this.selectedFile = file;
+      this.photoprofil = file.name;
+      this.error = '';
+    } else {
+      this.error = 'Veuillez sélectionner une image valide (JPG, PNG, GIF)';
+    }
+  }
+
+  onSignatureSelected(event: any): void {
+    const files = Array.from(event.target.files) as File[];
+    if (files.length + this.signatureImages.length > 5) {
+      this.error = 'Maximum 5 images de signature autorisées';
+      return;
+    }
+    const invalidFiles = files.filter(f => !f.type.match('image.*'));
+    if (invalidFiles.length) {
+      this.error = 'Seules les images sont autorisées pour les signatures';
+      return;
+    }
+    const oversizedFiles = files.filter(f => f.size > 2 * 1024 * 1024);
+    if (oversizedFiles.length) {
+      this.error = 'Les images de signature ne doivent pas dépasser 2MB chacune';
+      return;
+    }
+    this.signatureImages.push(...files);
+    this.selectedSignatureNames.push(...files.map(f => f.name));
+    this.error = '';
+  }
+
+  removeSignature(index: number): void {
+    this.signatureImages.splice(index, 1);
+    this.selectedSignatureNames.splice(index, 1);
+  }
+
+  toggleLangue(langue: string) {
+    const index = this.langues.indexOf(langue);
+    if (index === -1) this.langues.push(langue);
+    else this.langues.splice(index, 1);
+  }
+
+  onLangueChange(event: any) {
+    const langue = event.target.value;
+    if (event.target.checked) this.langues.push(langue);
+    else this.langues = this.langues.filter(l => l !== langue);
+  }
+
+  private validateExpertFields(): boolean {
+    if (!this.biography || !this.nombreAnneesExperience || !this.domaineId || this.categoriesIds.length === 0 || this.langues.length === 0) {
+      this.error = 'Veuillez remplir tous les champs requis pour le profil Expert.';
+      return false;
+    }
+    return true;
+  }
+
   private async signup(clientData: any, password: string): Promise<RegisterResponse> {
-    const registerData = {
-      nom: clientData.nom,
-      prenom: clientData.prenom,
-      email: clientData.email,
-      password: password,
-      tel: clientData.tel,
-      pays: clientData.pays,
-      ville: clientData.ville,
-      photoprofil: clientData.photoprofil
-    };
-
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-
-    return lastValueFrom(
-      this.http.post<RegisterResponse>(
-        'http://localhost:8080/api/auth/register',
-        registerData,
-        { headers }
-      )
-    );
+    const registerData = { ...clientData, password };
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    return lastValueFrom(this.http.post<RegisterResponse>('http://localhost:8080/api/auth/register', registerData, { headers }));
   }
 
   private async uploadProfileImage(clientId: number, file: File): Promise<string> {
     const formData = new FormData();
     formData.append('file', file);
-    // Ne pas ajouter clientId dans FormData car il est déjà dans l'URL
-
-    const response = await lastValueFrom(
-      this.http.post<{fileName: string}>(
-        `http://localhost:8080/api/clients/${clientId}/upload-profile-image`,
-        formData
-      )
-    );
-
+    const response = await lastValueFrom(this.http.post<{ fileName: string }>(`http://localhost:8080/api/clients/${clientId}/upload-profile-image`, formData));
     return response.fileName;
   }
 
-  private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  private async createExpertProfile(clientId: number): Promise<void> {
+    const expertData = {
+      biography: this.biography,
+      anneesExperience: this.nombreAnneesExperience,
+      domaine: { idDomaine: this.domaineId },
+      categories: this.categoriesIds.map(id => ({ idCategorie: id })),
+      langues: this.langues,
+      isActive: false,
+      dateEmbauche: this.dateEmbauche,
+      nombreProduitsExpertise: this.nombreProduitsExpertise,
+      signatureImages: this.signatureImages.map(f => f.name),
+      client: { id: clientId }
+    };
+    const createdExpert: any = await lastValueFrom(this.http.post('http://localhost:8080/api/experts', expertData));
+    const expertId = createdExpert.id;
+    if (this.signatureImages.length) await this.uploadSignatureImages(expertId, this.signatureImages);
   }
 
-  private handleError(error: any): void {
-    if (error.status === 400) {
-      if (error.error && error.error.message) {
-        this.error = error.error.message;
-      } else {
-        this.error = 'Données invalides. Vérifiez les informations saisies.';
-      }
-    } else if (error.status === 409) {
-      this.error = 'Un compte avec cet email existe déjà.';
-    } else if (error.status === 0) {
-      this.error = 'Impossible de se connecter au serveur. Vérifiez que le serveur est démarré.';
-    } else if (error.error && error.error.message) {
-      this.error = error.error.message;
-    } else {
-      this.error = 'Une erreur est survenue lors de l\'inscription. Veuillez réessayer.';
-    }
-  }
+// Dans signup.component.ts - CORRECTION
+  private async uploadSignatureImages(expertId: number, files: File[]): Promise<void> {
+    if (files.length === 0) return;
 
-  private redirectWithSuccess() {
-    sessionStorage.setItem('inscriptionSuccess', 'true');
-    sessionStorage.setItem('newUserEmail', this.email);
-    this.router.navigate(['/connexion']);
-  }
+    // 🆕 CORRECTION : Envoyer TOUTES les images en UNE SEULE requête
+    const formData = new FormData();
 
-  resetForm() {
-    this.nom = '';
-    this.prenom = '';
-    this.email = '';
-    this.tel = '';
-    this.pays = '';
-    this.ville = '';
-    this.photoprofil = '';
-    this.password = '';
-    this.confirmPassword = '';
-    this.error = '';
-    this.selectedFileName = '';
-    this.selectedFile = null;
-  }
+    // Ajouter TOUS les fichiers
+    files.forEach(file => {
+      formData.append('signatures', file);
+    });
 
-  onFileSelected(event: any): void {
-    const file = event.target.files[0];
-    if (file) {
-      // Vérifier le type de fichier
-      if (!file.type.match('image.*')) {
-        this.error = 'Veuillez sélectionner une image valide (JPG, PNG, GIF)';
-        return;
-      }
-
-      // Vérifier la taille du fichier (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        this.error = 'L\'image ne doit pas dépasser 5MB';
-        return;
-      }
-
-      this.selectedFileName = file.name;
-      this.selectedFile = file;
-      this.photoprofil = file.name; // Nom temporaire pour l'affichage
-      this.error = '';
+    try {
+      console.log(`📤 Envoi de ${files.length} signatures en une seule requête`);
+      const response = await lastValueFrom(
+        this.http.post(`http://localhost:8080/api/experts/${expertId}/upload-signatures`, formData)
+      );
+      console.log('✅ Toutes les signatures uploadées avec succès:', response);
+    } catch (err) {
+      console.error('❌ Erreur upload des signatures:', err);
+      throw err;
     }
   }
 
   async onSubmit(event: Event): Promise<void> {
     event.preventDefault();
-
-    // Validation basique
     if (this.password !== this.confirmPassword) {
       this.error = 'Les mots de passe ne correspondent pas';
       return;
     }
-
-    // Validation des champs requis
-    if (!this.nom || !this.prenom || !this.email || !this.pays || !this.ville || !this.password) {
-      this.error = 'Veuillez remplir tous les champs obligatoires';
-      return;
-    }
-
-    // Validation de l'email
-    if (!this.isValidEmail(this.email)) {
-      this.error = 'Veuillez saisir une adresse email valide';
-      return;
-    }
-
-    // Validation de la longueur du mot de passe
-    if (this.password.length < 6) {
-      this.error = 'Le mot de passe doit contenir au moins 6 caractères';
-      return;
-    }
-
+    if (this.userType === 'expert' && !this.validateExpertFields()) return;
     this.loading = true;
     this.error = '';
 
     try {
-      // Appel à l'API d'inscription
-      const clientData = {
-        nom: this.nom,
-        prenom: this.prenom,
-        email: this.email,
-        tel: this.tel,
-        pays: this.pays,
-        ville: this.ville,
-        photoprofil: this.selectedFile ? this.selectedFile.name : '' // Nom temporaire
-      };
-
-      console.log('📝 Début de l\'inscription...');
+      const clientData = { nom: this.nom, prenom: this.prenom, email: this.email, tel: this.tel, pays: this.pays, ville: this.ville, photoprofil: this.selectedFile ? this.selectedFile.name : '' };
       const response = await this.signup(clientData, this.password);
-      console.log('✅ Inscription réussie, ID client:', response.idclient);
-
-      // Upload de l'image si une image a été sélectionnée
-      if (this.selectedFile && response.idclient) {
-        try {
-          console.log('📤 Début de l\'upload de l\'image...');
-          const fileName = await this.uploadProfileImage(response.idclient, this.selectedFile);
-          console.log('✅ Image uploadée avec succès:', fileName);
-
-          // Mettre à jour le nom de fichier dans la base de données
-          console.log('🔄 Mise à jour du nom de l\'image dans la BDD...');
-          await this.updateProfileImageName(response.idclient, fileName);
-          console.log('✅ Nom de l\'image mis à jour dans la BDD');
-        } catch (uploadError: any) {
-          console.error('❌ Erreur lors de l\'upload de l\'image:', uploadError);
-          console.error('Détails de l\'erreur:', uploadError.status, uploadError.message);
-          // Ne pas bloquer l'inscription si l'upload échoue
-        }
-      }
-
-      // Inscription sur Firebase pour email verification
-      try {
-        await this.authService.registerWithFirebase(this.email, this.password);
-        alert("Un email de vérification vous a été envoyé. Vérifiez votre boîte mail.");
-      } catch (firebaseError: any) {
-        console.error("Erreur Firebase (email vérif) :", firebaseError);
-        alert("Attention : votre compte a bien été créé, mais l'envoi de l'email de vérification a échoué.");
-      }
-
-      this.redirectWithSuccess();
-
-    } catch (error: any) {
-      console.error('❌ Erreur lors de l\'inscription:', error);
-      this.handleError(error);
+      if (this.selectedFile && response.idclient) await this.uploadProfileImage(response.idclient, this.selectedFile);
+      if (this.userType === 'expert') await this.createExpertProfile(response.idclient);
+      await this.authService.registerWithFirebase(this.email, this.password);
+      alert('Un email de vérification vous a été envoyé.');
+      this.router.navigate(['/connexion']);
+    } catch (err) {
+      console.error('❌ Erreur inscription', err);
+      this.error = 'Une erreur est survenue lors de l\'inscription.';
     } finally {
       this.loading = false;
     }
-  }
-
-  private async updateProfileImageName(clientId: number, fileName: string): Promise<void> {
-    const updateData = { photoprofil: fileName };
-
-    await lastValueFrom(
-      this.http.patch(
-        `http://localhost:8080/api/clients/${clientId}/profile-image`,
-        updateData
-      )
-    );
   }
 }

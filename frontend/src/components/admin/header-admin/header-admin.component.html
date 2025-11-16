@@ -18,6 +18,9 @@
             {{ pendingCount }}
           </span>
         </a>
+        <a routerLink="/experts-inactifs-admin" class="nav-link">Demande</a>
+        <a routerLink="/experts-actifs-admin" class="nav-link">Experts</a>
+
       </nav>
 
       <!-- Actions -->
@@ -34,7 +37,7 @@
 		  [userId]="adminUserId"
 		  [inAppEnabled]="true">
 		</app-notification>
-		
+
         <ng-container *ngIf="isAuthenticated">
           <button class="icon-button" aria-label="Favoris" routerLink="/profil">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">

@@ -1,0 +1,184 @@
+/* Layout container */
+.container {
+  max-width: 1200px;
+  margin: 24px auto;
+  padding: 0 16px;
+  font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #222;
+  box-sizing: border-box;
+}
+
+/* Page title */
+.container > h2 {
+  font-size: 28px;
+  margin-bottom: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Loading / error messages */
+.loading,
+.error-message,
+.no-experts {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.loading {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.error-message {
+  background: #fff1f2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+/* Grid of cards */
+.experts-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+  align-items: start;
+  margin-top: 12px;
+}
+
+/* Single card */
+.expert-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+  min-height: 320px;
+}
+
+/* Hover / focus state */
+.expert-card:hover,
+.expert-card:focus-within {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.09);
+}
+
+/* Profile image */
+.profile-img {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  margin-bottom: 12px;
+  border: 3px solid #f3f4f6;
+  background: #f8fafc;
+}
+
+/* Expert name */
+.expert-card h3 {
+  font-size: 18px;
+  margin: 6px 0 10px;
+  color: #0f172a;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Details list */
+.expert-card p {
+  margin: 6px 0;
+  font-size: 13px;
+  color: #374151;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Make long domain text wrap (special case) */
+.expert-card p strong + span,
+.expert-card p.long {
+  white-space: normal;
+}
+
+/* Button styles */
+.btn-details {
+  margin-top: auto; /* push button to bottom */
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(180deg, #0ea5a4 0%, #02867a 100%);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms;
+  box-shadow: 0 6px 18px rgba(2, 134, 122, 0.18);
+}
+
+/* Button hover / active / focus */
+.btn-details:hover {
+  transform: translateY(-2px);
+  opacity: 0.98;
+}
+
+.btn-details:active {
+  transform: translateY(0);
+}
+
+.btn-details:focus {
+  outline: 3px solid rgba(2, 134, 122, 0.18);
+  outline-offset: 2px;
+}
+
+/* Small screens adjustments */
+@media (max-width: 640px) {
+  .container {
+    padding: 0 12px;
+  }
+
+  .expert-card {
+    padding: 12px;
+    min-height: 300px;
+  }
+
+  .profile-img {
+    width: 92px;
+    height: 92px;
+    margin-bottom: 10px;
+  }
+
+  .expert-card p {
+    font-size: 13px;
+  }
+}
+
+/* Very small devices: single column */
+@media (max-width: 420px) {
+  .experts-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Utility: visually-hidden for accessibility if needed */
+.visually-hidden {
+  position: absolute !important;
+  height: 1px; width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}
+
+/* Optional: make placeholder text less intrusive */
+.no-experts {
+  color: #6b7280;
+  background: transparent;
+  padding: 8px 0;
+  font-weight: 600;
+}

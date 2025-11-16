@@ -57,7 +57,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/commentaires/produit/*/count").permitAll()
                         .requestMatchers("/api/commentaires/produit/**").permitAll()
                         .requestMatchers("/api/clients/images/**").permitAll()
+                        .requestMatchers("/api/experts/*/upload-signatures").permitAll()
+                        .requestMatchers("/api/experts/**").permitAll()
 
+                        .requestMatchers("/api/experts").permitAll()
                         .requestMatchers("/api/produits/*/start-auction").permitAll()
 
 

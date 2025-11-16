@@ -81,6 +81,8 @@ public class ClientController {
             if (clientOpt.isEmpty()) {
                 return ResponseEntity.status(404).body("Client non trouvé");
             }
+            Client client = clientOpt.get();
+            System.out.println("✅ Client trouvé - ID en BDD: " + client.getIdclient() + ", Nom: " + client.getNom() + " " + client.getPrenom());
 
             if (file == null || file.isEmpty()) {
                 return ResponseEntity.badRequest().body("Aucun fichier fourni");
@@ -101,12 +103,27 @@ public class ClientController {
             if (originalFileName != null && originalFileName.contains(".")) {
                 fileExtension = originalFileName.substring(originalFileName.lastIndexOf(".")).toLowerCase();
             }
+            if (!fileExtension.equals(".jpg") && !fileExtension.equals(".jpeg") &&
+                    !fileExtension.equals(".png") && !fileExtension.equals(".gif")) {
+                fileExtension = ".jpg"; // Forcer jpg si extension non supportée
+            }
 
-            String newFileName = clientId + fileExtension;
+            Long actualClientId = client.getIdclient();
+            String newFileName = actualClientId + fileExtension; // ✅ Utilise actualClientId de la BDD
             Path filePath = Paths.get(UPLOAD_DIR + newFileName);
-
+            System.out.println("🆔 ID client depuis URL: " + clientId + ", ID client depuis BDD: " + actualClientId);
+            System.out.println("📁 Nom de fichier généré: " + newFileName);
+            String[] possibleExtensions = {".jpg", ".jpeg", ".png", ".gif"};
             // Supprimer l'ancienne image si elle existe
-            Files.deleteIfExists(filePath);
+            //Files.deleteIfExists(filePath);
+            for (String ext : possibleExtensions) {
+                Path oldFilePath = Paths.get(UPLOAD_DIR + actualClientId + ext);
+                if (Files.exists(oldFilePath)) {
+                    Files.delete(oldFilePath);
+                    System.out.println("🗑️ Ancien fichier supprimé: " + oldFilePath);
+                }
+            }
+
 
             // Sauvegarder la nouvelle image
             Files.copy(file.getInputStream(), filePath);
@@ -114,10 +131,17 @@ public class ClientController {
             System.out.println("✅ Photo de profil sauvegardée: " + filePath.toString());
 
             // Mettre à jour le nom de fichier dans la base de données
-            Client client = clientOpt.get();
-            client.setPhotoprofil(newFileName);
-            clientService.updateClient(client);
 
+            client.setPhotoprofil(newFileName);
+            Client updatedClient = clientService.updateClient(client);
+            //clientService.updateClient(client);
+            System.out.println("✅ BDD mise à jour avec photoprofil: " + updatedClient.getPhotoprofil());
+
+            // Vérifier que la mise à jour a bien fonctionné
+            Optional<Client> verifyClient = clientService.getClientById(actualClientId);
+            if (verifyClient.isPresent()) {
+                System.out.println("🔍 Vérification BDD - photoprofil stocké: " + verifyClient.get().getPhotoprofil());
+            }
             // Construire l'URL complète
             String profileImageUrl = "http://localhost:8080/api/clients/images/" + newFileName;
 
@@ -126,6 +150,7 @@ public class ClientController {
             response.put("profileImageUrl", profileImageUrl);
             response.put("photoProfil", profileImageUrl); // ✅ Champ que le frontend attend
             response.put("message", "Photo de profil uploadée avec succès");
+            response.put("clientId", actualClientId);
 
             return ResponseEntity.ok(response);
 
@@ -233,7 +258,8 @@ public class ClientController {
             if (clientOpt.isEmpty()) {
                 return ResponseEntity.status(404).body("Client non trouvé");
             }
-
+            Client client = clientOpt.get();
+            Long actualClientId = client.getIdclient();
             if (file == null || file.isEmpty()) {
                 return ResponseEntity.badRequest().body("Aucun fichier fourni");
             }
@@ -254,14 +280,19 @@ public class ClientController {
                 fileExtension = originalFileName.substring(originalFileName.lastIndexOf(".")).toLowerCase();
             }
 
-            String newFileName = clientId + fileExtension;
+            String newFileName = actualClientId  + fileExtension;
             Path filePath = Paths.get(UPLOAD_DIR + newFileName);
 
-            Files.deleteIfExists(filePath);
+            String[] possibleExtensions = {".jpg", ".jpeg", ".png", ".gif"};
+            for (String ext : possibleExtensions) {
+                Path oldFilePath = Paths.get(UPLOAD_DIR + actualClientId + ext);
+                Files.deleteIfExists(oldFilePath);
+            }
             Files.copy(file.getInputStream(), filePath);
 
             System.out.println("✅ Image sauvegardée: " + filePath.toString());
-
+            client.setPhotoprofil(newFileName);
+            clientService.updateClient(client);
             // 🆕 MODIFICATION: Retourner l'URL complète
             String profileImageUrl = "http://localhost:8080/api/clients/images/" + newFileName;
 
@@ -379,4 +410,12 @@ public class ClientController {
             return ResponseEntity.status(500).body("Erreur serveur: " + e.getMessage());
         }
     }
+
+
+    @PutMapping("/verify-email/{email}")
+    public ResponseEntity<?> verifyEmail(@PathVariable String email) {
+        clientService.updateEmailVerified(email);
+        return ResponseEntity.ok("Email verified updated");
+    }
+
 }
