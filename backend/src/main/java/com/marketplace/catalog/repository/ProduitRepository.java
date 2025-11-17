@@ -25,4 +25,6 @@ public interface ProduitRepository extends JpaRepository<Produit, Long> {
     List<String> findDistinctEtats();
     //List<Produit> findByEtat(String etat);
     long countByEtat(String etat);
+    // Dans ProduitRepository.java, ajouter cette méthode
+    List<Produit> findByAcheteurIdclient(Long acheteurId);
 }

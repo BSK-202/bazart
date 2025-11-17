@@ -21,5 +21,7 @@ public interface ProduitService {
     void deleteProduitImages(Produit produit, List<String> imageUrlsToDelete);
     void addProduitImages(Produit produit, List<MultipartFile> newImages, Path produitFolderPath) throws IOException;
     List<Produit> getProduitsByEtat(String enEnchere);
+    // Dans ProduitService.java, ajouter cette signature de méthode
+    List<Produit> getProduitsByAcheteur(Long acheteurId);
 
 }

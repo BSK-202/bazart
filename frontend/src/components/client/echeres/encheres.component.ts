@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+
+import { Component, OnInit , OnDestroy} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { forkJoin } from 'rxjs';
+import { forkJoin,interval } from 'rxjs';
 import { InteractionService } from '../../../services/interaction.service';
 import { CommentaireService } from '../../../services/commentaire.service';
 import { AuthService } from '../../../services/auth.service';
@@ -17,6 +18,7 @@ interface Produit {
   description: string;
   prixDebut: number;
   prixFin: number | null;
+
   etat: string;
   vendeurNom: string;
   acheteurNom: string | null;
@@ -26,6 +28,10 @@ interface Produit {
   hasLiked?: boolean;
   images: string[];
   imagePrincipale?: string;
+  dateenchere?: string; // ✅ AJOUTER
+  dureeEnchereJours?: number; // ✅ AJOUTER
+  tempsRestant?: string; // ✅ AJOUTER - pour stocker le temps restant calculé
+
 }
 
 // Interface pour la réponse du like
@@ -51,7 +57,8 @@ interface LikeResponse {
 export class EncheresComponent implements OnInit {
   produits: Produit[] = [];
   isLoading: boolean = true;
-
+  timeLeft: string = '';
+  private timer: any;
   // Variables pour la modal de commentaires
   showCommentModal: boolean = false;
   selectedProduit: Produit | null = null;
@@ -72,6 +79,56 @@ export class EncheresComponent implements OnInit {
 
   ngOnInit() {
     this.loadProduitsEnchere();
+    this.startTimer(); // ✅ DÉMARRER LE TIMER
+  }
+  // ✅ AJOUTER: Démarrer le timer pour les mises à jour
+  private startTimer(): void {
+    this.timer = setInterval(() => {
+      this.updateAllTimers();
+    }, 1000); // Mise à jour chaque seconde
+  }
+
+
+  // ✅ AJOUTER: Nettoyer le timer à la destruction
+  ngOnDestroy(): void {
+    if (this.timer) {
+      clearInterval(this.timer);
+    }
+  }
+
+  // ✅ AJOUTER: Mettre à jour tous les timers
+  private updateAllTimers(): void {
+    this.produits.forEach(produit => {
+      if (produit.etat === 'en_enchere' && produit.dateenchere && produit.dureeEnchereJours) {
+        produit.tempsRestant = this.calculateTimeLeft(produit);
+      }
+    });
+  }
+
+  // ✅ AJOUTER: Calculer le temps restant pour un produit
+  private calculateTimeLeft(produit: Produit): string {
+    try {
+      const startDate = new Date(produit.dateenchere!);
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + (produit.dureeEnchereJours || 0));
+
+      const now = new Date().getTime();
+      const distance = endDate.getTime() - now;
+
+      if (distance < 0) {
+        return 'Enchère terminée';
+      }
+
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      return `${days}j ${hours}h ${minutes}m ${seconds}s`;
+    } catch (e) {
+      console.error('Erreur calcul temps restant:', e);
+      return 'Temps inconnu';
+    }
   }
 
   // Charger uniquement les produits en enchère
@@ -88,7 +145,14 @@ export class EncheresComponent implements OnInit {
             ? this.getProduitImageUrl(prod.id, prod.images[0])
             : 'assets/images/placeholder.jpg';
 
-          console.log(`📸 Produit ${prod.id} → imagePrincipale: ${prod.imagePrincipale}`);
+          // ✅ CALCULER LE TEMPS RESTANT POUR CHAQUE PRODUIT
+          if (prod.etat === 'en_enchere' && prod.dateenchere && prod.dureeEnchereJours) {
+            prod.tempsRestant = this.calculateTimeLeft(prod);
+          } else {
+            prod.tempsRestant = this.getEtatDisplayText(prod.etat);
+          }
+
+          console.log(`📸 Produit ${prod.id} → imagePrincipale: ${prod.imagePrincipale}, temps restant: ${prod.tempsRestant}`);
           return prod;
         });
 
@@ -102,6 +166,8 @@ export class EncheresComponent implements OnInit {
       }
     });
   }
+  // Charger uniquement les produits en enchère
+
 
   // Redirection vers la page détail du produit
   goToProductDetail(produitId: number): void {
@@ -247,10 +313,61 @@ export class EncheresComponent implements OnInit {
     }
   }
 
-  // Méthode pour calculer le temps restant (exemple)
+  // ✅ MODIFIER: Utiliser le temps restant calculé au lieu de la valeur statique
   getTempsRestant(produit: Produit): string {
-    // Implémentez votre logique pour calculer le temps restant
-    // Basé sur la date de fin d'enchère si disponible
-    return "2j 5h 30m";
+    return produit.tempsRestant || this.getEtatDisplayText(produit.etat);
   }
+
+  getAuctionEndTime(produit: Produit): Date | null {
+    if (!produit.dateenchere || !produit.dureeEnchereJours) {
+      return null;
+    }
+
+    try {
+      const startDate = new Date(produit.dateenchere);
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + produit.dureeEnchereJours);
+      return endDate;
+    } catch (e) {
+      console.error('Erreur calcul date fin enchère:', e);
+      return null;
+    }
+  }
+
+  // ✅ AJOUTER: Vérifier si une enchère est active
+  isEnchereActive(produit: Produit): boolean {
+    return produit.etat === 'en_enchere';
+  }
+
+  // ✅ AJOUTER: Vérifier si une enchère est terminée
+  isEnchereTerminee(produit: Produit): boolean {
+    if (produit.etat === 'enchere_termine') {
+      return true;
+    }
+
+    if (!this.isEnchereActive(produit)) {
+      return false;
+    }
+
+    const endTime = this.getAuctionEndTime(produit);
+    if (!endTime) {
+      return false;
+    }
+
+    return new Date().getTime() > endTime.getTime();
+  }
+  // ✅ AJOUTER: Détecter si le temps est critique (moins de 1 heure)
+  isTimeCritical(produit: Produit): boolean {
+    if (!this.isEnchereActive(produit)) return false;
+
+    const endTime = this.getAuctionEndTime(produit);
+    if (!endTime) return false;
+
+    const now = new Date().getTime();
+    const distance = endTime.getTime() - now;
+
+    // Moins d'1 heure restante
+    return distance > 0 && distance < (60 * 60 * 1000);
+  }
+
 }

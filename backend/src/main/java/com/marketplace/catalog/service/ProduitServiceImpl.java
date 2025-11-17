@@ -170,4 +170,19 @@ public class ProduitServiceImpl implements ProduitService {
         }
     }
 
+    // Dans ProduitServiceImpl.java, ajouter cette implémentation
+    @Override
+    public List<Produit> getProduitsByAcheteur(Long acheteurId) {
+        try {
+            System.out.println("🔍 Service: Recherche des produits pour l'acheteur ID: " + acheteurId);
+            List<Produit> produits = produitRepository.findByAcheteurIdclient(acheteurId);
+            System.out.println("✅ Service: " + produits.size() + " produits trouvés pour l'acheteur");
+            return produits;
+        } catch (Exception e) {
+            System.err.println("❌ Service: Erreur lors de la recherche des produits par acheteur: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Erreur lors de la récupération des produits par acheteur", e);
+        }
+    }
+
 }

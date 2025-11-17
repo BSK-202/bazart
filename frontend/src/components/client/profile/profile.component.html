@@ -667,13 +667,112 @@
     </div>
 
     <!-- Gagnées Tab -->
+    <!-- Gagnées Tab - VERSION AMÉLIORÉE -->
     <div *ngIf="activeTab === 'won'" class="tab-content">
-      <div class="text-center py-16">
-        <svg class="h-16 w-16 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-        </svg>
-        <h3 class="font-serif text-2xl font-bold mb-2">Aucune enchère gagnée récemment</h3>
-        <p class="text-muted-foreground mb-6">Vos enchères gagnées apparaîtront ici</p>
+      <div>
+        <h2 class="font-serif text-2xl font-bold mb-6">Mes Enchères Gagnées</h2>
+
+        <div *ngIf="produitsGagnes.length === 0" class="text-center py-16">
+          <svg class="h-16 w-16 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+          <h3 class="font-serif text-2xl font-bold mb-2">Aucune enchère gagnée</h3>
+          <p class="text-muted-foreground mb-6">Vos enchères gagnées apparaîtront ici</p>
+          <button class="btn-primary" routerLink="/encheres">
+            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Voir les enchères
+          </button>
+        </div>
+
+        <!-- DESIGN AMÉLIORÉ POUR LES PRODUITS GAGNÉS -->
+        <div *ngIf="produitsGagnes.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div *ngFor="let produit of produitsGagnes"
+               class="won-product-card cursor-pointer group"
+               (click)="goToProductDetail(produit.id)">
+
+            <div class="won-image-wrapper">
+              <img [src]="produit.imagePrincipale || 'assets/images/placeholder.jpg'"
+                   [alt]="produit.nom"
+                   class="won-main-image"/>
+
+              <div class="won-overlay">
+                <div class="won-badge">
+                  <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  Gagné
+                </div>
+              </div>
+
+              <!-- Indicateur de statut -->
+              <div class="won-status-indicator">
+                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Félicitations !
+              </div>
+            </div>
+
+            <div class="won-card-content">
+              <div class="won-header">
+                <h3 class="won-product-title">{{ produit.nom }}</h3>
+                <div class="won-price-tag">
+                  {{ formatCurrency(produit.prixFin || produit.prixDebut) }}
+                </div>
+              </div>
+
+              <p class="won-product-description">
+                {{ produit.description | slice:0:100 }}{{ produit.description.length > 100 ? '...' : '' }}
+              </p>
+
+              <!-- Informations de l'enchère gagnée -->
+              <div class="winning-info">
+                <div class="info-item">
+                  <svg class="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                  </svg>
+                  <span>Prix final: {{ formatCurrency(produit.prixFin || produit.prixDebut) }}</span>
+                </div>
+
+                <div class="info-item" *ngIf="produit.vendeurNom">
+                  <svg class="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                  <span>Vendeur: {{ produit.vendeurNom }}</span>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="won-actions">
+                <button class="btn-won-primary"
+                        (click)="$event.stopPropagation(); goToProductDetail(produit.id)">
+                  <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  Voir détails
+                </button>
+                <button class="btn-won-secondary"
+                        (click)="$event.stopPropagation(); contactSeller(produit)">
+                  <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                  </svg>
+                  Contacter
+                </button>
+              </div>
+
+              <!-- Date de gain -->
+              <div class="win-date" *ngIf="produit.dateenchere">
+                <svg class="h-4 w-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                Gagné le {{ formatDate(produit.dateenchere) }}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 

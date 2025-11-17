@@ -11,6 +11,7 @@ public class ProduitDTO {
     private String etat; //  MODIFIÉ : remplace isVerifier
     private String vendeurNom;
     private String acheteurNom;
+    private Long acheteurId;
     private String categorieNom;
     private int nombreInteractions;
     private int nombreCommentaires;
@@ -22,6 +23,13 @@ public class ProduitDTO {
     private Integer dureeEnchereJours;
     private Long domaineId;
     // getters et setters
+    public Long getAcheteurId() {
+        return acheteurId;
+    }
+
+    public void setAcheteurId(Long acheteurId) {
+        this.acheteurId = acheteurId;
+    }
     public Long getDomaineId() { return domaineId; }
     public void setDomaineId(Long domaineId) { this.domaineId = domaineId; }
     // Getters et Setters

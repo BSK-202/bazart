@@ -281,6 +281,11 @@ public class ProduitController {
             }
         }
 
+        if (produit.getAcheteur() != null) {
+            response.setAcheteurId(produit.getAcheteur().getIdclient());
+        }
+
+
         // ✅ NOUVEAU : Date d'enchère
         if (produit.getDateEnchere() != null) {
             response.setDateenchere(produit.getDateEnchere().toString());
@@ -678,7 +683,10 @@ public class ProduitController {
     }
     // ENDPOINT SIMPLE POUR TERMINER L'ENCHÈRE
     @PostMapping("/{produitId}/terminer-enchere")
-    public ResponseEntity<?> terminerEnchere(@PathVariable Long produitId) {
+    public ResponseEntity<?> terminerEnchere(
+            @PathVariable Long produitId,
+            @RequestBody(required = false) Map<String, Object> requestBody) {
+
         try {
             Produit produit = produitService.getProduitById(produitId)
                     .orElseThrow(() -> new RuntimeException("Produit non trouvé"));
@@ -690,17 +698,68 @@ public class ProduitController {
                 );
             }
 
+            // Récupérer l'ID du gagnant si fourni
+            Long idGagnant = null;
+            if (requestBody != null && requestBody.containsKey("idGagnant")) {
+                idGagnant = ((Number) requestBody.get("idGagnant")).longValue();
+
+                // Vérifier que le gagnant existe
+                Optional<Client> gagnantOpt = clientService.getClientById(idGagnant);
+                if (gagnantOpt.isEmpty()) {
+                    return ResponseEntity.badRequest().body("Client gagnant non trouvé avec ID: " + idGagnant);
+                }
+
+                // ✅ CORRECTION : Définir l'acheteur complet, pas juste l'ID
+                produit.setAcheteur(gagnantOpt.get());
+
+                // Optionnel : définir le prix final (dernière enchère)
+                // Vous pouvez récupérer le montant de la dernière enchère ici
+                // produit.setPrixFin(dernierMontant);
+            }
+
             // Mettre à jour l'état
             produit.setEtat("enchere_termine");
-            produitService.saveProduit(produit);
+            Produit updatedProduit = produitService.saveProduit(produit);
 
-            return ResponseEntity.ok("Enchère terminée avec succès");
+            // === NOTIFICATION: Enchère terminée ===
+            Map<String, Object> notifData = new HashMap<>();
+            notifData.put("productName", updatedProduit.getNom());
+            notifData.put("message", "L'enchère est terminée pour votre produit.");
+
+            Set<Long> recipients = new HashSet<>();
+            recipients.add(updatedProduit.getVendeur().getIdclient());
+
+            // Notifier aussi le gagnant s'il y en a un
+            if (idGagnant != null) {
+                recipients.add(idGagnant);
+                notifData.put("isWinner", true);
+                notifData.put("winningAmount", updatedProduit.getPrixFin());
+            }
+
+            notificationService.processEvent(
+                    NotificationType.AUCTION_END,
+                    recipients,
+                    notifData
+            );
+
+            System.out.println("✅ Enchère terminée pour le produit: " + produitId);
+            if (idGagnant != null) {
+                System.out.println("🏆 Gagnant: Client ID " + idGagnant);
+                System.out.println("📊 Acheteur défini: " + updatedProduit.getAcheteur().getNom() + " " + updatedProduit.getAcheteur().getPrenom());
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Enchère terminée avec succès" + (idGagnant != null ? ", gagnant enregistré" : ""),
+                    "idClientAcheteur", idGagnant
+            ));
 
         } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la fin de l'enchère: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(500).body("Erreur: " + e.getMessage());
         }
     }
-
     // ENDPOINT POUR RÉCUPÉRER TOUS LES PRODUITS EN ENCHÈRE
     @GetMapping("/encheres")
     public ResponseEntity<List<ProduitDTO>> getProduitsEnEnchere() {
@@ -716,6 +775,27 @@ public class ProduitController {
             return ResponseEntity.ok(produitsDTO);
         } catch (Exception e) {
             System.err.println("❌ Erreur lors de la récupération des produits en enchère: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    // Dans ProduitController.java, ajouter cet endpoint
+    @GetMapping("/acheteur/{acheteurId}")
+    public ResponseEntity<List<ProduitDTO>> getProduitsByAcheteur(@PathVariable Long acheteurId) {
+        try {
+            System.out.println("🔍 Recherche des produits gagnés par l'acheteur: " + acheteurId);
+
+            List<Produit> produits = produitService.getProduitsByAcheteur(acheteurId);
+            System.out.println("📦 Nombre de produits gagnés trouvés: " + produits.size());
+
+            List<ProduitDTO> produitsDTO = produits.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(produitsDTO);
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la récupération des produits gagnés: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(500).build();
         }

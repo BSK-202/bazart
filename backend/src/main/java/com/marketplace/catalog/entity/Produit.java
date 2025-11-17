@@ -144,4 +144,15 @@ public class Produit {
         this.aExpertise = aExpertise;
     }
 
+    public void setIdClientAcheteur(Long idGagnant) {
+        if (idGagnant != null) {
+            Client client = new Client();
+            client.setIdclient(idGagnant);
+            this.acheteur = client;
+        } else {
+            this.acheteur = null;
+        }
+    }
+
+
 }

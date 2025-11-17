@@ -37,6 +37,7 @@ interface Produit {
   etat: string;
   vendeurNom: string;
   acheteurNom: string | null;
+  idClientAcheteur?: number; // ✅ NOUVEAU
   categorieNom: string;
   nombreInteractions: number;
   nombreCommentaires: number;
@@ -389,16 +390,20 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     return winningBid.bidder || null;
   }
 
-  private updateProductStateInDatabase(): void {
+  private updateProductStateInDatabase(idGagnant: number | null): void {
     if (!this.produitId) return;
 
     const url = `${this.API_BASE_URL}/api/produits/${this.produitId}/terminer-enchere`;
 
-    this.http.post(url, {}).subscribe({
-      next: () => {
-        console.log('✅ Enchère marquée comme terminée');
+    const body = idGagnant ? { idGagnant } : {};
+
+    this.http.post(url, body).subscribe({
+      next: (response: any) => {
+        console.log('✅ Enchère marquée comme terminée:', response);
         if (this.produit) {
           this.produit.etat = 'enchere_termine';
+          // @ts-ignore
+          this.produit.idClientAcheteur = idGagnant; // Mettre à jour localement si nécessaire
         }
       },
       error: (err) => {
@@ -407,9 +412,25 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Améliorer handleAuctionEnd pour mettre à jour l'état du produit
   private handleAuctionEnd(): void {
     console.log('🏁 Enchère terminée pour le produit:', this.produit?.id);
+
+    // Déterminer le gagnant
+    let idGagnant: number | null = null;
+
+    if (this.historiqueEncheres.length > 0) {
+      // Trouver l'enchère avec le montant le plus élevé
+      const highestBid = this.historiqueEncheres.reduce((prev, current) => {
+        const prevAmount = prev.amount || 0;
+        const currentAmount = current.amount || 0;
+        return (prevAmount > currentAmount) ? prev : current;
+      });
+
+      if (highestBid.encherisseurId) {
+        idGagnant = highestBid.encherisseurId;
+        console.log('🏆 Gagnant identifié:', idGagnant);
+      }
+    }
 
     // Mettre à jour l'état local du produit
     if (this.produit && this.produit.etat === 'en_enchere') {
@@ -417,11 +438,13 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       console.log('✅ État du produit mis à jour: enchere_termine');
     }
 
-    // Optionnel: Appeler l'API pour mettre à jour l'état en base de données
-    this.updateProductStateInDatabase();
+    // Appeler l'API pour mettre à jour l'état en base de données avec le gagnant
+    this.updateProductStateInDatabase(idGagnant);
 
     clearInterval(this.timer);
   }
+
+
 
   async handleBid(): Promise<void> {
     if (!this.isAuthenticated) {

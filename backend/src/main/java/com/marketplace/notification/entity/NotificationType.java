@@ -14,5 +14,6 @@ public enum NotificationType {
     PAYMENT_RECEIVED,
     PAYMENT_SENT,
     ADMIN_ALERT,
-    GENERIC
+    GENERIC,
+    AUCTION_END
 }

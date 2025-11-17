@@ -334,3 +334,25 @@
 .comments {
   cursor: pointer;
 }
+
+.time-warning {
+  color: #ff6b6b;
+  font-weight: bold;
+}
+
+.time-ended {
+  color: #888;
+  font-style: italic;
+}
+
+.time-critical {
+  color: #ff4757;
+  font-weight: bold;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}

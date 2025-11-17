@@ -86,13 +86,15 @@ export class UserProfileComponent implements OnInit {
   newImages: File[] = [];
   imagesToDelete: string[] = [];
   isDragOver = false;
-
+// Ajouter après les autres propriétés de produits
+  produitsGagnes: Produit[] = [];
   // ✅ AJOUTER ICI (après les autres variables)
   userStats = {
     encheresActives: 0,
     produitsPubliés: 0,
     produitsVendus: 0,
-    produitsFavoris: 0
+    produitsFavoris: 0,
+    produitsGagnes:0
   };
 
   showPaymentModal: boolean = false;
@@ -129,7 +131,8 @@ export class UserProfileComponent implements OnInit {
       encheresActives: this.produitsEncheres.length,
       produitsPubliés: this.produitsPublies.length,
       produitsVendus: this.produitsVendus.length,
-      produitsFavoris: this.produitsFavoris.length
+      produitsFavoris: this.produitsFavoris.length,
+      produitsGagnes: this.produitsGagnes.length // ← AJOUTER CETTE LIGNE
     };
     console.log('📊 Statistiques utilisateur mises à jour:', this.userStats);
   }
@@ -356,7 +359,7 @@ export class UserProfileComponent implements OnInit {
           .map(p => this.ajouterImagePrincipale(p));
 
         this.produitsVendus = produits
-          .filter(p => p.etat === 'vendu')
+          .filter(p => p.etat === 'vendu' || p.etat === 'enchere_termine')
           .map(p => this.ajouterImagePrincipale(p));
 
         this.produitsPublies = produits
@@ -372,7 +375,10 @@ export class UserProfileComponent implements OnInit {
         console.log('   - Vendus:', this.produitsVendus.length);
         console.log('   - Publiés:', this.produitsPublies.length);
         console.log('   - En attente:', this.produitsEnAttente.length);
+
+        // Charger les favoris et les produits gagnés
         this.loadProduitsFavoris(userId);
+        this.loadProduitsGagnes(userId); // ← AJOUTER CETTE LIGNE
       },
       error: (error) => {
         console.error('❌ Erreur lors du chargement des produits:', error);
@@ -1418,5 +1424,40 @@ export class UserProfileComponent implements OnInit {
     console.log('📧 Contact de l\'acheteur:', produit.acheteurNom);
     // Implémentez la logique de contact ici (ouverture de chat, email, etc.)
     alert(`Fonctionnalité de contact avec ${produit.acheteurNom} bientôt disponible!`);
+  }
+
+  // Dans profile.component.ts, ajouter cette méthode
+  private loadProduitsGagnes(userId: number): void {
+    const url = `${this.API_BASE_URL}/api/produits/acheteur/${userId}`;
+
+    console.log('🔄 Chargement des produits gagnés:', url);
+
+    this.http.get<Produit[]>(url).subscribe({
+      next: (produits) => {
+        console.log('✅ Produits gagnés reçus:', produits);
+
+        // Filtrer pour ne garder que les produits avec état "enchere_termine" ou "vendu"
+        this.produitsGagnes = produits
+          .filter(p => p.etat === 'enchere_termine' || p.etat === 'vendu')
+          .map(p => this.ajouterImagePrincipale(p));
+
+        console.log('🏆 Produits gagnés chargés:', this.produitsGagnes.length);
+      },
+      error: (error) => {
+        console.error('❌ Erreur lors du chargement des produits gagnés:', error);
+        this.produitsGagnes = [];
+      }
+    });
+  }
+  // Dans profile.component.ts, ajouter cette méthode
+  contactSeller(produit: Produit): void {
+    if (!produit.vendeurNom) {
+      alert('Aucun vendeur spécifié pour ce produit');
+      return;
+    }
+
+    console.log('📧 Contact du vendeur:', produit.vendeurNom);
+    // Implémentez la logique de contact ici
+    alert(`Fonctionnalité de contact avec le vendeur ${produit.vendeurNom} bientôt disponible!`);
   }
 }

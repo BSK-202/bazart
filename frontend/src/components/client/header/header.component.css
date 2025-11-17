@@ -439,3 +439,9 @@
   background: #fff5d6;
   color: #a67600;
 }
+.logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+

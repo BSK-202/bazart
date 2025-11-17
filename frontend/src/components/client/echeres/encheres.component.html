@@ -56,7 +56,7 @@
 
             <div class="price-section">
               <div class="current-price">{{ produit.prixDebut }} DH</div>
-              <div class="time-remaining">
+              <div class="time-remaining" [class.time-warning]="isTimeCritical(produit)" [class.time-ended]="isEnchereTerminee(produit)">
                 <span class="time-icon">⏱️</span>
                 {{ getTempsRestant(produit) }}
               </div>
