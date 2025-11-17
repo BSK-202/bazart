@@ -183,7 +183,7 @@ export class SingupexpertComponent implements OnInit {
       await this.uploadSignatureImages(created.id);
 
       alert("Votre demande d’expertise a été envoyée !");
-      this.router.navigate(['/home']);
+      this.router.navigate(['/domaines']);
 
     } catch (err) {
       console.error("❌ Erreur création expert:", err);

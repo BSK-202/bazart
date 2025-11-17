@@ -63,7 +63,7 @@ export class AllCategoriesAdminComponent implements OnInit {
   }
 
   openCategory(category: CategoryWithSlug) {
-    this.router.navigate(['/domaines-admin', this.domaineSlug, 'categories-admin', category.slug, category.idCategorie]);
+    this.router.navigate(['/admin/domaines', this.domaineSlug, 'categories', category.slug, category.idCategorie]);
   }
 
   onAddCategory() {
@@ -141,22 +141,7 @@ export class AllCategoriesAdminComponent implements OnInit {
     this.previewUrl = category.image || null;
     this.showEditModal = true;
   }
-/*
-  openDeleteModal(category: any, event?: Event) {
-    if (event) event.stopPropagation();
-    this.selectedCategory = category;
-    this.http.get<any[]>(`${this.API_BASE_URL}/api/produits/categorie/${category.idCategorie}`).subscribe({
-      next: (produits) => {
-        this.hasProducts = produits.length > 0;
-        this.showDeleteModal = true;
-      },
-      error: () => {
-        this.hasProducts = false;
-        this.showDeleteModal = true;
-      }
-    });
-  }
-*/
+
   openDeleteModal(category: any, event?: Event) {
     if (event) event.stopPropagation();
     this.selectedCategory = category;
@@ -193,7 +178,7 @@ export class AllCategoriesAdminComponent implements OnInit {
     });
   }
 
-// Nouvelle méthode pour obtenir l'ID du domaine
+  // Nouvelle méthode pour obtenir l'ID du domaine
   private getDomaineId(): Promise<number> {
     return new Promise((resolve) => {
       this.http.get<any[]>(`${this.API_BASE_URL}/api/domaines`).subscribe({
@@ -269,29 +254,7 @@ export class AllCategoriesAdminComponent implements OnInit {
       });
     }
   }
-/*
-  deleteCategorie(id: number): void {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) {
-      this.http.delete(`${this.API_BASE_URL}/api/categories/${id}`).subscribe({
-        next: () => {
-          alert('✅ Catégorie supprimée avec succès');
-          this.loadCategoriesForDomaine(); // Recharge la liste
-          this.closeModals(); // Ferme la fenêtre
-        },
-        error: (error) => {
-          if (error.status === 400 && error.error) {
-            alert(error.error);
-          } else if (error.status === 404) {
-            alert('❌ Catégorie introuvable.');
-          } else {
-            alert('⚠️ Erreur inattendue lors de la suppression.');
-          }
-          console.error(error);
-        }
-      });
-    }
-  }
-*/
+
   deleteCategorie(id: number): void {
     let confirmationMessage: string;
 
@@ -312,7 +275,7 @@ export class AllCategoriesAdminComponent implements OnInit {
           // Si le domaine a été supprimé, rediriger vers la liste des domaines
           if (response.domaineDeleted === 'true') {
             setTimeout(() => {
-              this.router.navigate(['/domaines-admin']);
+              this.router.navigate(['/admin/domaines']);
             }, 1000);
           }
         },

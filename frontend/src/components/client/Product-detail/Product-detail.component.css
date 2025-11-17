@@ -515,3 +515,74 @@ th {
 .hidden {
   display: none;
 }
+
+/* Couleurs pour l'état "enchère terminée" */
+.bg-yellow-50 { background-color: #fffbeb; }
+.border-yellow-200 { border-color: #fde68a; }
+.text-yellow-600 { color: #d97706; }
+.text-yellow-700 { color: #b45309; }
+.text-yellow-800 { color: #92400e; }
+
+.bg-yellow-100 { background-color: #fef3c7; }
+
+.bg-gray-50 { background-color: #f9fafb; }
+.border-gray-200 { border-color: #e5e7eb; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-800 { color: #1f2937; }
+
+/* Couleurs pour l'état "utilisateur en tête" */
+.bg-purple-50 { background-color: #faf5ff; }
+.border-purple-200 { border-color: #e9d5ff; }
+.text-purple-600 { color: #9333ea; }
+.text-purple-700 { color: #7c3aed; }
+.text-purple-800 { color: #6b21a8; }
+.text-purple-500 { color: #a855f7; }
+
+/* Styles pour les avatars des enchérisseurs */
+.bidder-avatar-container {
+  position: relative;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f7fafc;
+  border: 2px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.bidder-profile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  transition: opacity 0.3s ease;
+}
+
+.default-bidder-avatar {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: hsl(240 5.9% 10%);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 50%;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Styles pour le statut gagnant */
+.border-l-yellow-500 { border-left-color: #f59e0b; }
+
+/* Styles pour l'icône de horloge dans les états inactifs/terminés */
+.horloge-inactive {
+  width: 1rem !important;
+  height: 1rem !important;
+}

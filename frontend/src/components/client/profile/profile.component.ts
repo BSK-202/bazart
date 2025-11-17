@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute } from '@angular/router';
-import {FormsModule} from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 
 interface Produit {
   id: number;
@@ -23,9 +23,9 @@ interface Produit {
   vendeurId?: number;
   dureeEnchereJours?: number;
   dateLike?: string;
-  aExpertise?: boolean
-  categorieId?: number
-  domaineId?: number
+  aExpertise?: boolean;
+  categorieId?: number;
+  domaineId?: number;
 }
 
 interface User {
@@ -39,16 +39,15 @@ interface User {
 }
 
 interface Domaine {
-  idDomaine: number
-  nomDomaine: string
+  idDomaine: number;
+  nomDomaine: string;
 }
 
 interface Categorie {
-  idCategorie: number
-  nomCategorie: string
-  domaine: Domaine
+  idCategorie: number;
+  nomCategorie: string;
+  domaine: Domaine;
 }
-
 
 @Component({
   selector: 'app-user-profile',
@@ -67,27 +66,26 @@ export class UserProfileComponent implements OnInit {
   inAppEnabled: boolean = true;
   emailEnabled: boolean = false;
 
-
   // Données pour l'édition
-  isEditingProfile = false
-  isEditingProduct = false
-  isFullEditProduct = false
-  editedUser: any = {}
-  editedProduct: Produit | null = null
-  isEditingProfilePhoto = false
-  profilePhotoPreview = ""
-  profilePhotoFile: File | null = null
-  isUploadingProfilePhoto = false
-  isSavingProfile = false
+  isEditingProfile = false;
+  isEditingProduct = false;
+  isFullEditProduct = false;
+  editedUser: any = {};
+  editedProduct: Produit | null = null;
+  isEditingProfilePhoto = false;
+  profilePhotoPreview = "";
+  profilePhotoFile: File | null = null;
+  isUploadingProfilePhoto = false;
+  isSavingProfile = false;
   originalImages: string[] = []; // Pour stocker les noms des images originales
 
   // Données pour l'édition complète
-  domaines: Domaine[] = []
-  filteredCategories: Categorie[] = []
-  imagePreviews: string[] = []
-  newImages: File[] = []
-  imagesToDelete: string[] = []
-  isDragOver = false
+  domaines: Domaine[] = [];
+  filteredCategories: Categorie[] = [];
+  imagePreviews: string[] = [];
+  newImages: File[] = [];
+  imagesToDelete: string[] = [];
+  isDragOver = false;
 
   // ✅ AJOUTER ICI (après les autres variables)
   userStats = {
@@ -126,7 +124,6 @@ export class UserProfileComponent implements OnInit {
     private route: ActivatedRoute
   ) {}
 
-
   private updateUserStats(): void {
     this.userStats = {
       encheresActives: this.produitsEncheres.length,
@@ -139,45 +136,45 @@ export class UserProfileComponent implements OnInit {
 
   ngOnInit() {
     this.loadUserDataFromAPI();
-	if (this.user?.id) {
-	      this.http.get<any>(`${this.API_BASE_URL}/api/user-notification-preference/${this.user.id}`).subscribe({
-	        next: pref => {
-	          this.inAppEnabled = pref?.inAppEnabled ?? true;
-	          this.emailEnabled = pref?.emailEnabled ?? false;
-	        }
-	      });
-	    }
+    if (this.user?.id) {
+      this.http.get<any>(`${this.API_BASE_URL}/api/user-notification-preference/${this.user.id}`).subscribe({
+        next: pref => {
+          this.inAppEnabled = pref?.inAppEnabled ?? true;
+          this.emailEnabled = pref?.emailEnabled ?? false;
+        }
+      });
+    }
     this.checkForTabParameter();
-    this.loadDomaines()
+    this.loadDomaines();
   }
 
   openEditProfilePhoto(): void {
-    this.isEditingProfilePhoto = true
-    this.profilePhotoPreview = this.userProfileImage
-    this.profilePhotoFile = null
+    this.isEditingProfilePhoto = true;
+    this.profilePhotoPreview = this.userProfileImage;
+    this.profilePhotoFile = null;
   }
 
   onProfilePhotoSelected(event: Event): void {
-    const input = event.target as HTMLInputElement
+    const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
-      const file = input.files[0]
+      const file = input.files[0];
 
       if (!file.type.startsWith("image/")) {
-        alert("Veuillez sélectionner une image valide")
-        return
+        alert("Veuillez sélectionner une image valide");
+        return;
       }
 
       if (file.size > 5 * 1024 * 1024) {
-        alert("L'image est trop volumineuse (max 5MB)")
-        return
+        alert("L'image est trop volumineuse (max 5MB)");
+        return;
       }
 
-      this.profilePhotoFile = file
-      const reader = new FileReader()
+      this.profilePhotoFile = file;
+      const reader = new FileReader();
       reader.onload = (e) => {
-        this.profilePhotoPreview = e.target?.result as string
+        this.profilePhotoPreview = e.target?.result as string;
       }
-      reader.readAsDataURL(file)
+      reader.readAsDataURL(file);
     }
   }
 
@@ -235,13 +232,12 @@ export class UserProfileComponent implements OnInit {
       },
     });
   }
+
   cancelEditProfilePhoto(): void {
-    this.isEditingProfilePhoto = false
-    this.profilePhotoPreview = ""
-    this.profilePhotoFile = null
+    this.isEditingProfilePhoto = false;
+    this.profilePhotoPreview = "";
+    this.profilePhotoFile = null;
   }
-
-
 
   private checkForTabParameter(): void {
     // Vérifier les paramètres de requête
@@ -260,20 +256,17 @@ export class UserProfileComponent implements OnInit {
     }
   }
 
-
-
-
   savePreferences() {
-      if (!this.user?.id) return;
-      this.http.post(`${this.API_BASE_URL}/api/user-notification-preference`, {
-        userId: this.user.id,
-        inAppEnabled: this.inAppEnabled,
-        emailEnabled: this.emailEnabled
-      }).subscribe({
-        next: () => {},
-        error: err => console.error('Failed to save notification preferences', err)
-      });
-    }
+    if (!this.user?.id) return;
+    this.http.post(`${this.API_BASE_URL}/api/user-notification-preference`, {
+      userId: this.user.id,
+      inAppEnabled: this.inAppEnabled,
+      emailEnabled: this.emailEnabled
+    }).subscribe({
+      next: () => {},
+      error: err => console.error('Failed to save notification preferences', err)
+    });
+  }
 
   private loadUserDataFromAPI() {
     const userData = localStorage.getItem('userData');
@@ -302,17 +295,18 @@ export class UserProfileComponent implements OnInit {
   }
 
   private loadDomaines() {
-    const url = `${this.API_BASE_URL}/api/domaines`
+    const url = `${this.API_BASE_URL}/api/domaines`;
     this.http.get<Domaine[]>(url).subscribe({
       next: (domaines) => {
-        this.domaines = domaines
-        console.log("Domaines chargés:", this.domaines)
+        this.domaines = domaines;
+        console.log("Domaines chargés:", this.domaines);
       },
       error: (error) => {
-        console.error("Erreur lors du chargement des domaines:", error)
+        console.error("Erreur lors du chargement des domaines:", error);
       },
-    })
+    });
   }
+
   onDomainChange(domainId: string) {
     console.log("🔄 Changement de domaine:", domainId);
 
@@ -346,6 +340,7 @@ export class UserProfileComponent implements OnInit {
       this.filteredCategories = [];
     }
   }
+
   private loadUserProducts(userId: number) {
     const url = `${this.API_BASE_URL}/api/produits/vendeur/${userId}`;
 
@@ -601,7 +596,7 @@ export class UserProfileComponent implements OnInit {
   }
 
   manageAuction(produit: Produit) {
-
+    // Implémentation de la gestion de l'enchère ici
   }
 
   // Méthode pour calculer la durée de l'enchère
@@ -639,7 +634,7 @@ export class UserProfileComponent implements OnInit {
     this.loadWalletBalance();
   }
 
-// Méthode pour charger le solde du wallet
+  // Méthode pour charger le solde du wallet
   private loadWalletBalance(): void {
     const url = 'http://localhost:8080/api/wallet/balance';
 
@@ -660,7 +655,7 @@ export class UserProfileComponent implements OnInit {
     });
   }
 
-// Méthode pour confirmer le paiement
+  // Méthode pour confirmer le paiement
   confirmPayment(): void {
     if (!this.selectedProduct) return;
 
@@ -678,7 +673,7 @@ export class UserProfileComponent implements OnInit {
     this.debitWalletForAuction();
   }
 
-// Méthode pour débiter le wallet
+  // Méthode pour débiter le wallet
   private debitWalletForAuction(): void {
     const debitRequest = {
       amount: this.paymentAmount,
@@ -704,6 +699,7 @@ export class UserProfileComponent implements OnInit {
       }
     });
   }
+
   // Dans profile.component.ts
   getProductDescription(): string {
     if (!this.selectedProduct?.description) {
@@ -758,12 +754,12 @@ export class UserProfileComponent implements OnInit {
     });
   }
 
-
-/// Remplacer l'ancienne méthode par celle-ci :
+  /// Remplacer l'ancienne méthode par celle-ci :
   private refundPayment(): void {
     const rechargeRequest = {
       amount: this.paymentAmount,
       description: `Remboursement - Erreur démarrage enchère pour produit ${this.selectedProduct?.id || 'inconnu'}`
+
     };
 
     const url = 'http://localhost:8080/api/wallet/recharge';
@@ -782,14 +778,13 @@ export class UserProfileComponent implements OnInit {
     });
   }
 
-// Méthode pour annuler le paiement
+  // Méthode pour annuler le paiement
   cancelPayment(): void {
     this.showPaymentModal = false;
     this.selectedProduct = null;
     this.isProcessingPayment = false;
     this.paymentError = '';
   }
-
 
   // Méthode pour valider la durée et passer au paiement
   validateDuration(): void {
@@ -813,6 +808,7 @@ export class UserProfileComponent implements OnInit {
     // Charger le solde du wallet
     this.loadWalletBalance();
   }
+
   // Méthode pour calculer le prix en fonction de la durée
   calculatePrice(): void {
     this.calculatedPrice = this.durationDays * this.pricePerDay;
@@ -910,6 +906,7 @@ export class UserProfileComponent implements OnInit {
       }
     });
   }
+
   private loadProductCategoryAndDomain(product: Produit) {
     console.log("🔍 Chargement catégorie et domaine pour le produit:", product.id);
     console.log("   - categorieId:", product.categorieId);
@@ -977,57 +974,57 @@ export class UserProfileComponent implements OnInit {
   }
 
   private tryAlternativeCategoryLoad(product: Produit) {
-    const allCategoriesUrl = `${this.API_BASE_URL}/api/categories`
+    const allCategoriesUrl = `${this.API_BASE_URL}/api/categories`;
     this.http.get<any[]>(allCategoriesUrl).subscribe({
       next: (categories) => {
         const productCategory = categories.find(
           (cat) => cat.idCategorie === product.categorieId || cat.nomCategorie === product.categorieNom,
-        )
+        );
         if (productCategory && productCategory.domaine) {
-          this.editedProduct!.domaineId = productCategory.domaine.idDomaine
-          this.onDomainChange(productCategory.domaine.idDomaine.toString())
+          this.editedProduct!.domaineId = productCategory.domaine.idDomaine;
+          this.onDomainChange(productCategory.domaine.idDomaine.toString());
 
           setTimeout(() => {
-            this.editedProduct!.categorieId = product.categorieId
-          }, 100)
+            this.editedProduct!.categorieId = product.categorieId;
+          }, 100);
         }
       },
       error: (err) => {
-        console.error("❌ Erreur alternative également:", err)
+        console.error("❌ Erreur alternative également:", err);
       },
-    })
+    });
   }
 
   onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement
+    const input = event.target as HTMLInputElement;
     if (input.files) {
-      this.handleFiles(input.files)
+      this.handleFiles(input.files);
     }
   }
 
   onDragOver(event: DragEvent): void {
-    event.preventDefault()
-    event.stopPropagation()
-    this.isDragOver = true
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = true;
   }
+
   onDragLeave(event: DragEvent): void {
-    event.preventDefault()
-    event.stopPropagation()
-    this.isDragOver = false
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
   }
 
   onDrop(event: DragEvent): void {
-    event.preventDefault()
-    event.stopPropagation()
-    this.isDragOver = false
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver = false;
 
     if (event.dataTransfer?.files) {
-      this.handleFiles(event.dataTransfer.files)
+      this.handleFiles(event.dataTransfer.files);
     }
   }
 
-
-// Remplacer les méthodes existantes par celles-ci :
+  // Remplacer les méthodes existantes par celles-ci :
   openFullEditProduct(produit: Produit): void {
     console.log("🖊️ Ouverture édition complète du produit:", produit);
 
@@ -1069,7 +1066,7 @@ export class UserProfileComponent implements OnInit {
     this.loadProductCategoryAndDomain(produit);
   }
 
-// ✅ NOUVELLE MÉTHODE : Supprimer les doublons d'images
+  // ✅ NOUVELLE MÉTHODE : Supprimer les doublons d'images
   private removeDuplicateImages(images: string[]): string[] {
     const uniqueImages: string[] = [];
     const seen = new Set<string>();
@@ -1084,6 +1081,7 @@ export class UserProfileComponent implements OnInit {
     console.log(`🧹 Nettoyage doublons: ${images.length} → ${uniqueImages.length} images`);
     return uniqueImages;
   }
+
   private handleFiles(files: FileList): void {
     console.log("📁 Fichiers reçus:", files.length);
 
@@ -1122,8 +1120,6 @@ export class UserProfileComponent implements OnInit {
       alert(`Seulement ${filesToAdd} image(s) ajoutée(s) sur ${files.length}. Maximum ${maxTotalImages} images autorisées.`);
     }
   }
-
-
 
   removeImage(index: number): void {
     console.log("🗑️ Suppression de l'image à l'index:", index);
@@ -1167,14 +1163,14 @@ export class UserProfileComponent implements OnInit {
     });
   }
 
-
-// ✅ NOUVELLE MÉTHODE pour obtenir le statut des images
+  // ✅ NOUVELLE MÉTHODE pour obtenir le statut des images
   getImageStatus(index: number): string {
     if (index < this.originalImages.length) {
       return this.imagesToDelete.includes(this.originalImages[index]) ? 'supprimée' : 'existante';
     }
     return 'nouvelle';
   }
+
   saveFullProduct(): void {
     if (!this.editedProduct) return;
 
@@ -1256,61 +1252,61 @@ export class UserProfileComponent implements OnInit {
 
   getDisplayedImages(): string[] {
     // Retourne seulement les 3 premières images pour l'affichage
-    return this.imagePreviews.slice(0, 3)
+    return this.imagePreviews.slice(0, 3);
   }
 
   cancelFullEdit(): void {
-    this.isFullEditProduct = false
-    this.editedProduct = null
-    this.imagePreviews = []
-    this.newImages = []
-    this.imagesToDelete = []
-    this.filteredCategories = []
+    this.isFullEditProduct = false;
+    this.editedProduct = null;
+    this.imagePreviews = [];
+    this.newImages = [];
+    this.imagesToDelete = [];
+    this.filteredCategories = [];
   }
 
   openEditProfile(): void {
-    this.isEditingProfile = true
+    this.isEditingProfile = true;
     this.editedUser = {
       prenom: this.user?.prenom || "",
       nom: this.user?.nom || "",
       email: this.user?.email || "",
-    }
-    console.log("📝 Ouverture édition profil:", this.editedUser)
+    };
+    console.log("📝 Ouverture édition profil:", this.editedUser);
   }
 
   saveProfile(): void {
     if (!this.user?.id) {
-      alert("Erreur: ID utilisateur non trouvé")
-      return
+      alert("Erreur: ID utilisateur non trouvé");
+      return;
     }
 
     // Validation basique
     if (!this.editedUser.prenom || !this.editedUser.nom || !this.editedUser.email) {
-      alert("Veuillez remplir tous les champs")
-      return
+      alert("Veuillez remplir tous les champs");
+      return;
     }
 
-    this.isSavingProfile = true
-    console.log("💾 Sauvegarde profil vers backend:", this.editedUser)
+    this.isSavingProfile = true;
+    console.log("💾 Sauvegarde profil vers backend:", this.editedUser);
 
     const userData = {
       prenom: this.editedUser.prenom,
       nom: this.editedUser.nom,
       email: this.editedUser.email,
-    }
+    };
 
-    const url = `${this.API_BASE_URL}/api/clients/${this.user.id}`
+    const url = `${this.API_BASE_URL}/api/clients/${this.user.id}`;
 
     this.http.put<any>(url, userData).subscribe({
       next: (response) => {
-        console.log("✅ Profil mis à jour au backend:", response)
+        console.log("✅ Profil mis à jour au backend:", response);
 
         // Mettre à jour l'objet user local
         if (this.user) {
-          this.user.prenom = this.editedUser.prenom
-          this.user.nom = this.editedUser.nom
-          this.user.email = this.editedUser.email
-          this.user.name = `${this.editedUser.prenom} ${this.editedUser.nom}`.trim()
+          this.user.prenom = this.editedUser.prenom;
+          this.user.nom = this.editedUser.nom;
+          this.user.email = this.editedUser.email;
+          this.user.name = `${this.editedUser.prenom} ${this.editedUser.nom}`.trim();
         }
 
         // Sauvegarder dans localStorage
@@ -1321,55 +1317,54 @@ export class UserProfileComponent implements OnInit {
             prenom: this.user.prenom,
             nom: this.user.nom,
             email: this.user.email,
-          }
-          localStorage.setItem("userData", JSON.stringify(updatedUserData))
-          console.log("💾 Données utilisateur mises à jour dans localStorage")
+          };
+          localStorage.setItem("userData", JSON.stringify(updatedUserData));
+          console.log("💾 Données utilisateur mises à jour dans localStorage");
         }
 
-        this.isEditingProfile = false
-        this.isSavingProfile = false
-        alert("✅ Profil mis à jour avec succès!")
+        this.isEditingProfile = false;
+        this.isSavingProfile = false;
+        alert("✅ Profil mis à jour avec succès!");
       },
       error: (error) => {
-        console.error("❌ Erreur lors de la mise à jour du profil:", error)
-        this.isSavingProfile = false
-        const errorMessage = error.error?.message || error.message || "Erreur serveur"
-        alert("❌ Erreur lors de la mise à jour: " + errorMessage)
+        console.error("❌ Erreur lors de la mise à jour du profil:", error);
+        this.isSavingProfile = false;
+        const errorMessage = error.error?.message || error.message || "Erreur serveur";
+        alert("❌ Erreur lors de la mise à jour: " + errorMessage);
       },
-    })
+    });
   }
 
   cancelEditProfile(): void {
-    this.isEditingProfile = false
-    this.editedUser = {}
+    this.isEditingProfile = false;
+    this.editedUser = {};
   }
 
   openEditProduct(produit: Produit): void {
-    this.isEditingProduct = true
-    this.editedProduct = { ...produit }
-    console.log("📝 Ouverture édition produit:", this.editedProduct)
+    this.isEditingProduct = true;
+    this.editedProduct = { ...produit };
+    console.log("📝 Ouverture édition produit:", this.editedProduct);
   }
 
   saveProduct(): void {
-    if (!this.editedProduct) return
+    if (!this.editedProduct) return;
 
-    console.log("💾 Sauvegarde produit:", this.editedProduct)
+    console.log("💾 Sauvegarde produit:", this.editedProduct);
 
-    const index = this.produitsEnAttente.findIndex((p) => p.id === this.editedProduct!.id)
+    const index = this.produitsEnAttente.findIndex((p) => p.id === this.editedProduct!.id);
     if (index !== -1) {
-      this.produitsEnAttente[index] = { ...this.editedProduct }
+      this.produitsEnAttente[index] = { ...this.editedProduct };
     }
 
-    this.isEditingProduct = false
-    this.editedProduct = null
-    alert("Produit mis à jour avec succès!")
+    this.isEditingProduct = false;
+    this.editedProduct = null;
+    alert("Produit mis à jour avec succès!");
   }
 
   cancelEditProduct(): void {
-    this.isEditingProduct = false
-    this.editedProduct = null
+    this.isEditingProduct = false;
+    this.editedProduct = null;
   }
-
 
   getEnchereStatus(produit: any): string {
     if (!produit.dateenchere) return 'Nouvelle';
@@ -1412,7 +1407,8 @@ export class UserProfileComponent implements OnInit {
     const score = Math.min((views * 0.4 + favorites * 0.4 + comments * 0.2) * 10, 100);
     return Math.round(score);
   }
-// Méthode pour contacter l'acheteur
+
+  // Méthode pour contacter l'acheteur
   contactBuyer(produit: Produit): void {
     if (!produit.acheteurNom) {
       alert('Aucun acheteur spécifié pour ce produit');
@@ -1423,5 +1419,4 @@ export class UserProfileComponent implements OnInit {
     // Implémentez la logique de contact ici (ouverture de chat, email, etc.)
     alert(`Fonctionnalité de contact avec ${produit.acheteurNom} bientôt disponible!`);
   }
-
 }

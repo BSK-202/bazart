@@ -676,4 +676,48 @@ public class ProduitController {
             return ResponseEntity.status(500).body("Erreur serveur: " + e.getMessage());
         }
     }
+    // ENDPOINT SIMPLE POUR TERMINER L'ENCHÈRE
+    @PostMapping("/{produitId}/terminer-enchere")
+    public ResponseEntity<?> terminerEnchere(@PathVariable Long produitId) {
+        try {
+            Produit produit = produitService.getProduitById(produitId)
+                    .orElseThrow(() -> new RuntimeException("Produit non trouvé"));
+
+            // Vérifier que le produit est en enchère
+            if (!"en_enchere".equals(produit.getEtat())) {
+                return ResponseEntity.badRequest().body(
+                        "Le produit n'est pas en enchère. État actuel: " + produit.getEtat()
+                );
+            }
+
+            // Mettre à jour l'état
+            produit.setEtat("enchere_termine");
+            produitService.saveProduit(produit);
+
+            return ResponseEntity.ok("Enchère terminée avec succès");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Erreur: " + e.getMessage());
+        }
+    }
+
+    // ENDPOINT POUR RÉCUPÉRER TOUS LES PRODUITS EN ENCHÈRE
+    @GetMapping("/encheres")
+    public ResponseEntity<List<ProduitDTO>> getProduitsEnEnchere() {
+        try {
+            System.out.println("🔍 Recherche des produits en enchère...");
+            List<Produit> produits = produitService.getProduitsByEtat("en_enchere");
+            System.out.println("📦 Nombre de produits en enchère trouvés: " + produits.size());
+
+            List<ProduitDTO> produitsDTO = produits.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(produitsDTO);
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la récupération des produits en enchère: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
 }

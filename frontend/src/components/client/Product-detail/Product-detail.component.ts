@@ -3,8 +3,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
-import {AuthService} from '../../../services/auth.service';
-import {Enchere, EnchereService} from '../../../services/enchere.service';
+import { AuthService } from '../../../services/auth.service';
+import { Enchere, EnchereService } from '../../../services/enchere.service';
 
 // Services
 
@@ -75,8 +75,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   historiqueEncheres: Enchere[] = [];
   isLoadingEncheres: boolean = false;
 
-
-
   private readonly API_BASE_URL = 'http://localhost:8080';
 
   constructor(
@@ -108,11 +106,9 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-
   // Charger les données d'enchère
   loadDonneesEnchere(): void {
     if (!this.produitId) return;
-
 
     const produitIdNum = parseInt(this.produitId);
     // Charger l'enchère actuelle
@@ -249,9 +245,9 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       return dateString;
     }
   }
+
   // 🔍 Extraire l'ID du vendeur du produit
   private extractVendeurId(produit: Produit): number {
-
     // Si vous avez directement l'ID du vendeur dans le produit
     if ((produit as any).vendeurId) {
       return (produit as any).vendeurId;
@@ -324,10 +320,10 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     const imgElement = event.target as HTMLImageElement;
     imgElement.style.display = 'none';
   }
+
   private resetProfileImageState() {
     this.showDefaultAvatar = false;
   }
-
 
   get minBid(): number {
     if (!this.isEnchereActive) {
@@ -348,6 +344,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }, 1000);
   }
 
+  // Modifier la méthode updateTimeLeft pour mettre à jour l'état
   private updateTimeLeft(): void {
     if (!this.isEnchereActive || !this.auctionEndTime) {
       this.timeLeft = 'Enchère non active';
@@ -359,7 +356,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
     if (distance < 0) {
       this.timeLeft = 'Enchère terminée';
-      // Optionnel: Mettre à jour l'état du produit
       this.handleAuctionEnd();
       return;
     }
@@ -372,14 +368,58 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     this.timeLeft = `${days}j ${hours}h ${minutes}m ${seconds}s`;
   }
 
-
   selectImage(index: number): void {
     this.selectedImage = index;
   }
 
+  get auctionWinner(): string | null {
+    if (!this.isEnchereTerminee || this.historiqueEncheres.length === 0) {
+      return null;
+    }
+
+    // Trouver l'enchère la plus élevée avec vérification de type
+    const winningBid = this.historiqueEncheres.reduce((prev, current) => {
+      // Vérifier que les montants existent
+      const prevAmount = prev.amount || 0;
+      const currentAmount = current.amount || 0;
+
+      return prevAmount > currentAmount ? prev : current;
+    });
+
+    return winningBid.bidder || null;
+  }
+
+  private updateProductStateInDatabase(): void {
+    if (!this.produitId) return;
+
+    const url = `${this.API_BASE_URL}/api/produits/${this.produitId}/terminer-enchere`;
+
+    this.http.post(url, {}).subscribe({
+      next: () => {
+        console.log('✅ Enchère marquée comme terminée');
+        if (this.produit) {
+          this.produit.etat = 'enchere_termine';
+        }
+      },
+      error: (err) => {
+        console.error('❌ Erreur:', err);
+      }
+    });
+  }
+
+  // Améliorer handleAuctionEnd pour mettre à jour l'état du produit
   private handleAuctionEnd(): void {
     console.log('🏁 Enchère terminée pour le produit:', this.produit?.id);
-    // Ici vous pouvez appeler une API pour mettre à jour l'état du produit
+
+    // Mettre à jour l'état local du produit
+    if (this.produit && this.produit.etat === 'en_enchere') {
+      this.produit.etat = 'enchere_termine';
+      console.log('✅ État du produit mis à jour: enchere_termine');
+    }
+
+    // Optionnel: Appeler l'API pour mettre à jour l'état en base de données
+    this.updateProductStateInDatabase();
+
     clearInterval(this.timer);
   }
 
@@ -443,7 +483,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-// Méthode optionnelle pour afficher le solde
+  // Méthode optionnelle pour afficher le solde
   getCurrentWalletBalance(): void {
     const url = 'http://localhost:8080/api/wallet/balance';
 
@@ -482,11 +522,11 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   }
 
   formatPrice(amount: number | undefined): string {
-    // @ts-ignore
+    if (!amount) return '0 DH';
     return amount.toLocaleString('fr-MA') + ' DH';
   }
 
-// Mettre à jour getInitials pour être plus robuste
+  // Mettre à jour getInitials pour être plus robuste
   getInitials(name: string | undefined): string {
     if (!name) return '??';
 
@@ -569,7 +609,6 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-
   // ⭐ Calculer la note du vendeur (temporairement statique)
   getSellerRating(): number {
     return 4.8; // À remplacer par un vrai calcul
@@ -582,6 +621,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   protected readonly parseFloat = parseFloat;
 
+  // Mettre à jour isEnchereActive
   get isEnchereActive(): boolean {
     return this.produit?.etat === 'en_enchere';
   }
@@ -593,7 +633,9 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
     try {
       const startDate = new Date(this.produit.dateenchere);
-      const endDate = new Date(startDate.getTime() + this.produit.dureeEnchereJours * 24 * 60 * 60 * 1000);
+      // Ajouter la durée en jours
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + this.produit.dureeEnchereJours);
       return endDate;
     } catch (e) {
       console.error('Erreur calcul date fin enchère:', e);
@@ -612,13 +654,13 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     };
   }
 
-// 🖼️ Construire l'URL complète de l'image de profil des enchérisseurs
+  // 🖼️ Construire l'URL complète de l'image de profil des enchérisseurs
   getBidderProfileImageUrl(bidderId: number): string {
     console.log('🖼️ Chargement image profil enchérisseur ID:', bidderId);
     return `${this.API_BASE_URL}/api/clients/images/${bidderId}.jpg`;
   }
 
-// Gérer l'erreur de chargement de l'image de profil des enchérisseurs
+  // Gérer l'erreur de chargement de l'image de profil des enchérisseurs
   onBidderProfileImageError(event: any, bid: any) {
     console.log(`❌ Profile image not found for bidder ${bid.encherisseurId}, using default avatar`);
 
@@ -629,6 +671,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     const imgElement = event.target as HTMLImageElement;
     imgElement.style.display = 'none';
   }
+
   // Méthode pour vérifier le solde du wallet (sans débiter)
   private checkWalletBalance(amount: number): Promise<boolean> {
     return new Promise((resolve, reject) => {
@@ -658,9 +701,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       });
     });
   }
-  // Ajouter cette méthode dans la classe ProductDetailComponent
 
-// Vérifier si l'utilisateur connecté est le vendeur du produit
+  // Vérifier si l'utilisateur connecté est le vendeur du produit
   isCurrentUserSeller(): boolean {
     if (!this.isAuthenticated || !this.produit || !this.vendeur) {
       return false;
@@ -677,4 +719,59 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     return false;
   }
 
+  // Mettre à jour isEnchereTerminee pour être plus précis
+  get isEnchereTerminee(): boolean {
+    // Vérifier d'abord l'état du produit
+    if (this.produit?.etat === 'enchere_termine') {
+      return true;
+    }
+
+    // Si le produit n'est pas en enchère, alors l'enchère n'est pas terminée
+    if (!this.isEnchereActive) {
+      return false;
+    }
+
+    // Vérifier la date de fin
+    const endTime = this.auctionEndTime;
+    if (!endTime) {
+      return false;
+    }
+
+    return new Date().getTime() > endTime.getTime();
+  }
+
+  // Vérifier si l'utilisateur connecté est en tête de l'enchère
+  isCurrentUserLeading(): boolean {
+    if (!this.isAuthenticated || this.historiqueEncheres.length === 0) {
+      return false;
+    }
+
+    const currentUserId = this.authService.getCurrentUserId();
+    if (!currentUserId) return false;
+
+    // Trouver l'enchère avec le montant le plus élevé avec vérification de sécurité
+    const highestBid = this.historiqueEncheres.reduce((prev, current) => {
+      const prevAmount = prev.amount || 0;
+      const currentAmount = current.amount || 0;
+      return (prevAmount > currentAmount) ? prev : current;
+    });
+
+    // Vérifier si l'utilisateur courant est l'auteur de l'enchère la plus élevée
+    if (highestBid.encherisseurId === currentUserId) {
+      console.log('👑 Utilisateur connecté est en tête de l\'enchère avec', highestBid.amount);
+      return true;
+    }
+
+    return false;
+  }
+
+  // Vérifier si l'utilisateur peut enchérir
+  canUserBid(): boolean {
+    if (!this.isAuthenticated) return false;
+    if (this.isCurrentUserSeller()) return false;
+    if (this.isCurrentUserLeading()) return false;
+    if (this.isEnchereTerminee) return false;
+
+    return true;
+  }
 }

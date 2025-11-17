@@ -1,4 +1,3 @@
-// app.routes.ts - VERSION SIMPLIFIÉE
 import { Routes } from '@angular/router';
 import { AllCategoriesComponent } from '../components/client/all-categories/all-categories.component';
 import { DomaineComponent } from '../components/client/domaine/domaine.component';
@@ -16,12 +15,14 @@ import { WalletComponent } from '../components/client/wallet/wallet.component';
 import { AdminAuthGuard } from '../services/admin-auth.guard';
 import { UserProfileComponent } from '../components/client/profile/profile.component';
 import { ProductDetailComponent } from '../components/client/Product-detail/Product-detail.component';
-import {ExpertsInactifsComponent} from  '../components/admin/experts-inactif-admin/experts-inactif-admin.component';
+import { ExpertsInactifsComponent } from '../components/admin/experts-inactif-admin/experts-inactif-admin.component';
 import { ExpertDetailsComponent } from '../components/admin/expert-details-admin/expert-details-admin.component';
-import {ExpertsActifsAdminComponent} from '../components/admin/experts-actifs-admin/experts-actifs-admin.component';
+import { ExpertsActifsAdminComponent } from '../components/admin/experts-actifs-admin/experts-actifs-admin.component';
 import { SingupexpertComponent } from '../components/signupexpert/signupexpert.component';
+import {EncheresComponent} from '../components/client/echeres/encheres.component';
+
 export const routes: Routes = [
-  // ===== ROUTES PUBLIQUES CLIENT =====
+  // ===== PUBLIC CLIENT ROUTES =====
   {
     path: 'domaines',
     component: DomaineComponent
@@ -35,8 +36,19 @@ export const routes: Routes = [
     component: CategoryDetailComponent
   },
   {
+    path: 'produit/:id',
+    component: ProductDetailComponent
+  },
+  {
+    path: 'encheres',
+    component: EncheresComponent ,
+    canActivate: [AuthGuard]// Vous devrez créer ce composant
+  },
+
+  // ===== AUTHENTICATION ROUTES =====
+  {
     path: 'connexion',
-    component: LoginComponent  // ✅ UNE SEULE PAGE DE LOGIN
+    component: LoginComponent
   },
   {
     path: 'inscription',
@@ -46,6 +58,8 @@ export const routes: Routes = [
     path: 'demande-expertise',
     component: SingupexpertComponent
   },
+
+  // ===== PROTECTED CLIENT ROUTES =====
   {
     path: 'vendre',
     component: SellComponent,
@@ -56,72 +70,61 @@ export const routes: Routes = [
     component: WalletComponent,
     canActivate: [AuthGuard]
   },
-
-  // ===== ROUTES ADMIN PROTÉGÉES =====
-  // ❌ SUPPRIMER la route 'admin-auth' - utiliser '/connexion' à la place
   {
-    path: 'pub-en-attente-admin',
-    component: PubEnAttenteAdminComponent,
-    canActivate: [AdminAuthGuard]
-  },
-  {
-    path: 'produit-details-admin/:id',
-    component: ProduitDetailsAdminComponent,
-    canActivate: [AdminAuthGuard]
-  },
-  {
-    path: 'domaines-admin',
-    component: DomaineAdminComponent,
-    canActivate: [AdminAuthGuard]
-  },
-  {
-    path: 'domaines-admin/:slug',
-    component: AllCategoriesAdminComponent,
-    canActivate: [AdminAuthGuard]
-  },
-  {
-    path: 'domaines-admin/:domaineSlug/categories-admin/:slug1/:slug2',
-    component: CategoryDetailAdminComponent,
-    canActivate: [AdminAuthGuard]
-  },
-  {
-    path: 'experts-inactifs-admin',
-    component: ExpertsInactifsComponent,
-    canActivate: [AdminAuthGuard]
-  },
-  {
-    path: 'expert-details-admin/:id',
-    component: ExpertDetailsComponent,
-    canActivate: [AdminAuthGuard]
-  },
-  {
-    path: 'experts-actifs-admin',
-    component: ExpertsActifsAdminComponent,
-    canActivate: [AdminAuthGuard]
+    path: 'profil',
+    component: UserProfileComponent,
+    canActivate: [AuthGuard]
   },
 
+  // ===== ADMIN PROTECTED ROUTES =====
+  {
+    path: 'admin',
+    children: [
+      {
+        path: 'publications',
+        component: PubEnAttenteAdminComponent
+      },
+      {
+        path: 'publications/:id',
+        component: ProduitDetailsAdminComponent
+      },
+      {
+        path: 'domaines',
+        component: DomaineAdminComponent
+      },
+      {
+        path: 'domaines/:slug',
+        component: AllCategoriesAdminComponent
+      },
+      {
+        path: 'domaines/:domaineSlug/categories/:slug1/:slug2',
+        component: CategoryDetailAdminComponent
+      },
+      {
+        path: 'experts-inactifs',
+        component: ExpertsInactifsComponent
+      },
+      {
+        path: 'experts-inactifs/:id',
+        component: ExpertDetailsComponent
+      },
+      {
+        path: 'experts-actifs',
+        component: ExpertsActifsAdminComponent
+      },
+      // NOUVELLE ROUTE POUR LES ENCHÈRES
 
+    ]
+  },
+
+  // ===== REDIRECT ROUTES =====
   {
     path: '',
     redirectTo: '/domaines',
     pathMatch: 'full'
   },
   {
-    path: 'produit/:id',
-    component: ProductDetailComponent
-  },
-  {
-    path: 'profil',
-    component: UserProfileComponent, // ✅ Utiliser le composant directement
-    canActivate: [AuthGuard] // ✅ SEULEMENT cette route est protégée
-
-  },
-  // Route de fallback (doit être la dernière)
-  {
     path: '**',
     redirectTo: '/domaines'
-  },
-
-
-
+  }
 ];

@@ -1,0 +1,95 @@
+<section class="encheres-section">
+  <div class="container">
+    <!-- Hero Section Enchères -->
+    <div class="encheres-hero">
+      <div class="hero-content">
+        <h1 class="hero-title">Enchères en Cours</h1>
+        <p class="hero-description">
+          Découvrez tous les produits actuellement en enchère. Faites vos offres avant qu'il ne soit trop tard !
+        </p>
+      </div>
+    </div>
+
+    <!-- Modal Commentaire -->
+    <app-comment-modal
+      *ngIf="showCommentModal && selectedProduit"
+      [produitId]="selectedProduit.id"
+      [produitNom]="selectedProduit.nom"
+      (close)="closeCommentModal()">
+    </app-comment-modal>
+
+    <!-- Section des produits en enchère -->
+    <div class="products-section">
+      <div class="section-header">
+        <h2 class="section-title">Produits en Enchère Active</h2>
+        <p class="products-count">{{ produits.length }} produits en enchère</p>
+      </div>
+
+      <!-- Indicateur de chargement -->
+      <div *ngIf="isLoading" class="loading-container">
+        <div class="loading-spinner">Chargement des enchères...</div>
+      </div>
+
+      <!-- Grille des produits en enchère -->
+      <div *ngIf="!isLoading" class="auctions-grid">
+        <div
+          *ngFor="let produit of produits"
+          class="auction-card"
+          [attr.data-produit-id]="produit.id"
+          (click)="$event.stopPropagation(); goToProductDetail(produit.id)">
+
+          <!-- Badge spécial pour les enchères -->
+          <div class="auction-badge">ENCHÈRE</div>
+
+          <div class="auction-image">
+            <img [src]="produit.imagePrincipale" [alt]="produit.nom" class="item-image">
+            <div class="time-badge" [class]="getEtatClass(produit.etat)">
+              {{ getEtatDisplayText(produit.etat) }}
+            </div>
+          </div>
+
+          <div class="auction-content">
+            <h3 class="auction-title">{{ produit.nom }}</h3>
+            <p class="auction-description">
+              {{ produit.description | slice:0:120 }}{{ produit.description.length > 120 ? '...' : '' }}
+            </p>
+
+            <div class="price-section">
+              <div class="current-price">{{ produit.prixDebut }} DH</div>
+              <div class="time-remaining">
+                <span class="time-icon">⏱️</span>
+                {{ getTempsRestant(produit) }}
+              </div>
+            </div>
+
+            <!-- Section des interactions -->
+            <div class="auction-meta" (click)="$event.stopPropagation()">
+              <!-- Icône like -->
+              <span class="interaction" (click)="toggleLike(produit, $event)"
+                    [class.liked]="produit.hasLiked">
+                <fa-icon [icon]="produit.hasLiked ? faHeartSolid : faHeartRegular"
+                         [style.color]="produit.hasLiked ? '#ff4757' : '#262626'"></fa-icon>
+                {{ produit.nombreInteractions }}
+              </span>
+
+              <!-- Icône commentaire -->
+              <span class="comments" (click)="openCommentModal(produit, $event)">
+                <fa-icon [icon]="faComment"></fa-icon>
+                {{ produit.nombreCommentaires }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message si aucune enchère -->
+      <div *ngIf="!isLoading && produits.length === 0" class="no-products">
+        <div class="no-products-content">
+          <div class="no-products-icon">🏷️</div>
+          <h3>Aucune enchère en cours</h3>
+          <p>Il n'y a actuellement aucun produit en enchère. Revenez plus tard !</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

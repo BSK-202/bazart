@@ -77,12 +77,37 @@
                 📞 {{ vendeur.tel }}
               </p>
             </div>
+          </div>
+        </div>
 
+        <!-- Message si l'enchère est terminée -->
+        <div *ngIf="isEnchereTerminee" class="p-6 bg-yellow-50 border border-yellow-200 rounded-xl">
+          <div class="flex items-center gap-3 mb-3">
+            <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h3 class="font-serif text-xl font-bold text-yellow-800">Enchère terminée</h3>
+          </div>
+
+          <div class="space-y-2">
+            <p class="text-yellow-700">
+              <span class="font-semibold">Prix final:</span>
+              {{ formatPrice(enchereActuelle) }}
+            </p>
+
+            <p *ngIf="auctionWinner" class="text-yellow-700">
+              <span class="font-semibold">Gagnant:</span>
+              {{ auctionWinner }}
+            </p>
+
+            <p class="text-sm text-yellow-600">
+              L'enchère est maintenant fermée. Merci à tous les participants!
+            </p>
           </div>
         </div>
 
         <!-- Countdown - Afficher uniquement si l'enchère est active -->
-        <div *ngIf="isEnchereActive" class="p-6 bg-primary/5 rounded-xl border border-primary/20">
+        <div *ngIf="isEnchereActive && !isEnchereTerminee" class="p-6 bg-primary/5 rounded-xl border border-primary/20">
           <div class="flex items-center gap-2 mb-2">
             <svg class="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -106,12 +131,14 @@
         <div *ngIf="isEnchereActive" class="space-y-4">
           <div class="flex items-baseline justify-between">
             <div>
-              <p class="text-sm text-muted-foreground mb-1">Offre actuelle</p>
+              <p class="text-sm text-muted-foreground mb-1">
+                {{ isEnchereTerminee ? 'Prix final' : 'Offre actuelle' }}
+              </p>
               <p class="font-serif text-4xl font-bold text-foreground">
                 {{ formatPrice(enchereActuelle) }}
               </p>
             </div>
-            <div class="flex items-center gap-2 text-muted-foreground">
+            <div class="flex items-center gap-2 text-muted-foreground" *ngIf="!isEnchereTerminee">
               <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
               </svg>
@@ -119,11 +146,13 @@
             </div>
           </div>
 
-          <p class="text-sm text-muted-foreground">Enchère minimale: {{ formatPrice(minBid) }}</p>
+          <p *ngIf="!isEnchereTerminee" class="text-sm text-muted-foreground">
+            Enchère minimale: {{ formatPrice(minBid) }}
+          </p>
         </div>
 
-        <!-- Afficher le prix de départ si pas en enchère -->
-        <div *ngIf="!isEnchereActive" class="space-y-4">
+        <!-- Afficher le prix de départ si pas en enchère ET pas terminé -->
+        <div *ngIf="!isEnchereActive && !isEnchereTerminee" class="space-y-4">
           <div>
             <p class="text-sm text-muted-foreground mb-1">Prix de départ</p>
             <p class="font-serif text-4xl font-bold text-foreground">
@@ -133,8 +162,9 @@
           <p class="text-sm text-muted-foreground">Ce produit n'est pas encore en enchère</p>
         </div>
 
+
         <!-- Authentification requise - Afficher uniquement si l'enchère est active -->
-        <div *ngIf="!isAuthenticated && isEnchereActive" class="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+        <div *ngIf="!isAuthenticated && isEnchereActive && !isEnchereTerminee" class="p-4 bg-primary/5 border border-primary/20 rounded-lg">
           <p class="text-sm text-center">
             <a routerLink="/connexion" class="text-primary hover:underline font-medium">Connectez-vous</a>
             ou
@@ -143,8 +173,8 @@
           </p>
         </div>
 
-        <!-- Formulaire d'enchère - Afficher uniquement si l'enchère est active, utilisateur connecté ET n'est PAS le vendeur -->
-        <div *ngIf="isEnchereActive && isAuthenticated && !isCurrentUserSeller()" class="space-y-3">
+        <!-- Formulaire d'enchère - Afficher uniquement si l'utilisateur peut enchérir -->
+        <div *ngIf="isEnchereActive && !isEnchereTerminee && isAuthenticated && canUserBid()" class="space-y-3">
           <div class="space-y-3">
             <div class="flex gap-3">
               <div class="flex-1">
@@ -188,10 +218,27 @@
               </svg>
             </button>
           </div>
+        </div>
 
+        <div *ngIf="isEnchereActive && !isEnchereTerminee && isAuthenticated && isCurrentUserLeading()" class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+          <div class="flex items-center gap-3">
+            <svg class="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+            <div>
+              <p class="font-medium text-purple-800">Vous êtes en tête de cette enchère</p>
+              <p class="text-sm text-purple-600">
+                Vous ne pouvez pas surenchérir sur votre propre offre. Attendez qu'un autre participant dépasse votre montant.
+              </p>
+              <p class="text-xs text-purple-500 mt-1">
+                Votre offre actuelle: <strong>{{ formatPrice(enchereActuelle) }}</strong>
+              </p>
+            </div>
+          </div>
+        </div>
 
         <!-- Message pour le vendeur -->
-        <div *ngIf="isEnchereActive && isAuthenticated && isCurrentUserSeller()" class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div *ngIf="isEnchereActive && !isEnchereTerminee && isAuthenticated && isCurrentUserSeller()" class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div class="flex items-center gap-3">
             <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -202,9 +249,7 @@
             </div>
           </div>
         </div>
-        <!-- Ajouter cette section après le formulaire d'enchère pour informer l'utilisateur -->
 
-        </div>
         <!-- Informations supplémentaires -->
         <div class="pt-6 border-t border-border space-y-3 text-sm">
           <div class="flex justify-between">
@@ -232,13 +277,15 @@
       </div>
     </div>
 
-    <!-- Historique des enchères (temporairement statique) - Afficher uniquement si l'enchère est active -->
-    <div class="mt-16" *ngIf="produit && !isLoading && isEnchereActive">
+    <!-- Historique des enchères - Afficher uniquement si l'enchère est active ou terminée -->
+    <div class="mt-16" *ngIf="produit && !isLoading && (isEnchereActive || isEnchereTerminee)">
       <div class="flex items-center gap-3 mb-6">
         <svg class="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
         </svg>
-        <h2 class="font-serif text-3xl font-bold">Historique des enchères</h2>
+        <h2 class="font-serif text-3xl font-bold">
+          {{ isEnchereTerminee ? 'Résultat des enchères' : 'Historique des enchères' }}
+        </h2>
         <span *ngIf="isLoadingEncheres" class="loading-spinner text-sm">Chargement...</span>
       </div>
 
@@ -257,16 +304,17 @@
             <!-- Message si pas d'enchères -->
             <tr *ngIf="historiqueEncheres.length === 0 && !isLoadingEncheres">
               <td colspan="4" class="py-8 px-6 text-center text-muted-foreground">
-                Aucune enchère pour le moment. Soyez le premier à enchérir!
+                {{ isEnchereTerminee ? 'Aucune enchère n\'a été placée' : 'Aucune enchère pour le moment. Soyez le premier à enchérir!' }}
               </td>
             </tr>
 
-
             <!-- Liste des enchères -->
             <tr *ngFor="let bid of historiqueEncheres"
-                [class.bg-green-50]="bid.isLeading"
+                [class.bg-green-50]="bid.isLeading && !isEnchereTerminee"
+                [class.bg-yellow-50]="bid.isLeading && isEnchereTerminee"
                 [class.border-l-4]="bid.isLeading"
-                [class.border-l-green-500]="bid.isLeading">
+                [class.border-l-green-500]="bid.isLeading && !isEnchereTerminee"
+                [class.border-l-yellow-500]="bid.isLeading && isEnchereTerminee">
               <td class="py-4 px-6">
                 <div class="flex items-center gap-3">
                   <!-- Container pour l'avatar de l'enchérisseur -->
@@ -277,6 +325,7 @@
                       [alt]="'Photo de profil de ' + bid.bidder"
                       class="bidder-profile-image"
                       (error)="onBidderProfileImageError($event, bid)"
+                      *ngIf="!bid.showDefaultAvatar"
                     />
 
                     <!-- Avatar par défaut -->
@@ -289,6 +338,9 @@
 
                   <div>
                     <span class="font-medium block">{{ bid.bidder }}</span>
+                    <span *ngIf="bid.isLeading && isEnchereTerminee" class="text-xs text-yellow-600 font-semibold">
+                      GAGNANT
+                    </span>
                   </div>
                 </div>
               </td>
@@ -297,16 +349,23 @@
               </td>
               <td class="py-4 px-6 text-muted-foreground">{{ bid.time }}</td>
               <td class="py-4 px-6">
-    <span *ngIf="bid.isLeading"
-          class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
-      <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-      </svg>
-      En tête
-    </span>
+                <span *ngIf="bid.isLeading && !isEnchereTerminee"
+                      class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  En tête
+                </span>
+                <span *ngIf="bid.isLeading && isEnchereTerminee"
+                      class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">
+                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  Gagnant
+                </span>
                 <span *ngIf="!bid.isLeading" class="text-xs text-muted-foreground">
-      Dépassée
-    </span>
+                  Dépassée
+                </span>
               </td>
             </tr>
             </tbody>
@@ -315,10 +374,10 @@
       </div>
     </div>
 
-    <!-- Message si le produit n'est pas en enchère -->
-    <div *ngIf="produit && !isLoading && !isEnchereActive" class="mt-16 text-center py-12">
+    <div *ngIf="produit && !isLoading && !isEnchereActive && !isEnchereTerminee" class="mt-16 text-center py-12">
       <div class="bg-muted rounded-xl p-8 max-w-md mx-auto">
-        <svg class="h-16 w-16 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Ajouter la classe horloge-inactive ici -->
+        <svg class="horloge-inactive mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <h3 class="font-serif text-2xl font-bold mb-2">Enchère non disponible</h3>

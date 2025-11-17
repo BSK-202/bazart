@@ -8,7 +8,7 @@ interface User {
   name: string;
   email: string;
   id?: number;
-  photoProfil?: string;
+  photoprofil?: string;
 }
 
 @Component({
@@ -19,10 +19,8 @@ interface User {
   styleUrls: ['./header.component.css']
 })
 export class HeaderComponent implements OnInit, OnDestroy {
-
   isAuthenticated = false;
   user: User | null = null;
-
   isDropdownOpen = false;
   userProfileImage: string = '';
   showProfileImage: boolean = false;
@@ -31,17 +29,14 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isExpert: boolean = false;
   isExpertActive: boolean = false;
 
-  // ⭐ Gestion des favoris
   currentRoute: string = '';
   isFavoritesActive: boolean = false;
-
-  private routerSubscription?: Subscription;
+  private routerSubscription: Subscription | undefined;
 
   constructor(private router: Router) {}
 
   ngOnInit() {
     this.checkAuthState();
-
     this.routerSubscription = this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: any) => {
@@ -49,42 +44,56 @@ export class HeaderComponent implements OnInit, OnDestroy {
         this.updateActiveState(event.url);
       });
 
+    // Initialiser l'état actif
     this.updateActiveState(this.router.url);
   }
 
   ngOnDestroy() {
-    this.routerSubscription?.unsubscribe();
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+    }
   }
 
-  /** ⭐ Gère l’onglet actif du profil */
   private updateActiveState(url: string) {
-    this.currentRoute = url.split('?')[0];
+    this.currentRoute = url.split('?')[0]; // Enlever les query params
 
-    this.isFavoritesActive =
-      url.includes('favorites') ||
+    // Vérifier si on est dans la section favoris
+    this.isFavoritesActive = url.includes('favorites') ||
       (this.currentRoute === '/profil' &&
         (this.router.getCurrentNavigation()?.extras?.state?.['activeTab'] === 'favorites' ||
           new URLSearchParams(window.location.search).get('tab') === 'favorites'));
   }
 
-  /** ⭐ Navigation avec changement d’onglet dans le profil */
   navigateToProfileSection(section: string): void {
     this.closeDropdown();
 
+    // Mettre à jour l'état actif immédiatement
     if (section === 'favorites') {
       this.isFavoritesActive = true;
     }
 
-    this.router.navigate(['/profil'], {
-      state: { activeTab: section },
-      queryParams: { tab: section }
-    });
+    // Si nous sommes déjà sur la page de profil, on utilise le state pour changer d'onglet
+    if (this.router.url === '/profil' || this.router.url.startsWith('/profil')) {
+      this.router.navigate(['/profil'], {
+        state: { activeTab: section },
+        queryParams: { tab: section }
+      });
+    } else {
+      // Si nous ne sommes pas sur le profil, on navigue vers le profil avec l'état
+      this.router.navigate(['/profil'], {
+        state: { activeTab: section },
+        queryParams: { tab: section }
+      });
+    }
   }
 
-  /** ⭐ Vérification authentification + infos user + statut expert */
   private async checkAuthState() {
     const authToken = localStorage.getItem('authToken');
     const userData = localStorage.getItem('userData');
+
+    console.log('🔍 Vérification auth state...');
+    console.log('Auth Token:', authToken ? 'Present' : 'Absent');
+    console.log('User Data:', userData);
 
     if (!authToken || !userData) {
       this.resetUserState();
@@ -93,6 +102,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
 
     try {
       const parsedUser = JSON.parse(userData);
+      console.log('👤 User data parsed:', parsedUser);
 
       this.user = {
         name: parsedUser.nom
@@ -100,23 +110,37 @@ export class HeaderComponent implements OnInit, OnDestroy {
           : parsedUser.name || 'Utilisateur',
         email: parsedUser.email,
         id: parsedUser.id || parsedUser.userId || parsedUser.idclient,
-        photoProfil: parsedUser.photoProfil
+        photoprofil: parsedUser.photoprofil
       };
 
       this.isAuthenticated = true;
 
-      if (this.user.photoProfil) {
-        this.userProfileImage = this.user.photoProfil;
+      // Gestion de l'image de profil - CORRECTION ICI
+      if (this.user.photoprofil && this.user.photoprofil.trim() !== '') {
+        // Si c'est juste un nom de fichier (comme "27.jpg"), construire l'URL complète
+        if (this.user.photoprofil.includes('/')) {
+          // C'est déjà une URL complète
+          this.userProfileImage = this.user.photoprofil;
+        } else {
+          // C'est juste un nom de fichier, construire l'URL complète
+          this.userProfileImage = `http://localhost:8080/api/clients/images/${this.user.photoprofil}`;
+        }
         this.showProfileImage = true;
+        console.log('🖼️ Profile image URL:', this.userProfileImage);
+        console.log('✅ Show profile image:', this.showProfileImage);
       } else {
         this.showProfileImage = false;
+        this.userProfileImage = '';
+        console.log('❌ No profile image available');
       }
 
-      // Check expert
-      await this.checkExpertStatus(this.user.id!);
+      // Check expert status
+      if (this.user.id) {
+        await this.checkExpertStatus(this.user.id);
+      }
 
     } catch (err) {
-      console.error('Error parsing user data:', err);
+      console.error('❌ Error parsing user data:', err);
       this.logout();
     }
   }
@@ -124,14 +148,23 @@ export class HeaderComponent implements OnInit, OnDestroy {
   /** ⭐ Vérifier statut expert via API */
   private async checkExpertStatus(clientId: number) {
     try {
+      console.log('🔍 Checking expert status for client:', clientId);
       const response = await fetch(`http://localhost:8080/api/experts/check-expert/${clientId}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
+      console.log('⭐ Expert status response:', data);
 
       this.isExpert = data.isExpert;
       this.isExpertActive = data.isActive;
 
+      console.log('✅ Expert status - isExpert:', this.isExpert, 'isActive:', this.isExpertActive);
+
     } catch (error) {
-      console.error('Erreur API expert:', error);
+      console.error('❌ Erreur API expert:', error);
       this.isExpert = false;
       this.isExpertActive = false;
     }
@@ -150,12 +183,13 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.isFavoritesActive = false;
   }
 
-  /** ⭐ Gestion Image Profil */
+  // Gérer l'erreur de chargement d'image
   onImageError() {
+    console.log('❌ Profile image not found, using default icon');
     this.showProfileImage = false;
+    this.userProfileImage = '';
   }
 
-  /** ⭐ Dropdown */
   toggleDropdown() {
     this.isDropdownOpen = !this.isDropdownOpen;
   }
@@ -172,13 +206,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** ⭐ Déconnexion */
   logout() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
-
     this.resetUserState();
-
+    this.isDropdownOpen = false;
     window.location.href = '/';
   }
 

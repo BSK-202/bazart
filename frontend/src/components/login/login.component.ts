@@ -102,8 +102,7 @@ export class LoginComponent implements OnInit {
         // Stocker les infos admin
         this.adminAuthService.loginAdmin(response);
 
-        // Redirection vers l'interface admin
-        this.router.navigate(['/domaines-admin']);
+        this.router.navigate(['/admin/domaines']);
       },
       error: (adminError) => {
         console.log('❌ Échec connexion admin, tentative client...');

@@ -156,5 +156,18 @@ public class ProduitServiceImpl implements ProduitService {
         System.out.println("🔢 Prochain index d'image disponible: " + nextNumber);
         return nextNumber;
     }
+    // 🆕 MÉTHODE POUR RÉCUPÉRER LES PRODUITS PAR ÉTAT
+    public List<Produit> getProduitsByEtat(String etat) {
+        try {
+            System.out.println("🔍 Service: Recherche des produits avec état: " + etat);
+            List<Produit> produits = produitRepository.findByEtat(etat);
+            System.out.println("✅ Service: " + produits.size() + " produits trouvés avec état: " + etat);
+            return produits;
+        } catch (Exception e) {
+            System.err.println("❌ Service: Erreur lors de la recherche des produits par état: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Erreur lors de la récupération des produits par état", e);
+        }
+    }
 
 }

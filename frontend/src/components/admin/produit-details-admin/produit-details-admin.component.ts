@@ -47,9 +47,11 @@ export class ProduitDetailsAdminComponent implements OnInit {
     this.produitId = Number(this.route.snapshot.paramMap.get('id'));
     this.loadProductDetails();
   }
+
   goBackToList() {
-    this.router.navigate(['/pub-en-attente-admin']);
+    this.router.navigate(['/admin/publications']);
   }
+
   getStatusLabel(etat: string): string {
     switch(etat) {
       case 'en_attente': return 'En attente';
@@ -136,7 +138,7 @@ export class ProduitDetailsAdminComponent implements OnInit {
             : 'Produit refusé avec succès !';
 
           alert(message);
-          this.router.navigate(['/pub-en-attente-admin']);
+          this.router.navigate(['/admin/publications']);
         },
         error: (error) => {
           console.error('Erreur mise à jour état produit:', error);
@@ -144,5 +146,4 @@ export class ProduitDetailsAdminComponent implements OnInit {
         }
       });
   }
-
 }

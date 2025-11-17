@@ -31,7 +31,7 @@
       <div
         *ngFor="let domaine of domaines"
         class="category-card"
-        [routerLink]="['/domaines-admin', domaine.slug]">
+        [routerLink]="['/admin/domaines', domaine.slug]">  <!-- ✅ Changé ici : ajout de /admin/ -->
 
         <div class="image-container">
           <img

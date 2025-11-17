@@ -112,11 +112,10 @@ export class ExpertsInactifsComponent implements OnInit {
 
   // Dans experts-inactif-admin.component.ts
   viewExpertDetails(expertId: number): void {
-
-     this.router.navigate(['/expert-details-admin', expertId])
+    this.router.navigate(['/admin/experts-inactifs', expertId])
       .then(success => {
         if (success) {
-          console.log(` Navigation réussie vers expert-details-admin/${expertId}`);
+          console.log(`Navigation réussie vers admin/experts-inactifs/${expertId}`);
         } else {
           console.error(`Navigation échouée`);
         }
@@ -125,6 +124,7 @@ export class ExpertsInactifsComponent implements OnInit {
         console.error(`Erreur navigation:`, error);
       });
   }
+
   onImageError(event: any, expert: Expert) {
     console.error(`🖼️ ERREUR image pour expert ${expert.id}:`, event.target.src);
     event.target.src = 'assets/default-profile.png';

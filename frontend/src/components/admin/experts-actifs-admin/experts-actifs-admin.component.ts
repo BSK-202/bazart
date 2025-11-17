@@ -109,7 +109,7 @@ export class ExpertsActifsAdminComponent implements OnInit {
   }
 
   viewExpertDetails(expertId: number) {
-    this.router.navigate(['/expert-details-admin', expertId]);
+    this.router.navigate(['/admin/experts-inactifs', expertId]);
   }
 
   onImageError(event: any, expert: Expert) {

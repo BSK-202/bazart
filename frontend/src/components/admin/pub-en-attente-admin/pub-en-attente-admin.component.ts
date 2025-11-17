@@ -83,6 +83,6 @@ export class PubEnAttenteAdminComponent implements OnInit {
   }
 
   viewDetails(produitId: number) {
-    this.router.navigate(['/produit-details-admin', produitId]);
+    this.router.navigate(['/admin/publications', produitId]);
   }
 }

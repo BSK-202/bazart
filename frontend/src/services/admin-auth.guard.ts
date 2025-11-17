@@ -16,8 +16,8 @@ export class AdminAuthGuard implements CanActivate {
       console.log('✅ Guard admin - Accès autorisé');
       return true;
     } else {
-      console.log('❌ Guard admin - Accès refusé, redirection vers /admin-auth');
-      this.router.navigate(['/admin-auth']);
+      console.log('❌ Guard admin - Accès refusé, redirection vers /connexion');
+      this.router.navigate(['/connexion']);
       return false;
     }
   }

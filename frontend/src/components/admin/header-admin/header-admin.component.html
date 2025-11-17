@@ -9,18 +9,18 @@
       </a>
 
       <!-- Navigation -->
+      <!-- Dans header-admin.component.html -->
       <nav class="navigation">
-        <a routerLink="/domaines-admin" class="nav-link">Accueil</a>
-
-        <a routerLink="/pub-en-attente-admin" class="nav-link">
+        <!-- Tous les liens doivent commencer par /admin/ -->
+        <a routerLink="/admin/domaines" class="nav-link">Accueil</a>
+        <a routerLink="/admin/publications" class="nav-link">
           Publication en-attente
           <span *ngIf="pendingCount > 0" class="notification-badge">
-            {{ pendingCount }}
-          </span>
+      {{ pendingCount }}
+    </span>
         </a>
-        <a routerLink="/experts-inactifs-admin" class="nav-link">Demande</a>
-        <a routerLink="/experts-actifs-admin" class="nav-link">Experts</a>
-
+        <a routerLink="/admin/experts-inactifs" class="nav-link">Demande</a>
+        <a routerLink="/admin/experts-actifs" class="nav-link">Experts</a>
       </nav>
 
       <!-- Actions -->
@@ -32,11 +32,11 @@
           </svg>
         </button>
 
-		<app-notification
-		  *ngIf="isAuthenticated && adminUserId"
-		  [userId]="adminUserId"
-		  [inAppEnabled]="true">
-		</app-notification>
+        <app-notification
+          *ngIf="isAuthenticated && adminUserId"
+          [userId]="adminUserId"
+          [inAppEnabled]="true">
+        </app-notification>
 
         <ng-container *ngIf="isAuthenticated">
           <button class="icon-button" aria-label="Favoris" routerLink="/profil">
