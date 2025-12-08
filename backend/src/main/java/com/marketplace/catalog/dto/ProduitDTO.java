@@ -1,7 +1,7 @@
 package com.marketplace.catalog.dto;
 
 import java.util.List;
-
+import com.fasterxml.jackson.annotation.JsonProperty;
 public class ProduitDTO {
     private Long id;
     private String nom;
@@ -18,10 +18,107 @@ public class ProduitDTO {
     private List<String> images;
     private Long categorieId;    // Pour la création
     private Long vendeurId;
-    private boolean aExpertise;
     private String dateenchere;
     private Integer dureeEnchereJours;
     private Long domaineId;
+
+    //---------------------attributs et methodes d'expertisation--------------------------
+    @JsonProperty("aExpertise")
+    private boolean aExpertise;
+    @JsonProperty("expertiseMethod")
+    private String expertiseMethod; // "ONLINE" ou "ONSITE"
+    @JsonProperty("expertiseSlot1")
+    private String expertiseSlot1; // ISO string "yyyy-MM-dd'T'HH:mm"
+    @JsonProperty("expertiseSlot2")
+    private String expertiseSlot2;
+    @JsonProperty("expertiseSlot3")
+    private String expertiseSlot3;
+
+    private String expertisePublicComment;
+    private String expertiseAuthenticityLevel;
+    private String expertiseProductCondition;
+    private boolean expertiseApproved;
+
+    private Long expertiseRequestId;
+
+    public Long getExpertiseRequestId() {
+        return expertiseRequestId;
+    }
+
+    public void setExpertiseRequestId(Long expertiseRequestId) {
+        this.expertiseRequestId = expertiseRequestId;
+    }
+
+
+    public String getExpertiseMethod() {
+        return expertiseMethod;
+    }
+
+    public void setExpertiseMethod(String expertiseMethod) {
+        this.expertiseMethod = expertiseMethod;
+    }
+
+    public String getExpertiseSlot1() {
+        return expertiseSlot1;
+    }
+    public void setExpertiseSlot1(String expertiseSlot1) {
+        this.expertiseSlot1 = expertiseSlot1;
+    }
+
+    public String getExpertiseSlot2() {
+        return expertiseSlot2;
+    }
+
+    public void setExpertiseSlot2(String expertiseSlot2) {
+        this.expertiseSlot2 = expertiseSlot2;
+    }
+
+    public String getExpertiseSlot3() {
+        return expertiseSlot3;
+    }
+
+    public void setExpertiseSlot3(String expertiseSlot3) {
+        this.expertiseSlot3 = expertiseSlot3;
+    }
+
+
+
+
+
+
+
+    public String getExpertisePublicComment() {
+        return expertisePublicComment;
+    }
+
+    public void setExpertisePublicComment(String expertisePublicComment) {
+        this.expertisePublicComment = expertisePublicComment;
+    }
+
+
+    public String getExpertiseAuthenticityLevel() {
+        return expertiseAuthenticityLevel;
+    }
+
+    public void setExpertiseAuthenticityLevel(String expertiseAuthenticityLevel) {
+        this.expertiseAuthenticityLevel = expertiseAuthenticityLevel;
+    }
+
+
+    public String getExpertiseProductCondition() {
+        return expertiseProductCondition;
+    }
+
+    public void setExpertiseProductCondition(String expertiseProductCondition) {
+        this.expertiseProductCondition = expertiseProductCondition;
+    }
+
+    public boolean isExpertiseApproved() { return expertiseApproved ; }
+    public void setExpertiseApproved(boolean expertiseApproved) { this.expertiseApproved = expertiseApproved; }
+
+
+    //------------------------------------------------------------------------------------
+
     // getters et setters
     public Long getAcheteurId() {
         return acheteurId;

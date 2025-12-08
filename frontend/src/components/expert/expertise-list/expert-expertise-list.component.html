@@ -1,0 +1,81 @@
+<section class="list-page">
+  <div class="header">
+    <div>
+      <p class="eyebrow">Expert</p>
+      <h2>Articles à expertiser</h2>
+      <p class="muted">Acceptez ou refusez avant l’échéance pour chaque demande.</p>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="state">
+    <div class="loading-spinner"></div>
+    <p>Chargement des demandes d'expertise...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="state state-error">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage && requests.length === 0" class="state">
+    Aucune demande d'expertise en attente.
+  </div>
+
+  <div class="card-list" *ngIf="!isLoading && requests.length > 0">
+    <div class="expert-card" *ngFor="let req of requests">
+      <div class="card-left" (click)="onViewDetails(req)">
+        <img [src]="getImageUrl(req)" alt="Produit" />
+      </div>
+
+      <div class="card-mid">
+        <div class="top-row">
+          <div class="product-title" (click)="onViewDetails(req)">{{ req.produitNom }}</div>
+          <div class="top-right">
+            <span class="badge" [ngClass]="{'badge-online': req.method === 'ONLINE', 'badge-onsite': req.method === 'ONSITE'}">
+              {{ req.method === 'ONLINE' ? 'En ligne' : 'Sur place' }}
+            </span>
+            <div *ngIf="req.expertResponseDeadline && req.status === 'PENDING_EXPERT_DECISION'" class="pill-countdown">
+              {{ countdowns[req.id] || '...' }}
+            </div>
+          </div>
+        </div>
+
+        <div class="meta-row">
+          <span class="vendor">Vendeur : {{ req.vendeurNom }}</span>
+          <span class="price">Rémunération : <b>{{ req.expertShare || req.price * 0.7 | number:'1.0-2' }} DH</b></span>
+          <span *ngIf="req.method === 'ONSITE' && req.slots?.length" class="slot-bubble">
+            {{ req.slots[0] | date:'EEE dd/MM HH:mm':'fr-FR' }}
+          </span>
+        </div>
+
+        <div *ngIf="req.method === 'ONSITE' && req.slots?.length" class="slot-picker">
+          <span class="slot-title">Sélectionnez un créneau :</span>
+          <div class="slot-list">
+            <button
+              *ngFor="let slot of req.slots; let i = index"
+              type="button"
+              (click)="onChooseSlot(req, i + 1)"
+              [class.selected]="selectedSlotIndex[req.id] === i + 1"
+              [disabled]="req.status !== 'PENDING_EXPERT_DECISION'"
+              [class.disabled]="req.status !== 'PENDING_EXPERT_DECISION'"
+            >
+              {{ slot | date:'EEE dd/MM HH:mm':'fr-FR' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-right">
+        <button class="btn primary"
+                (click)="acceptRequest(req)"
+                [disabled]="req.status !== 'PENDING_EXPERT_DECISION'">
+          Accepter
+        </button>
+        <button class="btn ghost"
+                (click)="refuseRequest(req)"
+                [disabled]="req.status !== 'PENDING_EXPERT_DECISION'">
+          Refuser
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

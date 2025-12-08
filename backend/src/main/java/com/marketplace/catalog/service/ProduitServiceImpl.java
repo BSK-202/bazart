@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ProduitServiceImpl implements ProduitService {
@@ -28,11 +29,18 @@ public class ProduitServiceImpl implements ProduitService {
 
     @Override
     public List<Produit> getProduitsAcceptesByCategorie(Long idCategorie) {
-        // Essayez d'abord avec "accepte" (minuscules)
-        List<Produit> produits = produitRepository.findByCategorieIdCategorieAndEtat(idCategorie, "accepte");
-        List<Produit> produits2 = produitRepository.findByCategorieIdCategorieAndEtat(idCategorie, "en_enchere");
-        produits.addAll(produits2) ;
+        List<Produit> produits = new ArrayList<>();
+        produits.addAll(produitRepository.findByCategorieIdCategorieAndEtat(idCategorie, "accepte"));
+        produits.addAll(produitRepository.findByCategorieIdCategorieAndEtat(idCategorie, "expertise_validee"));
+        produits.addAll(produitRepository.findByCategorieIdCategorieAndEtat(idCategorie, "en_enchere"));
+        produits.addAll(produitRepository.findByCategorieIdCategorieAndEtat(idCategorie, "expertise_refusee"));
 
+        // dédoublonnage
+        produits = produits.stream()
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toMap(Produit::getIdproduit, p -> p, (p1, p2) -> p1),
+                        m -> new ArrayList<>(m.values())
+                ));
         System.out.println("📦 Produits acceptés trouvés: " + produits.size());
         return produits;
     }

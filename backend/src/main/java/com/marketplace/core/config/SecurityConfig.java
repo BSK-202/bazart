@@ -19,6 +19,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 public class SecurityConfig {
@@ -40,9 +41,20 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+
+                        // 🔓 Images produits (fichiers et listing)
+                        .requestMatchers(HttpMethod.GET, "/api/produits/images/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/produits/*/images").permitAll()
+                        // 🔓 Images clients
+                        .requestMatchers(HttpMethod.GET, "/api/clients/images/**").permitAll()
+
                         // ✅ Endpoints PUBLIC (sans authentification)
                 		.requestMatchers("/ws-notif/**").permitAll()
-                		
+
+
+                        .requestMatchers(HttpMethod.GET, "/api/expertise/requests/*/report-pdf").permitAll()
+
+
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/admins/login").permitAll() // Admin login public
                         .requestMatchers("/api/admins/register").permitAll() // Admin register public
@@ -74,6 +86,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/interactions/**").authenticated()
                         .requestMatchers("/api/commentaires/**").authenticated()
                         .requestMatchers("/api/wallet/**").authenticated()
+
+
 
                         .anyRequest().authenticated()
                 )

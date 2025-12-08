@@ -1,6 +1,7 @@
 package com.marketplace.catalog.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.marketplace.expertise.entity.ExpertiseMethod;
 import com.marketplace.interaction.entity.Commentaire;
 import com.marketplace.interaction.entity.Interaction;
 import com.marketplace.user.entity.Client;
@@ -8,7 +9,9 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import java.time.LocalDateTime;
 @Entity
 @Table(name = "Produit")
 public class Produit {
@@ -65,6 +68,65 @@ public class Produit {
     @Column(name = "duree_enchere_jours")
     private Integer dureeEnchereJours;
 
+    //----------------------------------Attribut et methodes d'expertisation--------------------------------------------------------------
+    @Column(name = "expertise_method")
+    @Enumerated(EnumType.STRING)
+    private ExpertiseMethod expertiseMethod; // ONLINE / ONSITE
+
+    @Column(name = "expertise_request_id")
+    private Long expertiseRequestId; // id de la demande courante (facultatif mais pratique)
+
+    // 🆕 3 créneaux d'expertise proposés par le vendeur
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm")
+    @Column(name = "expertise_slot1")
+    private LocalDateTime expertiseSlot1;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm")
+    @Column(name = "expertise_slot2")
+    private LocalDateTime expertiseSlot2;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm")
+    @Column(name = "expertise_slot3")
+    private LocalDateTime expertiseSlot3;
+
+    public ExpertiseMethod getExpertiseMethod() {
+        return expertiseMethod;
+    }
+
+    public void setExpertiseMethod(ExpertiseMethod expertiseMethod) {
+        this.expertiseMethod = expertiseMethod;
+    }
+
+    public Long getExpertiseRequestId() {
+        return expertiseRequestId;
+    }
+    public void setExpertiseRequestId(Long expertiseRequestID) { this.expertiseRequestId = expertiseRequestID; }
+
+    public LocalDateTime getExpertiseSlot1() {
+        return expertiseSlot1;
+    }
+
+    public void setExpertiseSlot1(LocalDateTime expertiseSlot1) {
+        this.expertiseSlot1 = expertiseSlot1;
+    }
+
+    public LocalDateTime getExpertiseSlot2() {
+        return expertiseSlot2;
+    }
+
+    public void setExpertiseSlot2(LocalDateTime expertiseSlot2) {
+        this.expertiseSlot2 = expertiseSlot2;
+    }
+
+    public LocalDateTime getExpertiseSlot3() {
+        return expertiseSlot3;
+    }
+
+    public void setExpertiseSlot3(LocalDateTime expertiseSlot3) {
+        this.expertiseSlot3 = expertiseSlot3;
+    }
+
+    //----------------------------------------------------------------------------------------------------------------------------------------
     public Integer getDureeEnchereJours() {
         return dureeEnchereJours;
     }
@@ -72,6 +134,42 @@ public class Produit {
     public void setDureeEnchereJours(Integer dureeEnchereJours) {
         this.dureeEnchereJours = dureeEnchereJours;
     }
+
+    //--------------------------------------------------------------------------------------------------------------------------------------------
+
+    //Expertisation
+
+    // Public info to display on product detail
+    @Column(name = "expertise_public_comment", columnDefinition = "TEXT")
+    private String expertisePublicComment;
+
+    @Column(name = "expertise_authenticity_level")
+    private String expertiseAuthenticityLevel;
+
+    @Column(name = "expertise_product_condition")
+    private String expertiseProductCondition;
+
+    @Column(name = "expertise_approved", nullable = false)
+    private boolean expertiseApproved = false;
+
+    // getters/setters…
+    public String getExpertisePublicComment() { return expertisePublicComment; }
+    public void setExpertisePublicComment(String expertisePublicComment) { this.expertisePublicComment = expertisePublicComment; }
+
+    public String getExpertiseAuthenticityLevel() { return expertiseAuthenticityLevel; }
+    public void setExpertiseAuthenticityLevel(String expertiseAuthenticityLevel) { this.expertiseAuthenticityLevel = expertiseAuthenticityLevel; }
+
+    public String getExpertiseProductCondition() { return expertiseProductCondition; }
+    public void setExpertiseProductCondition(String expertiseProductCondition) { this.expertiseProductCondition = expertiseProductCondition; }
+
+    public boolean isExpertiseApproved() { return expertiseApproved; }
+    public void setExpertiseApproved(boolean expertiseApproved) { this.expertiseApproved = expertiseApproved; }
+
+
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
 
     // Getters et Setters existants...
     public Long getIdproduit() { return idproduit; }

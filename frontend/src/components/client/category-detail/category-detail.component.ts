@@ -18,7 +18,6 @@ interface Produit {
   description: string;
   prixDebut: number;
   prixFin: number | null;
-  etat: string;
   vendeurNom: string;
   acheteurNom: string | null;
   categorieNom: string;
@@ -27,6 +26,11 @@ interface Produit {
   hasLiked?: boolean;
   images: string[];
   imagePrincipale?: string;
+  etat: string;
+  expertiseApproved?: boolean;
+  expertisePublicComment?: string;
+  expertiseAuthenticityLevel?: string;
+  expertiseProductCondition?: string;
 }
 
 interface CategoryInfo {

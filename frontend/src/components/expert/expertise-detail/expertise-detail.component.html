@@ -1,0 +1,226 @@
+<section class="page">
+  <div class="container">
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="state state-loading">
+      <div class="loading-spinner"></div>
+      <p>Chargement des détails...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error && !isLoading" class="state state-error">
+      {{ error }}
+    </div>
+
+    <!-- Content -->
+    <div *ngIf="produit && !isLoading" class="grid">
+      <!-- Images -->
+      <div class="gallery">
+        <div class="hero" (click)="openLightbox(selectedImage)">
+          <img
+            [src]="produit.images[selectedImage] || 'assets/images/placeholder.jpg'"
+            [alt]="produit.nom"
+            (error)="onImageError($event)"
+          />
+        </div>
+        <div class="thumbs" *ngIf="produit.images && produit.images.length > 1">
+          <button
+            *ngFor="let image of produit.images; let index = index"
+            (click)="selectImage(index)"
+            [class.active]="selectedImage === index"
+          >
+            <img
+              [src]="image"
+              [alt]="produit.nom + ' ' + (index + 1)"
+              (error)="onImageError($event)"
+            />
+          </button>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <div class="detail">
+        <div class="title-block">
+          <div>
+            <p class="eyebrow" *ngIf="expertise?.method === 'ONSITE'">Expertise sur place</p>
+            <p class="eyebrow" *ngIf="expertise?.method === 'ONLINE'">Expertise en ligne</p>
+            <h1>{{ produit.nom }}</h1>
+            <p class="subtitle" *ngIf="produit.description">{{ produit.description }}</p>
+          </div>
+          <div class="chip" *ngIf="expertise?.status">
+            {{ expertise?.status | uppercase }}
+          </div>
+        </div>
+
+        <!-- Vendeur -->
+        <div class="card seller" *ngIf="vendeur">
+          <p class="card-label">Vendu par</p>
+          <div class="seller-row">
+            <div class="avatar">
+              <img
+                [src]="getProfileImageUrl(vendeur.idClient)"
+                [alt]="'Photo de profil de ' + vendeur.prenom + ' ' + vendeur.nom"
+                (error)="onProfileImageError($event)"
+                *ngIf="!showDefaultAvatar"
+              />
+              <div class="avatar-fallback" *ngIf="showDefaultAvatar">
+                {{ getInitials(vendeur.prenom + ' ' + vendeur.nom) }}
+              </div>
+            </div>
+            <div class="seller-info">
+              <p class="seller-name">{{ vendeur.prenom }} {{ vendeur.nom }}</p>
+              <p class="seller-meta">
+                {{ vendeur.ville }}{{ vendeur.pays ? ', ' + vendeur.pays : '' }}
+              </p>
+              <p class="seller-meta" *ngIf="vendeur.tel">📞 {{ vendeur.tel }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rémunération Expert -->
+        <div class="card compensation" *ngIf="expertise?.expertShare">
+          <p class="compensation-label">💰 Votre rémunération</p>
+          <p class="compensation-value">{{ expertise?.expertShare | number:'1.0-2' }} <span class="currency">DH</span></p>
+        </div>
+
+        <!-- Accept / Refuse -->
+        <div *ngIf="isPendingDecision()" class="action-row">
+          <div>
+            <p class="action-title">Prendre la demande</p>
+            <p class="action-sub">Acceptez pour afficher le formulaire de rapport.</p>
+            <p class="deadline" *ngIf="expertise?.expertResponseDeadline">
+              À accepter/refuser avant : <strong>{{ formatCountdown(expertise?.expertResponseDeadline!) }}</strong>
+            </p>
+          </div>
+          <div class="action-buttons">
+            <button class="btn primary" (click)="onAcceptRequest()">Accepter</button>
+            <button class="btn ghost" (click)="onRefuseRequest()">Refuser</button>
+          </div>
+        </div>
+
+        <!-- Slots (ONSITE) -->
+        <div
+          *ngIf="expertise && expertise.method === 'ONSITE' && isPendingDecision() && expertise.slots && expertise.slots.length > 0"
+          class="card slots"
+        >
+          <p class="card-label">Sélectionnez un créneau</p>
+          <div class="slot-list">
+            <button
+              *ngFor="let slot of expertise.slots; let i = index"
+              type="button"
+              (click)="chooseSlot(i + 1)"
+              [class.selected]="selectedSlotIndex === i + 1"
+              [disabled]="!isPendingDecision()"
+              [class.disabled]="!isPendingDecision()"
+            >
+              {{ slot | date: 'EEEE dd/MM/yyyy HH:mm':'fr-FR' }}
+            </button>
+          </div>
+          <p *ngIf="selectedSlotIndex == null" class="hint danger" style="color: #854d0e; background: rgba(234, 179, 8, 0.15); font-weight: 500;">
+            Veuillez sélectionner un créneau.
+          </p>
+          <div *ngIf="expertise?.location" class="hint">Lieu : {{ expertise?.location }}</div>
+        </div>
+
+
+        <!-- Countdown rapport -->
+        <div *ngIf="expertise?.reportSubmissionDeadline && isPlanned()" class="card countdown">
+          <div>
+            <p class="card-label">Rapport à soumettre avant :</p>
+            <p class="countdown-value">{{ reportSubmissionCountdown || '...' }}</p>
+          </div>
+        </div>
+
+        <!-- Formulaire rapport (visible après accept = PLANNED) -->
+        <form
+          *ngIf="isPlanned()"
+          class="card form"
+          (ngSubmit)="onSubmitReport()"
+          enctype="multipart/form-data"
+        >
+          <div class="form-header">
+            <div>
+              <p class="card-label">Rapport d'expertise</p>
+              <h3>Rédiger et envoyer</h3>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>État du produit *</span>
+              <select [(ngModel)]="reportForm.productCondition" name="productCondition" required>
+                <option [ngValue]="''">Sélectionnez...</option>
+                <option *ngFor="let cond of productConditions" [value]="cond">{{ cond }}</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Authenticité *</span>
+              <select [(ngModel)]="reportForm.authenticityLevel" name="authenticityLevel" required>
+                <option [ngValue]="''">Sélectionnez...</option>
+                <option *ngFor="let auth of authenticityLevels" [value]="auth">{{ auth }}</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Prix min estimé</span>
+              <input type="number" min="0" [(ngModel)]="reportForm.estimatedMinPrice" name="estimatedMinPrice" />
+            </label>
+
+            <label class="field">
+              <span>Prix max estimé</span>
+              <input type="number" min="0" [(ngModel)]="reportForm.estimatedMaxPrice" name="estimatedMaxPrice" />
+            </label>
+
+            <label class="field">
+              <span>Prix de départ recommandé</span>
+              <input
+                type="number"
+                min="0"
+                [(ngModel)]="reportForm.recommendedStartPrice"
+                name="recommendedStartPrice"
+              />
+            </label>
+
+            <label class="field">
+              <span>Recommandation *</span>
+              <select [(ngModel)]="reportForm.recommendation" name="recommendation" required>
+                <option [ngValue]="''">Sélectionnez...</option>
+                <option *ngFor="let rec of recommendations" [value]="rec">{{ rec }}</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Commentaire public</span>
+            <textarea rows="3" [(ngModel)]="reportForm.commentsPublic" name="commentsPublic"></textarea>
+          </label>
+
+          <label class="field">
+            <span>Commentaire interne (non visible vendeur)</span>
+            <textarea rows="3" [(ngModel)]="reportForm.commentsInternal" name="commentsInternal"></textarea>
+          </label>
+
+          <label class="field">
+            <span>Joindre document/PDF (optionnel)</span>
+            <input type="file" accept="application/pdf,image/*" (change)="onFileSelected($event)" />
+          </label>
+
+          <div class="form-actions">
+            <button type="submit" class="btn primary">Envoyer le rapport d'expertise</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" *ngIf="lightboxOpen && produit">
+    <div class="lightbox-backdrop" (click)="closeLightbox()"></div>
+    <div class="lightbox-body">
+      <button class="lightbox-close" (click)="closeLightbox()">×</button>
+      <button class="lightbox-nav prev" (click)="prevLightbox()">‹</button>
+      <img [src]="produit.images[lightboxIndex]" [alt]="produit.nom" (error)="onImageError($event)" />
+      <button class="lightbox-nav next" (click)="nextLightbox()">›</button>
+    </div>
+  </div>
+</section>

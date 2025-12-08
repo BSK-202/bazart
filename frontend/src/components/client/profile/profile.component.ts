@@ -11,6 +11,7 @@ interface Produit {
   prixDebut: number;
   prixFin: number | null;
   etat: string;
+  expertiseApproved?: boolean;
   vendeurNom: string;
   acheteurNom: string | null;
   categorieNom: string;
@@ -362,9 +363,10 @@ export class UserProfileComponent implements OnInit {
           .filter(p => p.etat === 'vendu' || p.etat === 'enchere_termine')
           .map(p => this.ajouterImagePrincipale(p));
 
-        this.produitsPublies = produits
-          .filter(p => p.etat === 'accepter' || p.etat === 'accepte')
-          .map(p => this.ajouterImagePrincipale(p));
+        // ✅ Produits publiés : inclure expertise_validee et en_enchere
+            this.produitsPublies = produits
+              .filter((p) => ["accepter", "accepte", "expertise_validee"].includes(p.etat))
+              .map((p) => this.ajouterImagePrincipale(p))
 
         this.produitsEnAttente = produits
           .filter(p => p.etat === 'en_attente')

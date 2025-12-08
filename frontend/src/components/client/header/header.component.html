@@ -41,10 +41,14 @@
 
         <!-- Expert -->
         <a *ngIf="isExpert && isExpertActive"
-           routerLink="/expertiser"
+           routerLink="/expert/expertises"
            class="nav-link"
-           [class.active]="currentRoute === '/expertiser'"
-           routerLinkActive="active">Expertiser</a>
+           [class.active]="currentRoute === '/expert/expertises'"
+           routerLinkActive="active">
+
+          Articles à expertiser
+        </a>
+
 
         <a routerLink="/contact"
            class="nav-link"
