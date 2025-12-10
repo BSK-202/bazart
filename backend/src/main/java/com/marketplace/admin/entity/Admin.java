@@ -18,10 +18,6 @@ public class Admin {
 
     public Admin() {}
 
-    public Admin(String email, String motDePasse) {
-        this.email = email;
-        this.motDePasse = motDePasse;
-    }
 
     // Getters & Setters
     public Long getId() { return id; }
