@@ -215,15 +215,15 @@ public class ExpertiseReportServiceImpl implements ExpertiseReportService {
 
         switch (report.getRecommendation()) {
             case AUTHORISE_AUCTION -> {
-                produit.setEtat("expertise_validee");
+                produit.setEtat_expertise("expertise_validee");
                 produit.setExpertiseApproved(true);
             }
             case REFUSE -> {
-                produit.setEtat("expertise_refusee");
+                produit.setEtat_expertise("expertise_refusee");
                 produit.setExpertiseApproved(false);
             }
             case REQUEST_MORE_INFO -> {
-                produit.setEtat("expertise_incomplete"); // needs more info, no badge
+                produit.setEtat_expertise("expertise_incomplete"); // needs more info, no badge
                 produit.setExpertiseApproved(false);
             }
         }

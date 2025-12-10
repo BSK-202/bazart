@@ -448,6 +448,7 @@ public class ProduitController {
 
         try {
             String newState = request.get("etat");
+            System.out.println("Changere,emt etat......"+newState);
             String noteAdmin = request.get("noteAdmin");
 
             Produit produit = produitService.getProduitById(id)
@@ -457,18 +458,18 @@ public class ProduitController {
             if ("accepte".equalsIgnoreCase(newState) && produit.isAExpertise()) {
 
                 // 1) Mettre l'état du produit en attente d'expertise
-                produit.setEtat("en_attente_expertise");
+                produit.setEtat_expertise("en_attente_expertise");
                 produit = produitService.saveProduit(produit);
 
                 // 2) Créer la demande d'expertise (slots + assignation expert + deadline 24h)
                 expertiseService.createRequestAfterProductAccepted(produit.getIdproduit());
 
-            } else {
-                // Cas normal : juste changement d'état sans expertise
-                produit.setEtat(newState);
-                produit = produitService.saveProduit(produit);
-            }
 
+
+            }
+            // Cas normal : juste changement d'état sans expertise
+            produit.setEtat("accepte");
+            produit = produitService.saveProduit(produit);
             Produit updatedProduit = produit;
 
             // === NOTIFICATION LOGIC STARTS HERE ===

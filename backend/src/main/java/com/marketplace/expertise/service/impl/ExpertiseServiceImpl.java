@@ -102,7 +102,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         }
 
         produit.setExpertiseRequestId(savedRequest.getId());
-        produit.setEtat("en_attente_expertise");
+        produit.setEtat_expertise("en_attente_expertise");
         produitRepository.save(produit);
 
         assignExpertAndNotify(savedRequest);
@@ -294,7 +294,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         }
         // Mettre à jour état du produit
         Produit produit = request.getProduit();
-        produit.setEtat("expertise_planifiee");
+        produit.setEtat_expertise("expertise_planifiee");
         produitRepository.save(produit);
 
         return toDto(request);
@@ -375,7 +375,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         dto.setProduitId(req.getProduit().getIdproduit());
         dto.setProduitNom(req.getProduit().getNom());
         dto.setProduitDescription(req.getProduit().getDescription());
-        dto.setProduitEtat(req.getProduit().getEtat());
+        dto.setProduitEtat(req.getProduit().getEtat_expertise());
         dto.setProduitCategorie(
                 req.getProduit().getCategorie() != null
                         ? req.getProduit().getCategorie().getNomCategorie()
@@ -473,7 +473,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
 
         // product back to waiting-for-expertise
         Produit produit = req.getProduit();
-        produit.setEtat("en_attente_expertise");
+        produit.setEtat_expertise("en_attente_expertise");
         produit.setExpertiseApproved(false);
         produitRepository.save(produit);
 

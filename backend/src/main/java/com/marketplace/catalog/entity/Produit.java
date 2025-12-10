@@ -44,6 +44,17 @@ public class Produit {
     @Column(nullable = true)
     private String etat; // null, "en_attente", "accepter", "refuser"
 
+    public String getEtat_expertise() {
+        return etat_expertise;
+    }
+
+    public void setEtat_expertise(String etat_expertise) {
+        this.etat_expertise = etat_expertise;
+    }
+
+    @Column(nullable = true)
+    private String etat_expertise; // null, "en_attente", "accepter", "refuser"
+
     @ManyToOne
     @JoinColumn(name = "idclient", referencedColumnName = "idclient")
     private Client vendeur;
@@ -149,8 +160,17 @@ public class Produit {
     @Column(name = "expertise_product_condition")
     private String expertiseProductCondition;
 
-    @Column(name = "expertise_approved", nullable = false)
-    private boolean expertiseApproved = false;
+    @Column(name = "expertise_approved")
+    private Boolean expertiseApproved = false;
+
+    public Boolean getExpertiseApproved() {
+        return expertiseApproved != null ? expertiseApproved : false;
+    }
+
+    public void setExpertiseApproved(Boolean expertiseApproved) {
+        this.expertiseApproved = expertiseApproved != null ? expertiseApproved : false;
+    }
+
 
     // getters/setters…
     public String getExpertisePublicComment() { return expertisePublicComment; }
