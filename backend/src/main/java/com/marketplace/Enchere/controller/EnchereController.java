@@ -3,8 +3,12 @@ package com.marketplace.Enchere.controller;
 
 import com.marketplace.Enchere.dto.EnchereDTO;
 import com.marketplace.Enchere.service.EnchereService;
+import com.marketplace.user.entity.Client;
+import com.marketplace.user.service.ClientService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -18,6 +22,9 @@ public class EnchereController {
 
     @Autowired
     private EnchereService enchereService;
+
+    @Autowired
+    private ClientService clientService;
 
     // Placer une enchère
     @PostMapping("/produit/{produitId}/client/{clientId}")
@@ -108,4 +115,54 @@ public class EnchereController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    // Obtenir les enchères où le client est en tête avec les montants bloqués
+    @GetMapping("/client/{clientId}/leading")
+    public ResponseEntity<?> getLeadingEncheresWithBlockedAmounts(@PathVariable Long clientId) {
+        try {
+            Map<String, Object> result = enchereService.getLeadingEncheresWithBlockedAmounts(clientId);
+            return ResponseEntity.ok(result);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("error", e.getMessage())
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(
+                    Map.of("error", "Erreur lors de la récupération des enchères en tête")
+            );
+        }
+    }
+
+    // Version pour l'utilisateur authentifié
+    @GetMapping("/my-leading-encheres")
+    public ResponseEntity<?> getMyLeadingEncheres(Authentication authentication) {
+        try {
+            if (authentication == null || !authentication.isAuthenticated() ||
+                    "anonymousUser".equals(authentication.getPrincipal())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Non authentifié"));
+            }
+
+            // Récupérer l'email depuis l'authentication
+            String email = authentication.getName();
+            Client client = clientService.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Client non trouvé avec l'email: " + email));
+
+            Map<String, Object> result = enchereService.getLeadingEncheresWithBlockedAmounts(client.getIdclient());
+            return ResponseEntity.ok(result);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("error", e.getMessage())
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(
+                    Map.of("error", "Erreur lors de la récupération des enchères en tête")
+            );
+        }
+    }
+
 }

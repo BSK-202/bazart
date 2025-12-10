@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { AuthService } from '../../../services/auth.service';
 import { Enchere, EnchereService } from '../../../services/enchere.service';
+import {FundsReservationService} from '../../../services/funds-reservation.service';
 
 // Services
 
@@ -83,7 +84,9 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     private router: Router,
     private http: HttpClient,
     private authService: AuthService,
-    private enchereService: EnchereService // Nouveau service
+    private enchereService: EnchereService,
+    private fundsReservationService: FundsReservationService
+    // Nouveau service
   ) {}
 
   ngOnInit(): void {
@@ -454,7 +457,9 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
     const amount = parseFloat(this.bidAmount);
     const produitIdNum = parseInt(this.produitId);
+    const nouveauClientId = this.authService.getCurrentUserId(); // 🔄 Renommage pour clarté
 
+    // Validations de base
     if (!this.bidAmount || isNaN(amount)) {
       alert('Veuillez entrer un montant valide');
       return;
@@ -465,65 +470,175 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Récupérer l'ID du client connecté
-    const clientId = this.authService.getCurrentUserId();
-    if (!clientId) {
+    if (!nouveauClientId) {
       alert('Erreur: Utilisateur non identifié');
       return;
     }
 
-    console.log('🎯 Placement enchère:', { produitId: produitIdNum, clientId, montant: amount });
+    console.log('🎯 Début processus enchère:', {
+      produitId: produitIdNum,
+      nouveauClientId,
+      montant: amount
+    });
 
     try {
-      // Étape 1: Vérifier SEULEMENT le solde du wallet (sans débiter)
-      const soldeSuffisant = await this.checkWalletBalance(amount);
+      // ✅ ÉTAPE 1: Identifier l'ancien leader AVANT tout débit
+      const ancienLeaderInfo = await this.identifierAncienLeader(produitIdNum);
 
-      if (!soldeSuffisant) {
-        alert(`❌ Solde insuffisant! Votre solde est inférieur au montant de ${this.formatPrice(amount)} que vous souhaitez miser. Veuillez recharger votre wallet.`);
+      // ✅ ÉTAPE 2: DÉBITER le nouveau client
+      console.log('💰 Débit du nouveau client...');
+      const debitResult = await this.debiterClient(nouveauClientId, amount, produitIdNum);
+
+      if (!debitResult.success) {
+        alert(`❌ ${debitResult.message}`);
         return;
       }
 
-      // Étape 2: Placer l'enchère directement (le débit se fera ailleurs, probablement à la fin de l'enchère)
-      this.enchereService.placerEnchere(produitIdNum, clientId, amount).subscribe({
+      console.log('✅ Débit effectué, nouveau solde:', debitResult.newBalance);
+
+      // ✅ ÉTAPE 3: REMBOURSER l'ancien leader (SI IL EXISTE)
+      if (ancienLeaderInfo && ancienLeaderInfo.ancienLeaderId !== nouveauClientId) {
+        console.log('🔄 Remboursement ancien leader:', ancienLeaderInfo.ancienLeaderId, 'Montant:', ancienLeaderInfo.montant);
+
+        // 🔥 CORRECTION ICI : Utiliser l'ID de l'ancien leader, pas du nouveau client
+        await this.rembourserAncienLeader(
+          ancienLeaderInfo.ancienLeaderId, // ✅ ID de l'ancien leader
+          ancienLeaderInfo.montant,        // ✅ Montant à rembourser
+          produitIdNum
+        );
+      }
+
+      // ✅ ÉTAPE 4: PLACER l'enchère
+      console.log('📤 Placement de l\'enchère...');
+      this.enchereService.placerEnchere(produitIdNum, nouveauClientId, amount).subscribe({
         next: (enchere) => {
           console.log('✅ Enchère placée avec succès:', enchere);
-          alert(`✅ Enchère de ${this.formatPrice(amount)} placée avec succès!`);
+          alert(`✅ Enchère de ${this.formatPrice(amount)} placée avec succès! Votre nouveau solde: ${this.formatPrice(debitResult.newBalance)}`);
           this.bidAmount = '';
 
-          // Recharger les données d'enchère
+          // Recharger les données
           this.loadDonneesEnchere();
         },
         error: (err) => {
           console.error('❌ Erreur placement enchère:', err);
+
+          // ⚠️ EN CAS D'ERREUR: Rembourser le nouveau client
+          this.rembourserClient(nouveauClientId, amount, produitIdNum);
+
           const errorMessage = err.error?.error || 'Erreur lors du placement de l\'enchère';
           alert(`❌ Erreur: ${errorMessage}`);
         }
       });
 
     } catch (error) {
-      console.error('❌ Erreur lors de la vérification du wallet:', error);
-      alert(`❌ Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      console.error('❌ Erreur processus enchère:', error);
+      alert('❌ Erreur lors du processus d\'enchère');
     }
   }
 
-  // Méthode optionnelle pour afficher le solde
-  getCurrentWalletBalance(): void {
-    const url = 'http://localhost:8080/api/wallet/balance';
+  // Product-detail.component.ts - AJOUTER
+  private async identifierAncienLeader(produitId: number):
+    Promise<{ancienLeaderId: number, montant: number} | null> {
 
-    this.http.get<any>(url).subscribe({
-      next: (response) => {
-        if (response.success) {
-          const solde = response.balance;
-          alert(`💰 Votre solde actuel: ${this.formatPrice(solde)}`);
-        } else {
-          alert('❌ Erreur lors du chargement du solde');
+    return new Promise((resolve) => {
+      // Si on a déjà des enchères dans l'historique, trouver l'ancien leader
+      if (this.historiqueEncheres.length > 0) {
+
+        // Trier par montant décroissant pour trouver le leader actuel
+        const encheresTriees = [...this.historiqueEncheres]
+          .sort((a, b) => (b.amount || 0) - (a.amount || 0));
+
+        const ancienLeader = encheresTriees[0];
+
+        if (ancienLeader && ancienLeader.encherisseurId && ancienLeader.amount) {
+          console.log('👤 Ancien leader identifié:', ancienLeader.encherisseurId, 'Montant:', ancienLeader.amount);
+          resolve({
+            ancienLeaderId: ancienLeader.encherisseurId,
+            montant: ancienLeader.amount
+          });
+          return;
         }
-      },
-      error: (error) => {
-        console.error('❌ Erreur API wallet:', error);
-        alert('❌ Erreur de connexion au wallet');
       }
+
+      // Si pas d'ancien leader identifié
+      console.log('ℹ️ Aucun ancien leader à libérer');
+      resolve(null);
     });
+  }
+
+  // Méthode pour débiter le client
+  private async debiterClient(clientId: number, montant: number, produitId: number):
+    Promise<{success: boolean; message: string; newBalance?: number}> {
+
+    return new Promise((resolve) => {
+      this.fundsReservationService.debiterEnchere(clientId, montant, produitId)
+        .subscribe({
+          next: (response) => {
+            if (response.success) {
+              resolve({
+                success: true,
+                message: 'Débit effectué',
+                newBalance: response.newBalance
+              });
+            } else {
+              resolve({
+                success: false,
+                message: response.message || 'Erreur de débit'
+              });
+            }
+          },
+          error: (error) => {
+            console.error('❌ Erreur service débit:', error);
+            resolve({
+              success: false,
+              message: 'Erreur de connexion au service de débit'
+            });
+          }
+        });
+    });
+  }
+
+// ✅ CORRECTION : Méthode renommée pour plus de clarté
+  private async rembourserAncienLeader(ancienLeaderId: number, montant: number, produitId: number): Promise<void> {
+    return new Promise((resolve) => {
+      console.log(`🔄 Remboursement ANCIEN leader ${ancienLeaderId}, montant: ${montant}`);
+
+      // 🔥 CORRECTION : Bien utiliser l'ID de l'ancien leader
+      this.fundsReservationService.rembourserEnchere(ancienLeaderId, montant, produitId)
+        .subscribe({
+          next: (response) => {
+            if (response.success) {
+              console.log('✅ Ancien leader remboursé, nouveau solde:', response.newBalance);
+            } else {
+              console.error('❌ Erreur remboursement ancien leader:', response.message);
+            }
+            resolve();
+          },
+          error: (err) => {
+            console.error('❌ Erreur technique remboursement ancien leader:', err);
+            resolve();
+          }
+        });
+    });
+  }
+
+  // ✅ CORRECTION : Méthode pour rembourser en cas d'erreur
+  private rembourserClient(clientIdARembourser: number, montant: number, produitId: number): void {
+    console.log(`🔄 Remboursement compensation client ${clientIdARembourser}, montant: ${montant}`);
+
+    this.fundsReservationService.rembourserEnchere(clientIdARembourser, montant, produitId)
+      .subscribe({
+        next: (response) => {
+          if (response.success) {
+            console.log('✅ Client remboursé en cas d\'erreur');
+          } else {
+            console.error('❌ Erreur remboursement compensation:', response.message);
+          }
+        },
+        error: (err) => {
+          console.error('❌ Erreur technique remboursement compensation:', err);
+        }
+      });
   }
 
   handleAddToFavorites(): void {

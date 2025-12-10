@@ -23,4 +23,8 @@ public interface CommentaireRepository extends JpaRepository<Commentaire, Long> 
 
     @Query("SELECT COUNT(c) FROM Commentaire c WHERE c.produit.idproduit = :produitId")
     int countByProduitId(@Param("produitId") Long produitId);
-}
+
+// Dans CommentaireRepository.java - AJOUTEZ CETTE MÉTHODE AVEC @Query
+
+    @Query("SELECT c FROM Commentaire c WHERE c.produit.idproduit = :produitId")
+    List<Commentaire> findByProduitId(@Param("produitId") Long produitId);}

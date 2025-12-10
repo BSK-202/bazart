@@ -470,16 +470,35 @@ public class ProduitController {
 
             Produit updatedProduit = produitService.saveProduit(produit);
 
-            // === NOTIFICATION: Enchère démarrée ===
-            Map<String, Object> notifData = new HashMap<>();
-            notifData.put("productName", updatedProduit.getNom());
-            notifData.put("message", "Enchère démarrée pour votre produit.");
-            Set<Long> recipients = Set.of(updatedProduit.getVendeur().getIdclient());
+            // === NOTIFICATION: Enchère démarrée (pour le vendeur) ===
+            Map<String, Object> vendeurNotifData = new HashMap<>();
+            vendeurNotifData.put("productName", updatedProduit.getNom());
+            vendeurNotifData.put("message", "Enchère démarrée pour votre produit.");
+            Set<Long> vendeurRecipients = Set.of(updatedProduit.getVendeur().getIdclient());
             notificationService.processEvent(
                     NotificationType.AUCTION_START,
-                    recipients,
-                    notifData
+                    vendeurRecipients,
+                    vendeurNotifData
             );
+
+            // === NOUVELLE NOTIFICATION: Enchère démarrée (pour les utilisateurs ayant interagi) ===
+            Set<Long> usersWhoInteracted = produitService.getUsersWhoInteractedWithProduct(produitId);
+
+            if (!usersWhoInteracted.isEmpty()) {
+                Map<String, Object> interactionNotifData = new HashMap<>();
+                interactionNotifData.put("productName", updatedProduit.getNom());
+                interactionNotifData.put("message", "Un produit que vous avez aimé ou commenté est maintenant en enchère !");
+                interactionNotifData.put("productId", produitId);
+
+                notificationService.processEvent(
+                        NotificationType.AUCTION_START, // Ou créer un nouveau type si nécessaire
+                        usersWhoInteracted,
+                        interactionNotifData
+                );
+
+                System.out.println("📢 Notification envoyée à " + usersWhoInteracted.size() +
+                        " utilisateurs ayant interagi avec le produit");
+            }
 
             System.out.println("✅ Enchère démarrée avec succès pour le produit: " + produitId);
             System.out.println("📅 Durée de l'enchère: " + dureeEnchereJours + " jours");

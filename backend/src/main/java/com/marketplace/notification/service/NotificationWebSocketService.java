@@ -12,7 +12,7 @@ public class NotificationWebSocketService {
     private final SimpMessagingTemplate messagingTemplate;
 
     public void sendToUser(Long userId, Notification notification) {
-        // Envoie au frontend sur le canal /topic/notifications/{userId}
-        messagingTemplate.convertAndSend("/api/notifications/" + userId, notification);
+        // Utiliser "/topic" comme configuré dans WebSocketConfig
+        messagingTemplate.convertAndSend("/topic/notifications/" + userId, notification);
     }
 }

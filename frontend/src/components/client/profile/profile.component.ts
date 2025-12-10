@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import {forkJoin} from 'rxjs';
 
 interface Produit {
   id: number;
@@ -26,6 +27,7 @@ interface Produit {
   aExpertise?: boolean;
   categorieId?: number;
   domaineId?: number;
+  nombreFavoris?: number; // ✅ AJOUTER CETTE PROPRIÉTÉ
 }
 
 interface User {
@@ -56,7 +58,7 @@ interface Categorie {
   imports: [CommonModule, FormsModule],
   standalone: true,
 })
-export class UserProfileComponent implements OnInit {
+class UserProfileComponent implements OnInit {
   activeTab: string = 'bids';
   user: User | null = null;
   userProfileImage: string = '';
@@ -150,6 +152,7 @@ export class UserProfileComponent implements OnInit {
     this.checkForTabParameter();
     this.loadDomaines();
   }
+
 
   openEditProfilePhoto(): void {
     this.isEditingProfilePhoto = true;
@@ -344,6 +347,71 @@ export class UserProfileComponent implements OnInit {
     }
   }
 
+  // ✅ NOUVELLE MÉTHODE : Charger tous les likes de l'utilisateur en une seule fois
+  private loadAllLikesForUser(userId: number): Promise<Map<number, number>> {
+    return new Promise((resolve) => {
+      const url = `${this.API_BASE_URL}/api/interactions/client/${userId}/produits-likes`;
+
+      console.log('🔄 Chargement de tous les likes utilisateur:', url);
+
+      this.http.get<any[]>(url).subscribe({
+        next: (produitsLikes) => {
+          console.log('✅ Tous les produits likés reçus:', produitsLikes);
+
+          // Créer une Map pour un accès rapide (produitId → nombre de likes)
+          const likesMap = new Map<number, number>();
+
+          // Compter les likes par produit
+          produitsLikes.forEach(produit => {
+            if (produit.id) {
+              // Si l'API retourne directement le compteur, l'utiliser
+              // Sinon, compter les occurrences (chaque entrée = 1 like)
+              const currentCount = likesMap.get(produit.id) || 0;
+              likesMap.set(produit.id, currentCount + 1);
+            }
+          });
+
+          console.log('📊 Map des likes créée:', likesMap);
+          resolve(likesMap);
+        },
+        error: (error) => {
+          console.error('❌ Erreur lors du chargement des likes utilisateur:', error);
+          // En cas d'erreur, retourner une Map vide
+          resolve(new Map<number, number>());
+        }
+      });
+    });
+  }
+
+  // ✅ NOUVELLE MÉTHODE : Charger tous les likes pour les produits du vendeur
+  private loadAllLikesForVendeur(vendeurId: number): Promise<Map<number, number>> {
+    return new Promise((resolve) => {
+      const url = `${this.API_BASE_URL}/api/interactions/vendeur/${vendeurId}/likes-count`;
+
+      console.log('🔄 Chargement de tous les likes pour vendeur:', url);
+
+      this.http.get<{ [key: string]: number }>(url).subscribe({
+        next: (likesData) => {
+          console.log('✅ Tous les likes pour vendeur reçus:', likesData);
+
+          // Convertir l'objet en Map
+          const likesMap = new Map<number, number>();
+          Object.entries(likesData).forEach(([produitId, count]) => {
+            likesMap.set(Number(produitId), count);
+          });
+
+          console.log('📊 Map des likes créée:', likesMap);
+          resolve(likesMap);
+        },
+        error: (error) => {
+          console.error('❌ Erreur lors du chargement des likes vendeur:', error);
+          // En cas d'erreur, retourner une Map vide
+          resolve(new Map<number, number>());
+        }
+      });
+    });
+  }
+
   private loadUserProducts(userId: number) {
     const url = `${this.API_BASE_URL}/api/produits/vendeur/${userId}`;
 
@@ -353,38 +421,55 @@ export class UserProfileComponent implements OnInit {
       next: (produits) => {
         console.log('✅ Produits du vendeur reçus:', produits);
 
-        // Filtrer les produits par état
-        this.produitsEncheres = produits
-          .filter(p => p.etat === 'en enchére' || p.etat === 'en_enchere')
-          .map(p => this.ajouterImagePrincipale(p));
+        // ✅ CORRECTION : Charger tous les compteurs de likes en une seule fois
+        this.loadAllLikesForVendeur(userId).then(likesMap => {
+          // Associer les compteurs de likes aux produits
+          const produitsAvecLikes = produits.map(produit => {
+            const likeCount = likesMap.get(produit.id) || 0;
+            return {
+              ...produit,
+              nombreInteractions: likeCount
+            };
+          });
 
-        this.produitsVendus = produits
-          .filter(p => p.etat === 'vendu' || p.etat === 'enchere_termine')
-          .map(p => this.ajouterImagePrincipale(p));
+          // Maintenant filtrer les produits avec les compteurs de likes
+          this.produitsEncheres = produitsAvecLikes
+            .filter(p => p.etat === 'en enchére' || p.etat === 'en_enchere')
+            .map(p => this.ajouterImagePrincipale(p));
 
-        this.produitsPublies = produits
-          .filter(p => p.etat === 'accepter' || p.etat === 'accepte')
-          .map(p => this.ajouterImagePrincipale(p));
+          this.produitsVendus = produitsAvecLikes
+            .filter(p => p.etat === 'vendu' || p.etat === 'enchere_termine')
+            .map(p => this.ajouterImagePrincipale(p));
 
-        this.produitsEnAttente = produits
-          .filter(p => p.etat === 'en_attente')
-          .map(p => this.ajouterImagePrincipale(p));
+          this.produitsPublies = produitsAvecLikes
+            .filter(p => p.etat === 'accepter' || p.etat === 'accepte')
+            .map(p => this.ajouterImagePrincipale(p));
 
-        console.log('📊 Produits triés:');
-        console.log('   - En enchère:', this.produitsEncheres.length);
-        console.log('   - Vendus:', this.produitsVendus.length);
-        console.log('   - Publiés:', this.produitsPublies.length);
-        console.log('   - En attente:', this.produitsEnAttente.length);
+          this.produitsEnAttente = produitsAvecLikes
+            .filter(p => p.etat === 'en_attente')
+            .map(p => this.ajouterImagePrincipale(p));
+
+          console.log('📊 Produits triés avec likes:');
+          console.log('   - En enchère:', this.produitsEncheres.length);
+          console.log('   - Vendus:', this.produitsVendus.length);
+          console.log('   - Publiés:', this.produitsPublies.length);
+          console.log('   - En attente:', this.produitsEnAttente.length);
+
+          // Mettre à jour les statistiques
+          this.updateUserStats();
+        });
 
         // Charger les favoris et les produits gagnés
         this.loadProduitsFavoris(userId);
-        this.loadProduitsGagnes(userId); // ← AJOUTER CETTE LIGNE
+        this.loadProduitsGagnes(userId);
       },
       error: (error) => {
         console.error('❌ Erreur lors du chargement des produits:', error);
       }
     });
   }
+
+
 
   private ajouterImagePrincipale(produit: Produit): Produit {
     if (produit.images && produit.images.length > 0) {
@@ -1399,9 +1484,9 @@ export class UserProfileComponent implements OnInit {
     return 'Brouillon';
   }
 
-  getFavoriteCount(produit: any): number {
-    // Implémentez cette méthode selon votre logique métier
-    return produit.nombreFavoris || 0;
+  getFavoriteCount(produit: Produit): number {
+    // ✅ CORRECTION : Utiliser nombreInteractions au lieu de nombreFavoris
+    return produit.nombreInteractions || 0;
   }
 
   getPerformanceScore(produit: any): number {
@@ -1426,7 +1511,7 @@ export class UserProfileComponent implements OnInit {
     alert(`Fonctionnalité de contact avec ${produit.acheteurNom} bientôt disponible!`);
   }
 
-  // Dans profile.component.ts, ajouter cette méthode
+// ✅ MODIFIER la méthode pour les produits gagnés
   private loadProduitsGagnes(userId: number): void {
     const url = `${this.API_BASE_URL}/api/produits/acheteur/${userId}`;
 
@@ -1436,12 +1521,24 @@ export class UserProfileComponent implements OnInit {
       next: (produits) => {
         console.log('✅ Produits gagnés reçus:', produits);
 
-        // Filtrer pour ne garder que les produits avec état "enchere_termine" ou "vendu"
-        this.produitsGagnes = produits
-          .filter(p => p.etat === 'enchere_termine' || p.etat === 'vendu')
-          .map(p => this.ajouterImagePrincipale(p));
+        // Charger les likes pour les produits gagnés
+        this.loadLikesForAcheteur(userId).then(likesMap => {
+          // Filtrer pour ne garder que les produits avec état "enchere_termine" ou "vendu"
+          this.produitsGagnes = produits
+            .filter(p => p.etat === 'enchere_termine' || p.etat === 'vendu')
+            .map(p => {
+              const likeCount = likesMap.get(p.id) || 0;
+              return this.ajouterImagePrincipale({
+                ...p,
+                nombreInteractions: likeCount
+              });
+            });
 
-        console.log('🏆 Produits gagnés chargés:', this.produitsGagnes.length);
+          console.log('🏆 Produits gagnés chargés:', this.produitsGagnes.length);
+
+          // Mettre à jour les statistiques
+          this.updateUserStats();
+        });
       },
       error: (error) => {
         console.error('❌ Erreur lors du chargement des produits gagnés:', error);
@@ -1449,6 +1546,7 @@ export class UserProfileComponent implements OnInit {
       }
     });
   }
+
   // Dans profile.component.ts, ajouter cette méthode
   contactSeller(produit: Produit): void {
     if (!produit.vendeurNom) {
@@ -1460,4 +1558,32 @@ export class UserProfileComponent implements OnInit {
     // Implémentez la logique de contact ici
     alert(`Fonctionnalité de contact avec le vendeur ${produit.vendeurNom} bientôt disponible!`);
   }
+// ✅ NOUVELLE MÉTHODE : Charger les likes pour les produits gagnés
+  private loadLikesForAcheteur(acheteurId: number): Promise<Map<number, number>> {
+    return new Promise((resolve) => {
+      const url = `${this.API_BASE_URL}/api/interactions/acheteur/${acheteurId}/likes-count`;
+
+      console.log('🔄 Chargement des likes pour acheteur:', url);
+
+      this.http.get<{ [key: string]: number }>(url).subscribe({
+        next: (likesData) => {
+          console.log('✅ Likes pour acheteur reçus:', likesData);
+
+          const likesMap = new Map<number, number>();
+          Object.entries(likesData).forEach(([produitId, count]) => {
+            likesMap.set(Number(produitId), count);
+          });
+
+          resolve(likesMap);
+        },
+        error: (error) => {
+          console.error('❌ Erreur lors du chargement des likes acheteur:', error);
+          resolve(new Map<number, number>());
+        }
+      });
+    });
+  }
+
 }
+
+export default UserProfileComponent

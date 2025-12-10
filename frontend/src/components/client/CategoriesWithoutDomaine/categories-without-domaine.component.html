@@ -1,0 +1,72 @@
+<section class="categories-section">
+  <div class="container">
+    <!-- Hero Section -->
+    <div class="hero-section">
+      <div class="hero-container">
+        <div class="hero-content">
+          <!-- Text Content -->
+          <div class="hero-text">
+            <h2 class="hero-title">Toutes les catégories</h2>
+            <p class="hero-description">
+              Explorez l'ensemble de notre collection d'artisanat marocain.
+              Découvrez des pièces uniques à travers toutes nos catégories.
+            </p>
+          </div>
+
+          <!-- Hero Image -->
+          <div class="hero-image-container">
+            <img
+              src="assets/images/categories.png"
+              alt="Artisanat marocain"
+              class="hero-image"
+              (error)="onImageError($event)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="text-center mb-12">
+      <h2 class="section-title">Explorez par catégorie</h2>
+      <p class="section-subtitle">Découvrez l'artisanat marocain dans toute sa diversité</p>
+    </div>
+
+    <!-- Indicateur de chargement -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <span class="loading-text">Chargement des catégories...</span>
+    </div>
+
+    <!-- Grille des catégories -->
+    <div *ngIf="!isLoading" class="categories-grid">
+      <div
+        *ngFor="let category of categories"
+        class="category-item"
+        [routerLink]="['/categories', category.slug, category.idCategorie]"
+        [queryParams]="{image: category.image}">>
+
+        <div class="image-container">
+          <img
+            [src]="category.image"
+            [alt]="category.nomCategorie"
+            class="category-image"
+            (error)="onImageError($event)"
+          />
+        </div>
+
+        <div class="category-info">
+          <h3 class="category-name">{{ category.nomCategorie }}</h3>
+          <p class="category-domain">{{ category.domaineName }}</p>
+          <p class="category-description">{{ category.description }}</p>
+          <p class="category-count">{{ category.count }} enchères</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si aucune catégorie -->
+    <div *ngIf="!isLoading && categories.length === 0" class="empty-state">
+      <p class="empty-text">Aucune catégorie disponible pour le moment.</p>
+    </div>
+  </div>
+</section>

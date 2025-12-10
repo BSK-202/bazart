@@ -127,4 +127,6 @@ public class Walletservice {
     public List<HistoriqueWallet> getUserHistoryByType(Client user, String operationType) {
         return historiqueWalletRepository.findByUserAndOperationTypeOrderByOperationDateDesc(user, operationType);
     }
+
+
 }

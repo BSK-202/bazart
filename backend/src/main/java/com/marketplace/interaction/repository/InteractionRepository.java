@@ -29,4 +29,12 @@ public interface InteractionRepository extends JpaRepository<Interaction, Long> 
     int deleteByProduitIdAndClientId(@Param("produitId") Long produitId, @Param("clientId") Long clientId);
     @Query("SELECT i FROM Interaction i WHERE i.client.idclient = :clientId ORDER BY i.date DESC")
     List<Interaction> findByClientId(@Param("clientId") Long clientId);
+
+    // Dans InteractionRepository.java - AJOUTEZ CES MÉTHODES AVEC @Query
+
+    @Query("SELECT i FROM Interaction i WHERE i.produit.idproduit = :produitId ")
+    List<Interaction> findByProduitIdAndType(@Param("produitId") Long produitId, @Param("type") String type);
+
+    @Query("SELECT i FROM Interaction i WHERE i.produit.idproduit = :produitId")
+    List<Interaction> findByProduitId(@Param("produitId") Long produitId);
 }

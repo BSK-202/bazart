@@ -36,7 +36,6 @@ interface CategoryInfo {
   description: string;
 }
 
-// Interface pour la réponse du like
 interface LikeResponse {
   liked: boolean;
   interactionCount: number;
@@ -66,7 +65,6 @@ export class CategoryDetailComponent implements OnInit {
   currentCategory: CategoryInfo | undefined;
   isLoading: boolean = true;
 
-  // Variables pour la modal de commentaires
   showCommentModal: boolean = false;
   selectedProduit: Produit | null = null;
 
@@ -88,15 +86,17 @@ export class CategoryDetailComponent implements OnInit {
 
   ngOnInit() {
     this.route.paramMap.subscribe(params => {
+      // Gérer les deux types de routes
       this.domaineSlug = params.get('domaineSlug') || '';
-      this.categorieSlug = params.get('slug1') || '';
-      const categorieIdParam = params.get('slug2') || '0';
+      this.categorieSlug = params.get('slug') || params.get('slug1') || '';
+      const categorieIdParam = params.get('id') || params.get('slug2') || '0';
       this.categorieId = parseInt(categorieIdParam, 10) || 0;
 
       console.log('🔥 Paramètres reçus:');
       console.log('   Domaine:', this.domaineSlug);
       console.log('   Catégorie Slug:', this.categorieSlug);
       console.log('   Catégorie ID:', this.categorieId);
+      console.log('   Contexte:', this.isFromCategoriesWithoutDomaine() ? 'SANS DOMAINE' : 'AVEC DOMAINE');
 
       this.loadCategoryInfo();
       this.loadProduits();
@@ -105,10 +105,16 @@ export class CategoryDetailComponent implements OnInit {
     this.route.queryParamMap.subscribe(queryParams => {
       this.categorieImage = queryParams.get('image') || '';
       console.log('🖼️ Image de catégorie depuis queryParams:', this.categorieImage);
+      console.log('📱 QueryParams complets:', queryParams);
     });
   }
 
-  // ✅ NOUVELLE MÉTHODE : Redirection vers la page détail du produit
+  // Méthode pour déterminer si on est dans le contexte "sans domaine"
+  isFromCategoriesWithoutDomaine(): boolean {
+    return !this.domaineSlug;
+  }
+
+  // ✅ Redirection vers la page détail du produit
   goToProductDetail(produitId: number): void {
     console.log('🎯 Navigation vers le produit:', produitId);
     this.router.navigate(['/produit', produitId]);
@@ -126,7 +132,14 @@ export class CategoryDetailComponent implements OnInit {
       next: (categoryData) => {
         console.log('✅ Informations catégorie reçues:', categoryData);
 
+        // 🆕 PRIORITÉ à l'image des queryParams, sinon celle de l'API
         const categoryImage = this.categorieImage || categoryData.image;
+
+        console.log('🖼️ Image sélectionnée:', {
+          fromQueryParams: this.categorieImage,
+          fromAPI: categoryData.image,
+          final: categoryImage
+        });
 
         this.currentCategory = {
           id: categoryData.idCategorie,
@@ -139,27 +152,55 @@ export class CategoryDetailComponent implements OnInit {
       },
       error: (err) => {
         console.error('❌ Erreur chargement info catégorie:', err);
+
+        // 🆕 Fallback amélioré avec l'image des queryParams
+        const fallbackImage = this.categorieImage || '';
+
         this.currentCategory = {
           id: this.categorieId,
           nom: this.categorieSlug.replace(/-/g, ' '),
-          image: this.getCategorieImageUrl(this.categorieImage),
+          image: this.getCategorieImageUrl(fallbackImage),
           description: `Catégorie ${this.categorieSlug}`
         };
+
+        console.log('🔄 Catégorie fallback:', this.currentCategory);
       }
     });
   }
 
   getCategorieImageUrl(imageName: string | undefined): string {
+    console.log('🖼️ Construction URL image catégorie:', imageName);
+
     if (!imageName || imageName.trim() === '') {
+      console.log('❌ Nom d\'image vide, utilisation placeholder');
       return 'assets/images/placeholder.jpg';
     }
 
-    if (imageName.startsWith('http') || imageName.startsWith('/') || imageName.startsWith('./')) {
-      return imageName;
+    const cleanImageName = imageName.trim();
+
+    // Si c'est déjà une URL complète (http, https, data:)
+    if (cleanImageName.startsWith('http') || cleanImageName.startsWith('data:')) {
+      console.log('✅ Chemin déjà complet');
+      return cleanImageName;
     }
 
-    const cleanImageName = imageName.trim();
-    return `${this.categorieImageBasePath}${cleanImageName}`;
+    // Si c'est un chemin d'API Spring Boot
+    if (cleanImageName.startsWith('/api/')) {
+      const fullUrl = `${this.API_BASE_URL}${cleanImageName}`;
+      console.log(`🔗 Chemin API construit: ${fullUrl}`);
+      return fullUrl;
+    }
+
+    // Si c'est un chemin relatif Angular (assets/)
+    if (cleanImageName.startsWith('assets/') || cleanImageName.startsWith('./')) {
+      console.log('✅ Chemin assets Angular');
+      return cleanImageName;
+    }
+
+    // Construire l'URL via l'endpoint Spring Boot pour les images de catégories
+    const fullUrl = `${this.API_BASE_URL}/api/categories/images/${cleanImageName}`;
+    console.log(`🔗 Chemin catégorie construit: ${fullUrl}`);
+    return fullUrl;
   }
 
   getProduitImageUrl(produitId: number, imageName: string): string {
@@ -178,7 +219,6 @@ export class CategoryDetailComponent implements OnInit {
     event.stopPropagation();
     console.log('🎯 Clic sur like - Produit:', produit.id, 'Actuellement liké:', produit.hasLiked);
 
-    // Vérifier si l'utilisateur est connecté
     if (!this.authService.isLoggedIn()) {
       this.router.navigate(['/connexion'], {
         queryParams: {
@@ -223,7 +263,6 @@ export class CategoryDetailComponent implements OnInit {
   closeCommentModal() {
     this.showCommentModal = false;
     this.selectedProduit = null;
-    // Recharger les produits pour mettre à jour le compteur de commentaires
     this.loadProduits();
   }
 
@@ -258,7 +297,6 @@ export class CategoryDetailComponent implements OnInit {
           return prod;
         });
 
-        // ✅ Vérifier les likes pour chaque produit de manière SYNCHRONE
         this.checkAllLikes();
       },
       error: (err) => {
@@ -269,11 +307,9 @@ export class CategoryDetailComponent implements OnInit {
     });
   }
 
-  // ✅ NOUVELLE MÉTHODE : Vérifier les likes de manière synchrone
   private checkAllLikes(): void {
     if (!this.authService.isLoggedIn()) {
       console.log('👤 Utilisateur non connecté - pas de vérification des likes');
-      // Si l'utilisateur n'est pas connecté, tous les coeurs seront blancs
       this.produits.forEach(prod => prod.hasLiked = false);
       this.isLoading = false;
       return;
@@ -281,15 +317,12 @@ export class CategoryDetailComponent implements OnInit {
 
     console.log('🔍 Vérification des likes pour tous les produits...');
 
-    // Créer un tableau d'observables pour vérifier les likes
     const likeChecks = this.produits.map(produit =>
       this.interactionService.checkLike(produit.id)
     );
 
-    // Utiliser forkJoin pour attendre toutes les requêtes
     forkJoin(likeChecks).subscribe({
       next: (results: boolean[]) => {
-        // Associer les résultats aux produits
         results.forEach((isLiked, index) => {
           this.produits[index].hasLiked = isLiked;
           console.log(`❤️ Produit ${this.produits[index].id} → hasLiked: ${isLiked}`);
@@ -300,13 +333,12 @@ export class CategoryDetailComponent implements OnInit {
       },
       error: (err) => {
         console.error('❌ Erreur lors de la vérification des likes:', err);
-        // En cas d'erreur, mettre tous les likes à false
         this.produits.forEach(prod => prod.hasLiked = false);
         this.isLoading = false;
       }
     });
   }
-  // Méthode pour obtenir le texte à afficher selon l'état
+
   getEtatDisplayText(etat: string): string {
     switch (etat?.toLowerCase()) {
       case 'accepte':
@@ -320,7 +352,6 @@ export class CategoryDetailComponent implements OnInit {
     }
   }
 
-// Méthode pour obtenir la classe CSS selon l'état
   getEtatClass(etat: string): string {
     switch (etat?.toLowerCase()) {
       case 'accepte':

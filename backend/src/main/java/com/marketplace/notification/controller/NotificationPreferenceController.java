@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/user-notification-preference")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class NotificationPreferenceController {
 
     private final UserNotificationPreferenceService service;

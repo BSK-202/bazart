@@ -18,10 +18,36 @@ export interface Enchere {
   bidder?: string;
   amount?: number;
   time?: string;
+  reservationId?: string;
+}
+
+export interface LeadingEncheresResponse {
+  success: boolean;
+  clientId: number;
+  clientNom: string;
+  clientPrenom: string;
+  leadingEncheres: LeadingEnchere[];
+  totalBlocked: number;
+  count: number;
+  message: string;
+  error?: string;
+}
+
+export interface LeadingEnchere {
+  produitId: number;
+  produitNom: string;
+  blockedAmount: number;
+  dateEnchere: string;
+  enchereId: number;
+  montantEnchere: number;
+  tempsRestant: string;
 }
 
 export interface EnchereActuelle {
   montantActuel: number;
+}
+
+class EnchereAvecReservation {
 }
 
 @Injectable({
@@ -61,5 +87,28 @@ export class EnchereService {
     );
   }
 
+  // Nouvelle méthode pour placer une enchère avec réservation
+  placerEnchereAvecReservation(produitId: number, clientId: number, montant: number, reservationId: string): Observable<EnchereAvecReservation> {
+    return this.http.post<EnchereAvecReservation>(
+      `${this.API_BASE_URL}/api/encheres/produit/${produitId}/client/${clientId}/reservation`,
+      { montant, reservationId }
+    );
+  }
+
+  // Obtenir l'ancien leader pour un produit
+  getAncienLeader(produitId: number): Observable<{ancienLeaderId: number, reservationId: string}> {
+    return this.http.get<{ancienLeaderId: number, reservationId: string}>(
+      `${this.API_BASE_URL}/api/encheres/produit/${produitId}/ancien-leader`
+    );
+  }
+
+  getLeadingEncheres(): Observable<LeadingEncheresResponse> {
+    return this.http.get<LeadingEncheresResponse>(`${this.API_BASE_URL}/api/encheres/my-leading-encheres`);
+  }
+
+// Ou avec l'ID client spécifique
+  getLeadingEncheresByClient(clientId: number): Observable<LeadingEncheresResponse> {
+    return this.http.get<LeadingEncheresResponse>(`${this.API_BASE_URL}/api/encheres/client/${clientId}/leading`);
+  }
 
 }

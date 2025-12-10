@@ -1,6 +1,5 @@
 package com.marketplace.Enchere.service;
 
-
 import com.marketplace.Enchere.dto.EnchereDTO;
 import com.marketplace.Enchere.entity.Enchere;
 import com.marketplace.Enchere.repository.EnchereRepository;
@@ -8,12 +7,14 @@ import com.marketplace.catalog.entity.Produit;
 import com.marketplace.catalog.service.ProduitService;
 import com.marketplace.user.entity.Client;
 import com.marketplace.user.service.ClientService;
+import com.marketplace.notification.service.NotificationService;
+import com.marketplace.notification.entity.NotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,7 +29,11 @@ public class EnchereService {
     @Autowired
     private ProduitService produitService;
 
+    @Autowired
+    private NotificationService notificationService;
+
     // Placer une nouvelle enchère
+    @Transactional
     public EnchereDTO placerEnchere(Long produitId, Long clientId, Double montant) {
         // Vérifier que le produit existe et est en enchère
         Produit produit = produitService.getProduitById(produitId)
@@ -62,7 +67,57 @@ public class EnchereService {
         Enchere enchere = new Enchere(client, produit, montant);
         Enchere savedEnchere = enchereRepository.save(enchere);
 
+        // === ENVOYER LES NOTIFICATIONS ===
+        envoyerNotificationsNouvelleEnchere(savedEnchere, produit, client);
+
         return convertToDTO(savedEnchere);
+    }
+
+    private void envoyerNotificationsNouvelleEnchere(Enchere nouvelleEnchere, Produit produit, Client nouveauEncherisseur) {
+        Set<Long> recipients = new HashSet<>();
+
+        // 1. Ajouter le vendeur du produit
+        if (produit.getVendeur() != null) {
+            recipients.add(produit.getVendeur().getIdclient());
+            System.out.println("👤 Vendeur à notifier: " + produit.getVendeur().getIdclient());
+        }
+
+        // 2. Ajouter tous les clients ayant déjà participé à cette enchère (sauf le nouveau)
+        List<Enchere> encheresPrecedentes = enchereRepository.findByProduitIdproduitOrderByMontantDesc(produit.getIdproduit());
+
+        for (Enchere enchere : encheresPrecedentes) {
+            if (enchere.getEncherisseur() != null &&
+                    !enchere.getEncherisseur().getIdclient().equals(nouveauEncherisseur.getIdclient())) {
+                recipients.add(enchere.getEncherisseur().getIdclient());
+                System.out.println("👤 Ancien enchérisseur à notifier: " + enchere.getEncherisseur().getIdclient());
+            }
+        }
+
+        // Exclure le nouvel enchérisseur lui-même
+        recipients.remove(nouveauEncherisseur.getIdclient());
+
+        if (!recipients.isEmpty()) {
+            // Préparer les données de notification
+            Map<String, Object> notifData = new HashMap<>();
+            notifData.put("productName", produit.getNom());
+            notifData.put("bidAmount", nouvelleEnchere.getMontant());
+            // Utiliser le nom et prénom réel de l'enchérisseur
+            notifData.put("bidUserName", nouveauEncherisseur.getPrenom() + " " + nouveauEncherisseur.getNom());
+            notifData.put("message", "Nouvelle enchère sur le produit \"" + produit.getNom() + "\"");
+            notifData.put("productId", produit.getIdproduit());
+
+            // Envoyer les notifications
+            notificationService.processEvent(
+                    NotificationType.NEW_BID,
+                    recipients,
+                    notifData
+            );
+
+            System.out.println("📢 Notifications envoyées à " + recipients.size() + " utilisateurs pour la nouvelle enchère");
+            System.out.println("👤 Enchérisseur: " + nouveauEncherisseur.getPrenom() + " " + nouveauEncherisseur.getNom());
+        } else {
+            System.out.println("ℹ️ Aucun destinataire à notifier pour cette nouvelle enchère");
+        }
     }
 
     // Obtenir l'historique des enchères d'un produit
@@ -89,7 +144,6 @@ public class EnchereService {
         return enchereRepository.findTopByProduitIdOrderByMontantDesc(produitId)
                 .map(this::convertToDTO);
     }
-
 
     public Double getMontantActuel(Long produitId) {
         Optional<Double> maxMontant = enchereRepository.findMaxMontantByProduitId(produitId);
@@ -159,5 +213,86 @@ public class EnchereService {
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+
+    public Map<String, Object> getLeadingEncheresWithBlockedAmounts(Long clientId) {
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> leadingEncheres = new ArrayList<>();
+
+        try {
+            // Vérifier que le client existe - UTILISER LA BONNE MÉTHODE
+            Client client = clientService.findById(clientId)
+                    .orElseThrow(() -> new RuntimeException("Client non trouvé avec l'ID: " + clientId));
+
+            // Récupérer toutes les enchères de l'utilisateur
+            List<Enchere> userEncheres = enchereRepository.findByEncherisseurIdclient(clientId);
+
+            if (userEncheres.isEmpty()) {
+                result.put("success", true);
+                result.put("clientId", clientId);
+                result.put("clientNom", client.getNom());
+                result.put("clientPrenom", client.getPrenom());
+                result.put("leadingEncheres", leadingEncheres);
+                result.put("totalBlocked", 0.0);
+                result.put("count", 0);
+                result.put("message", "Aucune enchère trouvée");
+                return result;
+            }
+
+            // Grouper par produit et trouver la plus haute enchère pour chaque produit
+            Map<Long, Enchere> highestBidsByProduct = userEncheres.stream()
+                    .collect(Collectors.toMap(
+                            enchere -> enchere.getProduit().getIdproduit(),
+                            enchere -> enchere,
+                            (existing, replacement) ->
+                                    existing.getMontant() > replacement.getMontant() ? existing : replacement
+                    ));
+
+            double totalBlocked = 0;
+
+            // Pour chaque produit, vérifier si l'utilisateur est en tête
+            for (Enchere userHighestBid : highestBidsByProduct.values()) {
+                Long produitId = userHighestBid.getProduit().getIdproduit();
+                Produit produit = userHighestBid.getProduit();
+
+                // Trouver l'enchère la plus haute pour ce produit (tous utilisateurs)
+                Optional<Enchere> topEnchere = enchereRepository.findTopByProduitIdOrderByMontantDesc(produitId);
+
+                if (topEnchere.isPresent() &&
+                        topEnchere.get().getEncherisseur().getIdclient().equals(clientId) &&
+                        "en_enchere".equals(produit.getEtat())) {
+
+                    // L'utilisateur est en tête de cette enchère
+                    Map<String, Object> enchereInfo = new HashMap<>();
+                    enchereInfo.put("produitId", produitId);
+                    enchereInfo.put("produitNom", produit.getNom());
+                    enchereInfo.put("blockedAmount", userHighestBid.getMontant());
+                    enchereInfo.put("dateEnchere", userHighestBid.getDateEnchere());
+                    enchereInfo.put("enchereId", userHighestBid.getIdEnchere());
+                    enchereInfo.put("montantEnchere", userHighestBid.getMontant());
+
+                    // Calculer le temps restant
+                    enchereInfo.put("tempsRestant", getTempsRestant(produit));
+
+                    leadingEncheres.add(enchereInfo);
+                    totalBlocked += userHighestBid.getMontant();
+                }
+            }
+
+            result.put("success", true);
+            result.put("clientId", clientId);
+            result.put("clientNom", client.getNom());
+            result.put("clientPrenom", client.getPrenom());
+            result.put("leadingEncheres", leadingEncheres);
+            result.put("totalBlocked", totalBlocked);
+            result.put("count", leadingEncheres.size());
+            result.put("message", leadingEncheres.size() + " enchère(s) où vous êtes en tête");
+
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("error", e.getMessage());
+        }
+
+        return result;
     }
 }

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface ProduitService {
     Optional<Produit> getProduitById(Long id);
@@ -23,5 +24,10 @@ public interface ProduitService {
     List<Produit> getProduitsByEtat(String enEnchere);
     // Dans ProduitService.java, ajouter cette signature de méthode
     List<Produit> getProduitsByAcheteur(Long acheteurId);
+    // Dans ProduitService.java
+    Set<Long> getUsersWhoInteractedWithProduct(Long produitId);
+    List<Produit> getProduitsGagnesByAcheteurId(Long acheteurId);
 
+
+    List<Produit> getProduitsByVendeurId(Long vendeurId);
 }

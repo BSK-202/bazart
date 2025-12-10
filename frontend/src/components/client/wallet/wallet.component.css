@@ -529,3 +529,173 @@
     justify-content: space-between;
   }
 }
+
+/* Carte des enchères en tête */
+.blocked-amounts-card {
+  background: linear-gradient(135deg, #fff9f0, #fff);
+  padding: 2rem;
+  border-radius: 1.25rem;
+  box-shadow: 0 5px 20px rgba(255, 152, 0, 0.1);
+  border: 1px solid #ffe0b2;
+  margin-top: 20px;
+}
+
+.blocked-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #fff3e0;
+}
+
+.blocked-header h3 {
+  margin: 0;
+  color: #2c5282;
+  font-size: 1.2em;
+  display: flex;
+  align-items: center;
+}
+
+.total-blocked {
+  background: #fff3e0;
+  color: #2c5282;
+  padding: 8px 16px;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: 1px solid #ffcc80;
+}
+
+.blocked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.blocked-item {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  border-radius: 0.75rem;
+  border-left: 4px solid #2b6cb0;
+  background: #fff8e1;
+  transition: all 0.3s;
+}
+
+.blocked-item:hover {
+  background: #ffecb3;
+  transform: translateX(3px);
+}
+
+.blocked-icon .icon-operation {
+  color: #2b6cb0;
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 2;
+  margin-top: 2px;
+}
+
+.blocked-details {
+  flex: 1;
+}
+
+.blocked-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.blocked-product {
+  font-weight: 600;
+  color: #2c5282;
+  font-size: 1em;
+}
+
+.blocked-amount {
+  font-weight: bold;
+  color: #e53e3e;
+  font-size: 1.1em;
+}
+
+.blocked-reason {
+  margin: 0 0 10px 0;
+  color: #2c5282;
+  font-size: 0.9em;
+  background: #fff3e0;
+  padding: 8px 12px;
+  border-radius: 0.5rem;
+  border-left: 3px solid #2b6cb0;
+}
+
+.blocked-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8em;
+  color: #7f8c8d;
+  margin-bottom: 10px;
+}
+
+.enchere-actions {
+  margin-top: 10px;
+}
+
+.view-product-btn {
+  background: #2b6cb0;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s;
+}
+
+.view-product-btn:hover {
+  background: #2b6cb0;
+  transform: translateY(-1px);
+}
+
+.loading-blocked {
+  text-align: center;
+  padding: 20px;
+  color: #7f8c8d;
+  background: #f8f9fa;
+  border-radius: 0.75rem;
+  margin-top: 20px;
+}
+
+.blocked-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #ffe0b2;
+  text-align: center;
+  color: #2c5282;
+  font-size: 0.85em;
+  background: #fff3e0;
+  padding: 12px;
+  border-radius: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .blocked-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .blocked-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .blocked-meta {
+    flex-direction: column;
+    gap: 5px;
+  }
+}

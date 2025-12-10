@@ -253,4 +253,105 @@ public class WalletController {
                     ));
         }
     }
+
+    @PostMapping("/{clientId}/debit")
+    public ResponseEntity<Map<String, Object>> debitClientWallet(
+            @PathVariable Long clientId,
+            @RequestBody DebitRequest request) {
+        try {
+            Client client = clientService.findById(clientId)
+                    .orElseThrow(() -> new IllegalArgumentException("Client non trouvé"));
+
+            double amount = request.getAmount();
+            String description = request.getDescription();
+
+            if (amount <= 0) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("success", false, "error", "Montant invalide"));
+            }
+
+            Wallet wallet = walletService.debitWallet(client, amount, description);
+
+            // === NOTIFICATION: Debit Wallet pour client spécifique ===
+            Map<String, Object> notifData = new HashMap<>();
+            notifData.put("amount", amount);
+            notifData.put("message", "Votre portefeuille a été débité de " + amount + " DH pour une enchère.");
+            notifData.put("balance", wallet.getBalance());
+            notifData.put("description", description);
+            notificationService.processEvent(
+                    NotificationType.PAYMENT_SENT,
+                    Set.of(client.getIdclient()),
+                    notifData
+            );
+            // === END NOTIFICATION ===
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Débit effectué avec succès");
+            response.put("newBalance", wallet.getBalance());
+            response.put("amountDebited", amount);
+            response.put("clientId", clientId);
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("success", false, "error", e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "error", "Erreur serveur lors du débit"));
+        }
+    }
+
+    @PostMapping("/{clientId}/recharge")
+    public ResponseEntity<Map<String, Object>> rechargeClientWallet(
+            @PathVariable Long clientId,
+            @RequestBody RechargeRequest request) {
+        try {
+            Client client = clientService.findById(clientId)
+                    .orElseThrow(() -> new IllegalArgumentException("Client non trouvé"));
+
+            double amount = request.getAmount();
+
+            if (amount <= 0) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("success", false, "error", "Montant invalide"));
+            }
+
+            Wallet wallet = walletService.rechargeWallet(client, amount);
+
+            // === NOTIFICATION: Recharge Wallet pour client spécifique ===
+            Map<String, Object> notifData = new HashMap<>();
+            notifData.put("amount", amount);
+            notifData.put("message", "Votre portefeuille a été crédité de " + amount + " DH (remboursement enchère).");
+            notifData.put("balance", wallet.getBalance());
+            notificationService.processEvent(
+                    NotificationType.PAYMENT_RECEIVED,
+                    Set.of(client.getIdclient()),
+                    notifData
+            );
+            // === END NOTIFICATION ===
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Recharge effectuée avec succès");
+            response.put("newBalance", wallet.getBalance());
+            response.put("amountAdded", amount);
+            response.put("clientId", clientId);
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("success", false, "error", e.getMessage()));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "error", "Erreur serveur lors de la recharge"));
+        }
+    }
+
+
+
 }

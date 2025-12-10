@@ -16,5 +16,5 @@ public interface ClientService extends UserDetailsService {
     Optional<Client> getClientById(Long id);
     Client updateClient(Client client);
     public void updateEmailVerified(String email) ;
-
+    Optional<Client> findById(Long id);
 }

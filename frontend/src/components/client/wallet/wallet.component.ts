@@ -3,6 +3,8 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WalletService, WalletBalanceResponse, RechargeResponse, HistoryResponse } from '../../../services/wallet.service';
 import { AuthService } from '../../../services/auth.service';
+import {EnchereService} from '../../../services/enchere.service';
+import {Router} from '@angular/router';
 
 @Component({
   selector: 'app-wallet',
@@ -25,9 +27,16 @@ export class WalletComponent implements OnInit {
   historyLoading: boolean = false;
   selectedOperationType: string = 'ALL';
 
+  // ✅ AJOUTER CES PROPRIÉTES POUR LES MONTANTS BLOQUÉS
+  blockedEncheres: any[] = [];
+  totalBlocked: number = 0;
+  isLoadingBlocked: boolean = false;
+
   constructor(
     private walletService: WalletService,
-    private authService: AuthService
+    private authService: AuthService,
+    private enchereService: EnchereService, // Nouveau
+    private router: Router // Nouveau
   ) {}
 
   ngOnInit() {
@@ -38,6 +47,7 @@ export class WalletComponent implements OnInit {
 
     this.getBalance();
     this.loadHistory();
+    this.loadBlockedAmounts(); // ✅ AJOUTER CET APPEL
   }
   checkAuthentication() {
     const isLoggedIn = this.authService.isLoggedIn();
@@ -228,22 +238,73 @@ export class WalletComponent implements OnInit {
     }
   }
 
-  getOperationIcon(operationType: string): string {
-    switch (operationType) {
-      case 'CREDIT': return '📥';
-      case 'DEBIT': return '📤';
-      default: return '🔹';
-    }
-  }
-
   formatDescription(description: string): string {
     return description || 'Opération sans description';
   }
 
+
+  // Méthode pour charger les montants bloqués
+  loadBlockedAmounts() {
+    if (!this.authService.isLoggedIn()) {
+      return;
+    }
+
+    this.isLoadingBlocked = true;
+    console.log('🔒 Chargement des enchères en tête...');
+
+    this.enchereService.getLeadingEncheres().subscribe({
+      next: (response: any) => {
+        console.log('✅ Réponse enchères en tête:', response);
+        if (response.success) {
+          this.blockedEncheres = response.leadingEncheres;
+          this.totalBlocked = response.totalBlocked;
+          console.log(`👑 ${this.blockedEncheres.length} enchères où vous êtes en tête`);
+        } else {
+          console.error('❌ Erreur enchères en tête:', response);
+          this.blockedEncheres = [];
+          this.totalBlocked = 0;
+        }
+        this.isLoadingBlocked = false;
+      },
+      error: (err: any) => {
+        console.error('❌ Erreur chargement enchères en tête:', err);
+        this.blockedEncheres = [];
+        this.totalBlocked = 0;
+        this.isLoadingBlocked = false;
+      }
+    });
+  }
+
+
+
+// Méthode pour formater la date des enchères bloquées
+  formatBlockedDate(dateString: string): string {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+// Méthode pour naviguer vers la page du produit
+  viewProduct(produitId: number) {
+    this.router.navigate(['/produit', produitId]);
+  }
+
+// Méthode pour rafraîchir toutes les données
   refreshAll() {
     console.log('🔄 Rafraîchissement complet');
     this.checkAuthentication();
     this.getBalance();
     this.loadHistory();
+    this.loadBlockedAmounts();
   }
+
 }

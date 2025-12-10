@@ -1,102 +1,89 @@
 import { Injectable } from '@angular/core';
-import { Client, Message } from '@stomp/stompjs';
+import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { Observable, Subject } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class NotificationWebSocketService {
-  private stompClient?: Client;
-  private notificationSubject = new Subject<any>();
-  private connected = false;
-  private currentUserId: number | null = null;
+  private stompClient: Client | null = null;
+  private notificationSubject = new BehaviorSubject<any>(null);
+  private isConnected = false;
 
-  // Expose an observable for components to subscribe
+  constructor() {}
+
+  connect(userId: number) {
+    if (this.isConnected) {
+      console.log('✅ Déjà connecté pour user:', userId);
+      return;
+    }
+
+    console.log('🔄 Tentative de connexion WebSocket pour user:', userId);
+
+    // Configuration STOMP
+    this.stompClient = new Client({
+      webSocketFactory: () => new SockJS('http://localhost:8080/ws-notif'),
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+      debug: (str) => console.log('STOMP:', str),
+    });
+
+    this.stompClient.onConnect = (frame) => {
+      console.log('✅ STOMP connecté avec succès pour user', userId, frame);
+      this.isConnected = true;
+
+      // S'abonner au bon topic
+      const subscription = this.stompClient!.subscribe(
+        `/topic/notifications/${userId}`,
+        (message: IMessage) => {
+          console.log('📨 Notification reçue:', message.body);
+          try {
+            const notification = JSON.parse(message.body);
+            this.notificationSubject.next(notification);
+          } catch (e) {
+            console.error('❌ Erreur parsing notification:', e);
+          }
+        }
+      );
+
+      console.log('✅ Abonné au topic:', `/topic/notifications/${userId}`);
+    };
+
+    this.stompClient.onStompError = (frame) => {
+      console.error('❌ Erreur STOMP:', frame.headers['message'], frame.body);
+      this.isConnected = false;
+    };
+
+    this.stompClient.onWebSocketError = (event) => {
+      console.error('❌ Erreur WebSocket:', event);
+      this.isConnected = false;
+    };
+
+    this.stompClient.onDisconnect = () => {
+      console.log('🔌 Déconnecté WebSocket');
+      this.isConnected = false;
+    };
+
+    // Activer la connexion
+    this.stompClient.activate();
+  }
+
   notifications(): Observable<any> {
     return this.notificationSubject.asObservable();
   }
 
-  connect(userId: number) {
-    if (!userId) {
-      console.warn('NotificationWebSocketService.connect() called with invalid userId:', userId);
-      return;
+  disconnect() {
+    if (this.stompClient) {
+      this.stompClient.deactivate();
+      this.isConnected = false;
+      console.log('🔌 WebSocket déconnecté');
     }
-
-    // If already connected to same user, do nothing
-    if (this.connected && this.currentUserId === userId) {
-      console.log('NotificationWebSocketService: already connected for user', userId);
-      return;
-    }
-
-    // If connecting for another user, disconnect first
-    if (this.connected && this.currentUserId !== userId) {
-      this.disconnect();
-    }
-
-    this.currentUserId = userId;
-
-    // Create STOMP client using SockJS fallback
-    this.stompClient = new Client({
-      brokerURL: undefined, // must be undefined when using webSocketFactory
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws-notif'),
-      reconnectDelay: 5000,
-      // Optional heartbeat settings:
-      heartbeatIncoming: 0,
-      heartbeatOutgoing: 20000,
-      // debug output to console
-      debug: (msg) => console.debug('[STOMP]', msg)
-    });
-
-    this.stompClient.onConnect = (frame) => {
-      console.log('STOMP connected for user', userId, frame);
-      this.connected = true;
-
-      try {
-        const topic = `/topic/notifications/${userId}`;
-        console.log('Subscribing to', topic);
-        this.stompClient?.subscribe(topic, (message: Message) => {
-          try {
-            const body = message.body ? JSON.parse(message.body) : null;
-            console.log('STOMP message received:', body);
-            this.notificationSubject.next(body);
-          } catch (err) {
-            console.error('Failed to parse STOMP message body:', err, 'raw:', message.body);
-            this.notificationSubject.next({ raw: message.body });
-          }
-        });
-      } catch (err) {
-        console.error('Subscription error:', err);
-      }
-    };
-
-    this.stompClient.onStompError = (frame) => {
-      console.error('STOMP protocol error:', frame && (frame as any).message, frame);
-    };
-
-    // websocket-level errors
-    (this.stompClient as any).onWebSocketError = (ev: any) => {
-      console.error('WebSocket error event:', ev);
-    };
-
-    this.stompClient.onDisconnect = (frame) => {
-      console.log('STOMP disconnected', frame);
-      this.connected = false;
-    };
-
-    console.log('Activating STOMP client (userId=', userId, ')');
-    this.stompClient.activate();
   }
 
-  disconnect() {
-    if (!this.stompClient) return;
-    try {
-      console.log('Deactivating STOMP client for user', this.currentUserId);
-      this.stompClient.deactivate();
-    } catch (err) {
-      console.error('Error during stompClient.deactivate():', err);
-    } finally {
-      this.connected = false;
-      this.stompClient = undefined;
-      this.currentUserId = null;
-    }
+  // Méthode pour vérifier l'état de la connexion
+  isConnected$(): boolean {
+    return this.isConnected;
   }
 }

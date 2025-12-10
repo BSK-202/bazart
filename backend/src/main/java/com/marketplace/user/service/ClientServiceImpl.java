@@ -109,4 +109,9 @@ public class ClientServiceImpl implements ClientService {
         clientRepository.save(client);
     }
 
+    // Ou si vous avez une méthode personnalisée dans votre repository :
+    public Optional<Client> findById(Long id) {
+        return clientRepository.findById(id); // selon le nom de votre champ ID
+    }
+
 }

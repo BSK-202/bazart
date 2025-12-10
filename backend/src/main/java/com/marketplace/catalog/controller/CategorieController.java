@@ -344,4 +344,17 @@ public class CategorieController {
             return ResponseEntity.status(500).build();
         }
     }
+
+    // CategorieController.java - Ajoutez cette méthode
+
+    @GetMapping
+    public ResponseEntity<List<Categorie>> getAllCategories() {
+        try {
+            List<Categorie> categories = categorieService.getAllCategories();
+            return ResponseEntity.ok(categories);
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la récupération de toutes les catégories: " + e.getMessage());
+            return ResponseEntity.status(500).build();
+        }
+    }
 }

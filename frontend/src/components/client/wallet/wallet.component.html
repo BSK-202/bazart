@@ -75,7 +75,75 @@
       <div *ngIf="message" class="message" [class.error]="message.includes('❌') || message.includes('Erreur')" [class.success]="message.includes('✅')">
         {{ message }}
       </div>
+
+
+      <!-- Carte des enchères en tête -->
+      <div *ngIf="blockedEncheres.length > 0" class="blocked-amounts-card">
+        <div class="blocked-header">
+          <h3>
+            <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+            </svg>
+            Enchères où vous êtes en tête
+          </h3>
+          <div class="total-blocked">
+            Total bloqué: <strong>{{ totalBlocked | currency:currency:'symbol':'1.2-2' }}</strong>
+          </div>
+        </div>
+
+        <div class="blocked-list">
+          <div *ngFor="let enchere of blockedEncheres" class="blocked-item">
+            <div class="blocked-icon">
+              <svg class="icon-operation" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+              </svg>
+            </div>
+
+            <div class="blocked-details">
+              <div class="blocked-main">
+                <span class="blocked-product">{{ enchere.produitNom }}</span>
+                <span class="blocked-amount">-{{ enchere.blockedAmount | currency:currency:'symbol':'1.2-2' }}</span>
+              </div>
+
+              <p class="blocked-reason">
+                👑 Vous êtes en tête de cette enchère
+              </p>
+
+              <div class="blocked-meta">
+          <span class="blocked-date">
+            📅 Enchère placée le: {{ formatBlockedDate(enchere.dateEnchere) }}
+          </span>
+                <span class="blocked-time" *ngIf="enchere.tempsRestant">
+            ⏱️ {{ enchere.tempsRestant }}
+          </span>
+              </div>
+
+              <div class="enchere-actions">
+                <button class="view-product-btn" (click)="viewProduct(enchere.produitId)">
+                  <svg class="icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  Voir le produit
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="blocked-footer">
+          <p>💡 Ces montants sont bloqués jusqu'à la fin des enchères. Ils seront libérés si vous êtes dépassé.</p>
+        </div>
+      </div>
+
+      <!-- État de chargement -->
+      <div *ngIf="isLoadingBlocked" class="loading-blocked">
+        <p>Chargement de vos enchères en tête...</p>
+      </div>
+
     </div>
+
+
 
     <!-- Section droite : Historique -->
     <div class="right-section">

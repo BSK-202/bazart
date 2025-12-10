@@ -3,6 +3,7 @@ package com.marketplace.Enchere.repository;
 
 
 
+import aj.org.objectweb.asm.commons.Remapper;
 import com.marketplace.Enchere.entity.Enchere;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -34,4 +35,6 @@ public interface EnchereRepository extends JpaRepository<Enchere, Long> {
     // Trouver le montant maximum pour un produit
     @Query("SELECT MAX(e.montant) FROM Enchere e WHERE e.produit.idproduit = :produitId")
     Optional<Double> findMaxMontantByProduitId(@Param("produitId") Long produitId);
+
+
 }

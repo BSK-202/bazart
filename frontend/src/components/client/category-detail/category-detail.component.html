@@ -4,9 +4,26 @@
     <div class="breadcrumb">
       <a routerLink="/domaines" class="breadcrumb-link">Domaines</a>
       <span class="breadcrumb-separator">/</span>
-      <a [routerLink]="['/domaines', domaineSlug]" class="breadcrumb-link">{{ domaineSlug | titlecase }}</a>
-      <span class="breadcrumb-separator">/</span>
+      <a
+        *ngIf="domaineSlug"
+        [routerLink]="['/domaines', domaineSlug]"
+        class="breadcrumb-link">
+        {{ domaineSlug | titlecase }}
+      </a>      <span class="breadcrumb-separator">/</span>
+      <span *ngIf="domaineSlug" class="breadcrumb-separator">/</span>
+
+
+      <a
+        *ngIf="!domaineSlug"
+        routerLink="/categories"
+        class="breadcrumb-link">
+        Catégories
+      </a>
+
+      <span *ngIf="!domaineSlug" class="breadcrumb-separator">/</span>
+
       <span class="breadcrumb-current">{{ currentCategory?.nom || (categorieSlug | titlecase) }}</span>
+
     </div>
   </div>
 

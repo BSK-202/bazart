@@ -3,6 +3,10 @@ package com.marketplace.catalog.service;
 import com.marketplace.catalog.entity.Produit;
 import com.marketplace.catalog.entity.ProduitImage;
 import com.marketplace.catalog.repository.ProduitRepository;
+import com.marketplace.interaction.entity.Commentaire;
+import com.marketplace.interaction.entity.Interaction;
+import com.marketplace.interaction.repository.CommentaireRepository;
+import com.marketplace.interaction.repository.InteractionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -185,4 +189,68 @@ public class ProduitServiceImpl implements ProduitService {
         }
     }
 
+    // Dans ProduitServiceImpl.java
+    @Autowired
+    private InteractionRepository interactionRepository;
+
+    @Autowired
+    private CommentaireRepository commentaireRepository;
+
+    @Override
+    public Set<Long> getUsersWhoInteractedWithProduct(Long produitId) {
+        Set<Long> userIds = new HashSet<>();
+
+        try {
+            System.out.println("🔍 Recherche des utilisateurs ayant interagi avec le produit: " + produitId);
+
+            // Récupérer les utilisateurs qui ont liké le produit
+            List<Interaction> likes = interactionRepository.findByProduitIdAndType(produitId, "like");
+            System.out.println("❤️ " + likes.size() + " likes trouvés pour le produit " + produitId);
+
+            for (Interaction interaction : likes) {
+                if (interaction.getClient() != null) {
+                    userIds.add(interaction.getClient().getIdclient());
+                    System.out.println("✅ Ajout utilisateur (like): " + interaction.getClient().getIdclient());
+                }
+            }
+
+            // Récupérer les utilisateurs qui ont commenté le produit
+            List<Commentaire> commentaires = commentaireRepository.findByProduitId(produitId);
+            System.out.println("💬 " + commentaires.size() + " commentaires trouvés pour le produit " + produitId);
+
+            for (Commentaire commentaire : commentaires) {
+                if (commentaire.getClient() != null) {
+                    userIds.add(commentaire.getClient().getIdclient());
+                    System.out.println("✅ Ajout utilisateur (commentaire): " + commentaire.getClient().getIdclient());
+                }
+            }
+
+            // Exclure le vendeur lui-même
+            Produit produit = produitRepository.findById(produitId).orElse(null);
+            if (produit != null && produit.getVendeur() != null) {
+                Long vendeurId = produit.getVendeur().getIdclient();
+                boolean removed = userIds.remove(vendeurId);
+                if (removed) {
+                    System.out.println("🚫 Exclusion du vendeur: " + vendeurId);
+                }
+            }
+
+            System.out.println("📊 Total utilisateurs à notifier: " + userIds.size());
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la récupération des utilisateurs ayant interagi: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return userIds;
+    }
+
+    public List<Produit> getProduitsGagnesByAcheteurId(Long acheteurId) {
+        // Implémentation pour récupérer les produits gagnés par un acheteur
+        return produitRepository.findByAcheteurIdAndEtat(acheteurId, "enchere_termine");
+    }
+    public List<Produit> getProduitsByVendeurId(Long vendeurId) {
+        // Implémentation pour récupérer les produits par vendeur
+        return produitRepository.findByVendeurId(vendeurId);
+    }
 }

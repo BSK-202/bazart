@@ -13,13 +13,16 @@ import { AllCategoriesAdminComponent } from '../components/admin/all-categories-
 import { CategoryDetailAdminComponent } from '../components/admin/category-detail-admin/category-detail-admin.component';
 import { WalletComponent } from '../components/client/wallet/wallet.component';
 import { AdminAuthGuard } from '../services/admin-auth.guard';
-import { UserProfileComponent } from '../components/client/profile/profile.component';
+import UserProfileComponent from '../components/client/profile/profile.component';
 import { ProductDetailComponent } from '../components/client/Product-detail/Product-detail.component';
 import { ExpertsInactifsComponent } from '../components/admin/experts-inactif-admin/experts-inactif-admin.component';
 import { ExpertDetailsComponent } from '../components/admin/expert-details-admin/expert-details-admin.component';
 import { ExpertsActifsAdminComponent } from '../components/admin/experts-actifs-admin/experts-actifs-admin.component';
 import { SingupexpertComponent } from '../components/signupexpert/signupexpert.component';
 import {EncheresComponent} from '../components/client/echeres/encheres.component';
+import {
+  CategoriesWithoutDomaineComponent
+} from '../components/client/CategoriesWithoutDomaine/categories-without-domaine.component';
 
 export const routes: Routes = [
   // ===== PUBLIC CLIENT ROUTES =====
@@ -35,6 +38,12 @@ export const routes: Routes = [
     path: 'domaines/:domaineSlug/categories/:slug1/:slug2',
     component: CategoryDetailComponent
   },
+
+  {
+    path: 'categories/:slug/:id',
+    component: CategoryDetailComponent
+  },
+
   {
     path: 'produit/:id',
     component: ProductDetailComponent
@@ -57,6 +66,12 @@ export const routes: Routes = [
   {
     path: 'demande-expertise',
     component: SingupexpertComponent
+  },
+
+  // Ajoutez cette route
+  {
+    path: 'categories',
+    component: CategoriesWithoutDomaineComponent
   },
 
   // ===== PROTECTED CLIENT ROUTES =====

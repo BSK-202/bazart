@@ -55,5 +55,9 @@ public class CategorieService {
         return categorieRepository.findByDomaine_IdDomaine(idDomaine).size();
     }
 
+    // CategorieService.java - Ajoutez cette méthode
 
+    public List<Categorie> getAllCategories() {
+        return categorieRepository.findAll();
+    }
 }

@@ -186,4 +186,86 @@ public class InteractionController {
             return ResponseEntity.status(500).build();
         }
     }
+
+
+    @GetMapping("/produits/{etat}/likes-count")
+    public ResponseEntity<Map<Long, Integer>> getLikesCountByProduitEtat(@PathVariable String etat) {
+        try {
+            System.out.println("🎯 Récupération des likes pour les produits avec état: " + etat);
+
+            // Récupérer tous les produits avec l'état spécifié
+            List<Produit> produits = produitService.getProduitsByEtat(etat);
+
+            // Créer une map pour stocker les compteurs de likes
+            Map<Long, Integer> likesCountMap = new HashMap<>();
+
+            // Pour chaque produit, compter les interactions
+            for (Produit produit : produits) {
+                int likesCount = interactionService.getInteractionCount(produit.getIdproduit());
+                likesCountMap.put(produit.getIdproduit(), likesCount);
+            }
+
+            System.out.println("✅ Likes count map pour état " + etat + ": " + likesCountMap);
+            return ResponseEntity.ok(likesCountMap);
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la récupération des likes par état: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/vendeur/{vendeurId}/likes-count")
+    public ResponseEntity<Map<Long, Integer>> getLikesCountForVendeurProduits(@PathVariable Long vendeurId) {
+        try {
+            System.out.println("🎯 Récupération des likes pour tous les produits du vendeur: " + vendeurId);
+
+            // Récupérer tous les produits du vendeur
+            List<Produit> produits = produitService.getProduitsByVendeurId(vendeurId);
+
+            // Créer une map pour stocker les compteurs de likes
+            Map<Long, Integer> likesCountMap = new HashMap<>();
+
+            // Pour chaque produit, compter les interactions
+            for (Produit produit : produits) {
+                int likesCount = interactionService.getInteractionCount(produit.getIdproduit());
+                likesCountMap.put(produit.getIdproduit(), likesCount);
+            }
+
+            System.out.println("✅ Likes count map pour vendeur " + vendeurId + ": " + likesCountMap.size() + " produits");
+            return ResponseEntity.ok(likesCountMap);
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la récupération des likes par vendeur: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/acheteur/{acheteurId}/likes-count")
+    public ResponseEntity<Map<Long, Integer>> getLikesCountForAcheteurProduits(@PathVariable Long acheteurId) {
+        try {
+            System.out.println("🎯 Récupération des likes pour les produits gagnés par: " + acheteurId);
+
+            // Récupérer tous les produits gagnés par l'acheteur
+            List<Produit> produits = produitService.getProduitsGagnesByAcheteurId(acheteurId);
+
+            // Créer une map pour stocker les compteurs de likes
+            Map<Long, Integer> likesCountMap = new HashMap<>();
+
+            // Pour chaque produit, compter les interactions
+            for (Produit produit : produits) {
+                int likesCount = interactionService.getInteractionCount(produit.getIdproduit());
+                likesCountMap.put(produit.getIdproduit(), likesCount);
+            }
+
+            System.out.println("✅ Likes count map pour acheteur " + acheteurId + ": " + likesCountMap.size() + " produits");
+            return ResponseEntity.ok(likesCountMap);
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la récupération des likes par acheteur: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
+    }
 }
