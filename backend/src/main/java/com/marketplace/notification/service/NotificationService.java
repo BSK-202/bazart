@@ -39,7 +39,8 @@ public class NotificationService {
      * Main method to process events and send notifications.
      * Customizes content based on type and provided data.
      */
-    public void processEvent(NotificationType type, Set<Long> recipientIds, Map<String, Object> data) {
+    public void processEvent(NotificationType type, Set<Long> recipientIds, Map<String, Object> data)
+    {
         String rendered = buildMessageForType(type, data);
 
         for (Long userId : recipientIds) {
@@ -107,6 +108,22 @@ public class NotificationService {
 	            }
 	            return msg;
 	        }
+            // produit accepté MAIS expertise obligatoire
+            case PRODUCT_EXPERTISE_REQUIRED: {
+                String productName = (String) data.getOrDefault("productName", "Produit");
+                String method = (String) data.getOrDefault("expertiseMethod", "en ligne ou présentielle");
+                return "Votre produit \"" + productName + "\" a été accepté.\n" +
+                        "Vous avez choisi une expertise " + method + ". " +
+                        "Merci de planifier une date d'expertise dans votre espace vendeur.";
+            }
+            // quand tu planifieras la date (plus tard)
+            case PRODUCT_EXPERTISE_PLANNED: {
+                String productName = (String) data.getOrDefault("productName", "Produit");
+                String dateTime = (String) data.getOrDefault("dateTime", "une date à venir");
+                String method = (String) data.getOrDefault("expertiseMethod", "en ligne");
+                return "L'expertise " + method + " pour votre produit \"" + productName +
+                        "\" a été planifiée le " + dateTime + ".";
+            }
             case AUCTION_START:
                 String auctionProduct = (String) data.getOrDefault("productName", "Produit");
                 return "Une nouvelle enchère commence pour \"" + auctionProduct + "\".";

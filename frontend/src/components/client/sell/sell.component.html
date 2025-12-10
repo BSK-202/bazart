@@ -95,20 +95,94 @@
                 </select>
               </div>
 
+              <!-- Choix d'expertise -->
               <div class="form-group">
-                <label class="form-label">
-                  <input type="checkbox" [(ngModel)]="formData.isExpertised" name="isExpertised" />
-                  Expertisé ?
-                </label>
+                <label class="form-label">Souhaitez-vous faire expertiser ce produit ?</label>
+                <div class="form-check">
+                  <input
+                    type="checkbox"
+                    id="isExpertised"
+                    [(ngModel)]="formData.isExpertised"
+                    name="isExpertised"
+                  />
+                  <label for="isExpertised">Oui, je veux une expertise avant mise en enchère</label>
+                </div>
               </div>
 
               <div class="form-group" *ngIf="formData.isExpertised">
-                <label class="form-label">Méthode d'expertise *</label>
-                <select [(ngModel)]="formData.expertiseType" name="expertiseType" class="form-select" required>
-                  <option value="">Choisissez une méthode</option>
-                  <option value="online">Expertisé par admin en ligne</option>
-                  <option value="remote">Expertisé par admin à distance</option>
-                </select>
+                <label class="form-label">Type d'expertise *</label>
+                <div class="form-check-group">
+                  <label class="form-check-inline">
+                    <input
+                      type="radio"
+                      name="expertiseType"
+                      [(ngModel)]="formData.expertiseType"
+                      value="online"
+                      required
+                    />
+                    En ligne
+                  </label>
+                  <label class="form-check-inline">
+                    <input
+                      type="radio"
+                      name="expertiseType"
+                      [(ngModel)]="formData.expertiseType"
+                      value="onsite"
+                      required
+                    />
+                    Sur place (au magasin Bazart)
+                  </label>
+                </div>
+                <small class="form-text" *ngIf="formData.expertiseType === 'onsite'">
+                  L'expertise aura lieu dans notre magasin Bazart (adresse fixe).
+                </small>
+              </div>
+              <div class="form-group" *ngIf="formData.isExpertised && formData.expertiseType === 'onsite'">
+                <label class="form-label">
+                  Proposez jusqu'à 3 créneaux d'expertise dans les 4 prochains jours
+                </label>
+
+                <div class="slots-grid">
+                  <div class="slot-item">
+                    <label for="slot1">Créneau 1 *</label>
+                    <input
+                      id="slot1"
+                      type="datetime-local"
+                      class="form-input"
+                      [(ngModel)]="formData.expertiseSlot1"
+                      name="expertiseSlot1"
+                      required
+                    />
+                  </div>
+
+                  <div class="slot-item">
+                    <label for="slot2">Créneau 2 *</label>
+                    <input
+                      id="slot2"
+                      type="datetime-local"
+                      class="form-input"
+                      [(ngModel)]="formData.expertiseSlot2"
+                      name="expertiseSlot2"
+                      required
+                    />
+                  </div>
+
+                  <div class="slot-item">
+                    <label for="slot3">Créneau 3 *</label>
+                    <input
+                      id="slot3"
+                      type="datetime-local"
+                      class="form-input"
+                      [(ngModel)]="formData.expertiseSlot3"
+                      name="expertiseSlot3"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <small class="form-text">
+                  L'expert choisira un de ces créneaux. Veillez à être disponible à ces dates.
+                </small>
               </div>
 
               <div class="form-group full-width">

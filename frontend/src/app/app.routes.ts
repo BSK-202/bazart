@@ -23,6 +23,8 @@ import {EncheresComponent} from '../components/client/echeres/encheres.component
 import {
   CategoriesWithoutDomaineComponent
 } from '../components/client/CategoriesWithoutDomaine/categories-without-domaine.component';
+import { ExpertExpertiseListComponent } from '../components/expert/expertise-list/expert-expertise-list.component';
+import { ExpertiseDetailComponent } from '../components/expert/expertise-detail/expertise-detail.component';
 
 export const routes: Routes = [
   // ===== PUBLIC CLIENT ROUTES =====
@@ -131,7 +133,15 @@ export const routes: Routes = [
 
     ]
   },
-
+  // ===== Expertisation ROUTES =====
+  {
+    path: 'expert/expertises',
+    component: ExpertExpertiseListComponent
+  },
+  {
+    path: 'expert/expertise/:expertiseId',
+    component: ExpertiseDetailComponent
+  },
   // ===== REDIRECT ROUTES =====
   {
     path: '',

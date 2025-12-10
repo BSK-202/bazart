@@ -15,6 +15,7 @@ import com.marketplace.user.entity.Client;
 import com.marketplace.catalog.service.ProduitService;
 import com.marketplace.catalog.service.CategorieService;
 import com.marketplace.user.service.ClientService;
+import com.marketplace.wallet.service.Walletservice;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -33,6 +34,8 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.marketplace.expertise.entity.ExpertiseMethod;
+import com.marketplace.expertise.service.ExpertiseService;
 
 @RestController
 @RequestMapping("/api/produits")
@@ -45,6 +48,12 @@ public class ProduitController {
     private final ProduitRepository produitRepository; //  DÉCLARÉ
     private final NotificationService notificationService;
     private final AdminService adminService;
+    private final ExpertiseService expertiseService;
+
+    private final Walletservice walletservice;
+
+    private static final double ONLINE_PRICE = 50.0;
+    private static final double ONSITE_PRICE = 100.0;
     /*
     @Autowired
     private ImageVerificationService imageVerificationService;
@@ -58,13 +67,17 @@ public class ProduitController {
                              ClientService clientService,
                              ProduitRepository produitRepository,
                              NotificationService notificationService,
-                             AdminService adminService) {
+                             AdminService adminService,
+                             ExpertiseService expertiseService,
+                             Walletservice walletservice) {
         this.produitService = produitService;
         this.categorieService = categorieService;
         this.clientService = clientService;
         this.produitRepository = produitRepository;
         this.notificationService = notificationService;
         this.adminService = adminService;
+        this.expertiseService = expertiseService;
+        this.walletservice = walletservice;
     }
 
     // 🆕 ENDPOINT POUR SERVIR LES IMAGES
@@ -167,6 +180,54 @@ public class ProduitController {
             produit.setCategorie(categorie);
             produit.setVendeur(vendeur);
 
+            // 🆕 Méthode d'expertise
+            if (produitRequest.isAExpertise() && produitRequest.getExpertiseMethod() != null)
+            {
+                try {
+                    produit.setExpertiseMethod(
+                            ExpertiseMethod.valueOf(produitRequest.getExpertiseMethod().toUpperCase())
+                    );
+                } catch (IllegalArgumentException e) {
+                    // valeur non reconnue → par défaut ONLINE
+                    produit.setExpertiseMethod(ExpertiseMethod.ONLINE);
+                }
+            }
+
+            // 🆕 slots : parse les String ISO envoyées
+            if (produitRequest.isAExpertise()) {
+                if (produitRequest.getExpertiseSlot1() != null && !produitRequest.getExpertiseSlot1().isBlank()) {
+                    produit.setExpertiseSlot1(LocalDateTime.parse(produitRequest.getExpertiseSlot1()));
+                }
+                if (produitRequest.getExpertiseSlot2() != null && !produitRequest.getExpertiseSlot2().isBlank()) {
+                    produit.setExpertiseSlot2(LocalDateTime.parse(produitRequest.getExpertiseSlot2()));
+                }
+                if (produitRequest.getExpertiseSlot3() != null && !produitRequest.getExpertiseSlot3().isBlank()) {
+                    produit.setExpertiseSlot3(LocalDateTime.parse(produitRequest.getExpertiseSlot3()));
+                }
+            }
+
+            // ✅ Vérif/débit du wallet si expertise demandée
+            if (produitRequest.isAExpertise()) {
+                double ONLINE_PRICE = 50.0;
+                double ONSITE_PRICE = 100.0;
+                double price = (produitRequest.getExpertiseMethod() != null
+                        && produitRequest.getExpertiseMethod().equalsIgnoreCase("ONSITE"))
+                        ? ONSITE_PRICE
+                        : ONLINE_PRICE;
+
+                try {
+                    walletservice.debitWallet(
+                            vendeur,
+                            price,
+                            "Frais d'expertise " +
+                                    (price == ONSITE_PRICE ? "présentielle" : "en ligne") +
+                                    " pour le produit \"" + produitRequest.getNom() + "\""
+                    );
+                } catch (IllegalArgumentException ex) { // ex: "Solde insuffisant"
+                    return ResponseEntity.badRequest().body("Solde insuffisant pour lancer l'expertise.");
+                }
+            }
+
             Produit savedProduit = produitService.saveProduit(produit);
             Long produitId = savedProduit.getIdproduit();
             System.out.println("🎉 Produit créé avec ID: " + produitId);
@@ -261,8 +322,8 @@ public class ProduitController {
         response.setNombreCommentaires(produit.getCommentaires() != null ? produit.getCommentaires().size() : 0);
         // ✅ AJOUTER LA DURÉE D'ENCHÈRE
         response.setDureeEnchereJours(produit.getDureeEnchereJours());
+
         // Ajouter la date de publication
-        // ✅ CORRECTION: Utiliser camelCase partout
         if (produit.getDatePublication() != null) {
             response.setDatepublication(produit.getDatePublication().toString());
             System.out.println("📅 Date de publication convertie: " + produit.getDatePublication().toString());
@@ -270,12 +331,12 @@ public class ProduitController {
             System.out.println("⚠️ Date de publication est null");
             response.setDatepublication(LocalDateTime.now().toString());
         }
+
         // ✅ AJOUTER CES CHAMPS POUR L'ÉDITION
         if (produit.getCategorie() != null) {
             response.setCategorieId(produit.getCategorie().getIdCategorie());
             response.setCategorieNom(produit.getCategorie().getNomCategorie());
 
-            // ✅ AJOUTER L'ID DU DOMAINE POUR PRÉ-REMPLISSAGE
             if (produit.getCategorie().getDomaine() != null) {
                 response.setDomaineId(produit.getCategorie().getDomaine().getIdDomaine());
             }
@@ -285,15 +346,36 @@ public class ProduitController {
             response.setAcheteurId(produit.getAcheteur().getIdclient());
         }
 
-
         // ✅ NOUVEAU : Date d'enchère
         if (produit.getDateEnchere() != null) {
             response.setDateenchere(produit.getDateEnchere().toString());
         }
+
         response.setVendeurId(produit.getVendeur() != null ? produit.getVendeur().getIdclient() : null);
         response.setImages(produit.getImages() != null ?
                 produit.getImages().stream().map(ProduitImage::getUrl).collect(Collectors.toList())
                 : null);
+
+        // 🆕 ICI : mapping des infos d’expertise
+        response.setAExpertise(produit.isAExpertise());
+        response.setExpertiseMethod(
+                produit.getExpertiseMethod() != null ? produit.getExpertiseMethod().name() : null
+        );
+
+        if (produit.getExpertiseSlot1() != null) {
+            response.setExpertiseSlot1(produit.getExpertiseSlot1().toString());
+        }
+        if (produit.getExpertiseSlot2() != null) {
+            response.setExpertiseSlot2(produit.getExpertiseSlot2().toString());
+        }
+        if (produit.getExpertiseSlot3() != null) {
+            response.setExpertiseSlot3(produit.getExpertiseSlot3().toString());
+        }
+        response.setExpertisePublicComment(produit.getExpertisePublicComment());
+        response.setExpertiseAuthenticityLevel(produit.getExpertiseAuthenticityLevel());
+        response.setExpertiseProductCondition(produit.getExpertiseProductCondition());
+        response.setExpertiseApproved(produit.isExpertiseApproved());
+        response.setExpertiseRequestId(produit.getExpertiseRequestId());
 
         return response;
     }
@@ -368,14 +450,26 @@ public class ProduitController {
             String newState = request.get("etat");
             String noteAdmin = request.get("noteAdmin");
 
-            System.out.println("🔄 Mise à jour état produit ID: " + id + " -> " + newState);
-
             Produit produit = produitService.getProduitById(id)
                     .orElseThrow(() -> new RuntimeException("Produit non trouvé avec ID: " + id));
 
-            produit.setEtat(newState);
+            // === PARTIE EXPERTISE / CHANGEMENT D'ÉTAT ===
+            if ("accepte".equalsIgnoreCase(newState) && produit.isAExpertise()) {
 
-            Produit updatedProduit = produitService.saveProduit(produit);
+                // 1) Mettre l'état du produit en attente d'expertise
+                produit.setEtat("en_attente_expertise");
+                produit = produitService.saveProduit(produit);
+
+                // 2) Créer la demande d'expertise (slots + assignation expert + deadline 24h)
+                expertiseService.createRequestAfterProductAccepted(produit.getIdproduit());
+
+            } else {
+                // Cas normal : juste changement d'état sans expertise
+                produit.setEtat(newState);
+                produit = produitService.saveProduit(produit);
+            }
+
+            Produit updatedProduit = produit;
 
             // === NOTIFICATION LOGIC STARTS HERE ===
             Map<String, Object> notifData = new HashMap<>();
@@ -386,6 +480,7 @@ public class ProduitController {
 
             Set<Long> recipients = Set.of(updatedProduit.getVendeur().getIdclient());
 
+            // 1) Notif principale en fonction de l'état demandé par l'admin
             NotificationType notifType;
             if ("accepte".equalsIgnoreCase(newState) || "Accepté".equalsIgnoreCase(newState)) {
                 notifType = NotificationType.PRODUCT_ACCEPTED;
@@ -400,16 +495,40 @@ public class ProduitController {
                     recipients,
                     notifData
             );
-            // === NOTIFICATION LOGIC ENDS HERE ===
-            System.out.println("✅ État produit mis à jour: " + updatedProduit.getEtat());
 
+            // 2) CAS SPÉCIAL : produit accepté + expertise demandée
+            if (("accepte".equalsIgnoreCase(newState) || "Accepté".equalsIgnoreCase(newState))
+                    && updatedProduit.isAExpertise()) {
+
+                Map<String, Object> expertiseNotifData = new HashMap<>();
+                expertiseNotifData.put("productName", updatedProduit.getNom());
+
+                String methodeStr = "d'expertise";
+                if (updatedProduit.getExpertiseMethod() != null) {
+                    switch (updatedProduit.getExpertiseMethod().name()) {
+                        case "ONLINE" -> methodeStr = "d'expertise en ligne";
+                        case "ONSITE" -> methodeStr = "d'expertise présentielle";
+                    }
+                }
+                expertiseNotifData.put("expertiseMethod", methodeStr);
+
+                notificationService.processEvent(
+                        NotificationType.PRODUCT_EXPERTISE_REQUIRED,
+                        recipients,
+                        expertiseNotifData
+                );
+            }
+            // === NOTIFICATION LOGIC ENDS HERE ===
+
+            String msgEtat = "accepte".equalsIgnoreCase(newState) ? "accepté" : newState;
             return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", "Produit " + (newState.equals("accepte") ? "accepté" : "refusé") + " avec succès"
+                    "message", "Produit " + msgEtat + " avec succès"
             ));
 
         } catch (Exception e) {
             System.err.println("❌ Erreur mise à jour état produit: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(500).body(Map.of(
                     "success", false,
                     "message", "Erreur lors de la mise à jour du produit"

@@ -65,10 +65,20 @@
           (click)="goToProductDetail(produit.id)">
 
           <!-- Contenu de la carte -->
-          <div class="auction-image">
+          <div class="auction-image" style="position: relative;">
             <img [src]="produit.imagePrincipale" [alt]="produit.nom" class="item-image">
-            <div class="time-badge" [class]="getEtatClass(produit.etat)">
-              {{ getEtatDisplayText(produit.etat) }}
+
+            <div class="time-badge">En cours</div>
+
+            <!-- Badge expertise - POSITIONNÉ EN ABSOLU SUR L'IMAGE -->
+            <div *ngIf="produit.etat === 'expertise_validee'"
+                 style="position: absolute; top: 12px; left: 12px; z-index: 10;">
+        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; background: linear-gradient(to right, #10b981, #059669); color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);">
+          <svg style="height: 10px; width: 10px;" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+          <span style="color: white; font-size: 10px;">Expertisé</span>
+        </span>
             </div>
           </div>
 

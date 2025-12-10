@@ -49,6 +49,11 @@ interface Produit {
   aExpertise: boolean;
   dateenchere?: string;
   dureeEnchereJours?: number;
+  expertisePublicComment?: string;
+  expertiseAuthenticityLevel?: string;
+  expertiseProductCondition?: string;
+  expertiseApproved?: boolean;
+  expertiseRequestId?: number;
 }
 
 @Component({
@@ -166,6 +171,13 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         this.isLoadingEncheres = false;
       }
     });
+  }
+
+  // URL de téléchargement du rapport (ajoutez ce getter)
+  get reportDownloadUrl(): string | null {
+    if (!this.produit?.expertiseRequestId) return null;
+    // Adapte l’endpoint si nécessaire
+    return `${this.API_BASE_URL}/api/expertise/requests/${this.produit.expertiseRequestId}/report-pdf`;
   }
 
   // Formater le temps de l'enchère

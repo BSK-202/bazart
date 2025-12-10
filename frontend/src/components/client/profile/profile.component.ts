@@ -12,6 +12,7 @@ interface Produit {
   prixDebut: number;
   prixFin: number | null;
   etat: string;
+  expertiseApproved?: boolean;
   vendeurNom: string;
   acheteurNom: string | null;
   categorieNom: string;
@@ -441,19 +442,19 @@ class UserProfileComponent implements OnInit {
             .filter(p => p.etat === 'vendu' || p.etat === 'enchere_termine')
             .map(p => this.ajouterImagePrincipale(p));
 
-          this.produitsPublies = produitsAvecLikes
-            .filter(p => p.etat === 'accepter' || p.etat === 'accepte')
-            .map(p => this.ajouterImagePrincipale(p));
+        this.produitsPublies = produitsAvecLikes
+          .filter((p) => ["accepter", "accepte", "expertise_validee"].includes(p.etat))
+          .map((p) => this.ajouterImagePrincipale(p))
 
-          this.produitsEnAttente = produitsAvecLikes
-            .filter(p => p.etat === 'en_attente')
-            .map(p => this.ajouterImagePrincipale(p));
+            this.produitsEnAttente = produitsAvecLikes
+          .filter(p => p.etat === 'en_attente')
+          .map(p => this.ajouterImagePrincipale(p));
 
-          console.log('📊 Produits triés avec likes:');
-          console.log('   - En enchère:', this.produitsEncheres.length);
-          console.log('   - Vendus:', this.produitsVendus.length);
-          console.log('   - Publiés:', this.produitsPublies.length);
-          console.log('   - En attente:', this.produitsEnAttente.length);
+        console.log('📊 Produits triés avec likes:');
+        console.log('   - En enchère:', this.produitsEncheres.length);
+        console.log('   - Vendus:', this.produitsVendus.length);
+        console.log('   - Publiés:', this.produitsPublies.length);
+        console.log('   - En attente:', this.produitsEnAttente.length);
 
           // Mettre à jour les statistiques
           this.updateUserStats();
@@ -461,7 +462,7 @@ class UserProfileComponent implements OnInit {
 
         // Charger les favoris et les produits gagnés
         this.loadProduitsFavoris(userId);
-        this.loadProduitsGagnes(userId);
+        this.loadProduitsGagnes(userId); // ← AJOUTER CETTE LIGNE
       },
       error: (error) => {
         console.error('❌ Erreur lors du chargement des produits:', error);

@@ -44,6 +44,4 @@ public interface ExpertRepository extends JpaRepository<Expert, Long> {
 
 
     List<Expert> findByIsActiveTrue();
-
-
 }

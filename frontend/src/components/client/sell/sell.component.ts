@@ -22,7 +22,12 @@ interface FormData {
   condition: string;
   images: File[];
   isExpertised: boolean;
-  expertiseType: string;
+  expertiseType: string;   // 'online' | 'onsite'
+
+    // 🆕 3 créneaux proposés par le vendeur (string ISO pour backend)
+    expertiseSlot1: string;
+    expertiseSlot2: string;
+    expertiseSlot3: string;
 }
 
 @Component({
@@ -43,7 +48,10 @@ export class SellComponent implements OnInit {
     condition: '',
     images: [],
     isExpertised: false,
-    expertiseType: ''
+    expertiseType: '',
+    expertiseSlot1: '',
+    expertiseSlot2: '',
+    expertiseSlot3: ''
   };
 
   imagePreviews: string[] = [];
@@ -179,6 +187,18 @@ export class SellComponent implements OnInit {
     this.imagePreviews.splice(index, 1);
   }
 
+
+  private isSlotWithinNext4Days(slot?: string): boolean {
+    if (!slot) return false;
+    const d = new Date(slot);
+    if (isNaN(d.getTime())) return false;
+
+    const now = new Date();
+    const limit = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000); // +4 jours
+    return d >= now && d <= limit;
+  }
+
+
   onSubmit() {
     // Vérification des champs obligatoires
     if (!this.formData.title || !this.formData.domain || !this.formData.category ||
@@ -199,12 +219,20 @@ export class SellComponent implements OnInit {
       return;
     }
 
+    if (this.formData.isExpertised) {
+      if (!this.formData.expertiseType) {
+        alert("Veuillez choisir le type d'expertise (en ligne ou sur place).");
+        return;
+      }
+    }
+
     console.log("✅ Formulaire validé, préparation de l'envoi...");
+
 
     const formDataToSend = new FormData();
 
     // Création de l'objet produit
-    const produit = {
+    const produit: any = {
       nom: this.formData.title,
       description: this.formData.description,
       prixDebut: Number(this.formData.startingPrice),
@@ -214,6 +242,45 @@ export class SellComponent implements OnInit {
       vendeurId: vendeurId
     };
 
+    // 🆕 Si le vendeur demande une expertise, envoyer le type + les 3 créneaux
+    // Si expertise demandée, vérifier les créneaux dans les 4 prochains jours
+    // Si expertise demandée
+    if (this.formData.isExpertised) {
+
+      // Expertise type requis
+      if (!this.formData.expertiseType) {
+        alert("Veuillez choisir le type d'expertise (en ligne ou sur place).");
+        return;
+      }
+
+      // Mode ONSITE : vérifier les créneaux J+4 et les envoyer
+      if (this.formData.expertiseType === 'onsite') {
+        const slots = [
+          { name: 'Créneau 1', value: this.formData.expertiseSlot1 },
+          { name: 'Créneau 2', value: this.formData.expertiseSlot2 },
+          { name: 'Créneau 3', value: this.formData.expertiseSlot3 },
+        ];
+
+        for (const s of slots) {
+          if (!this.isSlotWithinNext4Days(s.value)) {
+            alert(`⚠️ ${s.name} doit être dans les 4 prochains jours (et après maintenant).`);
+            return;
+          }
+        }
+
+        produit.expertiseMethod = 'ONSITE';
+        produit.expertiseSlot1 = this.formData.expertiseSlot1 || null;
+        produit.expertiseSlot2 = this.formData.expertiseSlot2 || null;
+        produit.expertiseSlot3 = this.formData.expertiseSlot3 || null;
+      } else {
+        // Mode ONLINE : pas de slots envoyés
+        produit.expertiseMethod = 'ONLINE';
+        produit.expertiseSlot1 = null;
+        produit.expertiseSlot2 = null;
+        produit.expertiseSlot3 = null;
+      }
+
+    }
     formDataToSend.append("produit", new Blob([JSON.stringify(produit)], { type: "application/json" }));
 
     // Ajout des images
@@ -227,14 +294,20 @@ export class SellComponent implements OnInit {
       next: (response) => {
         console.log("✅ Produit créé avec succès!", response);
         alert("🎉 Votre produit a été créé avec succès et est en attente de validation !");
-
-        // Reset du formulaire après succès
         this.resetForm();
       },
       error: (err) => {
         console.error("❌ Erreur backend:", err);
-        const msg = err.error?.message || "Une erreur inattendue s'est produite.";
-        alert("❌ Échec de la création du produit :\n\n" + msg);
+        const status = err.status;
+        const msg = err.error || err.error?.message || "Une erreur inattendue s'est produite.";
+
+        // Cas spécifique solde insuffisant (HTTP 400)
+        if (status === 400 && typeof msg === 'string' && msg.includes("Solde insuffisant")) {
+          alert("❌ Solde insuffisant pour lancer l'expertise. Veuillez recharger votre wallet.");
+          return;
+        }
+
+        alert("❌ Échec de la création du produit :\n\n" + (typeof msg === 'string' ? msg : "Erreur inconnue."));
       }
     });
   }
@@ -249,7 +322,10 @@ export class SellComponent implements OnInit {
       condition: '',
       images: [],
       isExpertised: false,
-      expertiseType: ''
+      expertiseType: '',
+      expertiseSlot1: '',
+      expertiseSlot2: '',
+      expertiseSlot3: ''
     };
     this.imagePreviews = [];
   }
