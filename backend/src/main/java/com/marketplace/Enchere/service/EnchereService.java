@@ -39,7 +39,7 @@ public class EnchereService {
         Produit produit = produitService.getProduitById(produitId)
                 .orElseThrow(() -> new RuntimeException("Produit non trouvé"));
 
-        if (!"en_enchere".equals(produit.getEtat())) {
+        if (!"en_enchere".equals(produit.getEtat()) && !"relance".equals(produit.getEtat()) ) {
             throw new RuntimeException("Le produit n'est pas en enchère");
         }
 
@@ -62,6 +62,8 @@ public class EnchereService {
         if (montant <= produit.getPrixDebut()) {
             throw new RuntimeException("Le montant doit être supérieur au prix de départ " + produit.getPrixDebut());
         }
+
+        produit.setPrixFin(montant);
 
         // Créer et sauvegarder l'enchère
         Enchere enchere = new Enchere(client, produit, montant);
@@ -260,7 +262,7 @@ public class EnchereService {
 
                 if (topEnchere.isPresent() &&
                         topEnchere.get().getEncherisseur().getIdclient().equals(clientId) &&
-                        "en_enchere".equals(produit.getEtat())) {
+                        ("en_enchere".equals(produit.getEtat()) || "relance".equals(produit.getEtat()) || "enchere_termine".equals(produit.getEtat()))) {
 
                     // L'utilisateur est en tête de cette enchère
                     Map<String, Object> enchereInfo = new HashMap<>();

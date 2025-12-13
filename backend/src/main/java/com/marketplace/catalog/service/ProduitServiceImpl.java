@@ -261,4 +261,6 @@ public class ProduitServiceImpl implements ProduitService {
         // Implémentation pour récupérer les produits par vendeur
         return produitRepository.findByVendeurId(vendeurId);
     }
+
+
 }

@@ -127,6 +127,18 @@ public class NotificationService {
             case AUCTION_START:
                 String auctionProduct = (String) data.getOrDefault("productName", "Produit");
                 return "Une nouvelle enchère commence pour \"" + auctionProduct + "\".";
+            case AUCTION_END: {
+                String productName = (String) data.getOrDefault("productName", "Produit");
+                String winnerName = (String) data.getOrDefault("winnerName", "un acheteur");
+                Object winningAmount = data.getOrDefault("winningAmount", null);
+                String amountStr = winningAmount != null ? String.format("%.2f DH", winningAmount) : "";
+
+                return "⏰ L'enchère est terminée !\n" +
+                        "🏆 Produit: \"" + productName + "\"\n" +
+                        "Gagnant: " + winnerName +
+                        (amountStr.isEmpty() ? "" : "\nMontant gagnant: " + amountStr) + "\n" +
+                        "Merci pour votre participation !";
+            }
             case NEW_BID:
                 String bidUser = (String) data.getOrDefault("bidUserName", "Un utilisateur");
                 String bidAmount = String.valueOf(data.getOrDefault("bidAmount", ""));
@@ -135,15 +147,28 @@ public class NotificationService {
             case OUTBID:
                 String outbidProduct = (String) data.getOrDefault("productName", "Produit");
                 return "Vous avez été surenchéri sur \"" + outbidProduct + "\".";
-            case AUCTION_WON:
-                String auctionWonProduct = (String) data.getOrDefault("productName", "Produit");
-                return "Félicitations ! Vous avez remporté l'enchère pour \"" + auctionWonProduct + "\".";
+            case AUCTION_WON: {
+                String productName = (String) data.getOrDefault("productName", "Produit");
+                Object winningAmount = data.getOrDefault("winningAmount", null);
+                String amountStr = winningAmount != null ? String.format("%.2f DH", winningAmount) : "";
+
+                return "🏆 Félicitations ! Vous avez gagné l'enchère pour \"" + productName + "\"" +
+                        (amountStr.isEmpty() ? " !" : " pour " + amountStr + " !") +
+                        "\nContactez le vendeur pour finaliser la transaction.";
+            }
             case PRODUCT_DELIVERED:
                 String deliveredProduct = (String) data.getOrDefault("productName", "Produit");
                 return "Votre produit \"" + deliveredProduct + "\" a été livré.";
-            case PRODUCT_SOLD:
-                String soldProduct = (String) data.getOrDefault("productName", "Produit");
-                return "Votre produit \"" + soldProduct + "\" a été vendu.";
+            case PRODUCT_SOLD: {
+                String productName = (String) data.getOrDefault("productName", "Produit");
+                Object winningAmount = data.getOrDefault("winningAmount", null);
+                String amountStr = winningAmount != null ? String.format("%.2f DH", winningAmount) : "";
+                String winnerName = (String) data.getOrDefault("winnerName", "un acheteur");
+
+                return "💰 l' enchère de votre produit \"" + productName + "\" a été terminéé" +
+                        (amountStr.isEmpty() ? " !" : " pour " + amountStr + " !") +
+                        "\nLe gagnant "+ winnerName +" va vous contacter pour la livraison.";
+            }
             case ADMIN_ALERT:
                 String adminMessage = (String) data.getOrDefault("adminMessage", "Message de l'administrateur.");
                 return "Message de l'administrateur : " + adminMessage;
@@ -157,6 +182,31 @@ public class NotificationService {
                 String paymentProductSent = (String) data.getOrDefault("productName", "Produit");
                 String paymentAmountSent = String.valueOf(data.getOrDefault("amount", ""));
                 return "Vous avez envoyé un paiement de " + paymentAmountSent + " DH pour \"" + paymentProductSent + "\".";
+            case TRANSACTION_ACCEPTED: {
+                String productName = (String) data.getOrDefault("productName", "Produit");
+                String buyerName = (String) data.getOrDefault("buyerName", "un acheteur");
+                Object amount = data.getOrDefault("amount", null);
+                String amountStr = amount != null ? String.format("%.2f DH", amount) : "";
+
+                return "✅ Transaction acceptée !\n" +
+                        "Votre produit \"" + productName + "\" a été accepté par le gagnant " +
+                        buyerName + ".\n" +
+                        (amountStr.isEmpty() ? "" : "Vous avez été remboursé de " + amountStr + ".\n") +
+                        "La transaction est maintenant complète.";
+            }
+            case TRANSACTION_ANNULEE: {
+                System.out.println("🎯 ENTRÉE dans case TRANSACTION_ANNULEE");
+                String productName = (String) data.getOrDefault("productName", "Produit");
+                String buyerName = (String) data.getOrDefault("buyerName", "un acheteur");
+                Object amount = data.getOrDefault("amount", null);
+                String amountStr = amount != null ? String.format("%.2f DH", amount) : "";
+
+                return "❌ Transaction annulée !\n" +
+                        "La transaction pour votre produit \"" + productName + "\" avec " +
+                        buyerName + " a été annulée.\n" +
+                        (amountStr.isEmpty() ? "" : "Le montant de " + amountStr + " a été remboursé à ") +buyerName+
+                        "La transaction est maintenant terminée.";
+            }
             case MESSAGE:
                 String customMessage = (String) data.getOrDefault("message", "Vous avez un nouveau message.");
                 return customMessage;

@@ -1,5 +1,6 @@
 package com.marketplace.catalog.controller;
 
+import com.marketplace.Enchere.entity.Enchere;
 import com.marketplace.admin.entity.Admin;
 import com.marketplace.admin.service.AdminService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,6 +37,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import com.marketplace.expertise.entity.ExpertiseMethod;
 import com.marketplace.expertise.service.ExpertiseService;
+import com.marketplace.Enchere.repository.EnchereRepository;
+
 
 @RestController
 @RequestMapping("/api/produits")
@@ -49,6 +52,7 @@ public class ProduitController {
     private final NotificationService notificationService;
     private final AdminService adminService;
     private final ExpertiseService expertiseService;
+    private final EnchereRepository enchereRepository; // 🆕 AJOUTER
 
     private final Walletservice walletservice;
 
@@ -69,7 +73,7 @@ public class ProduitController {
                              NotificationService notificationService,
                              AdminService adminService,
                              ExpertiseService expertiseService,
-                             Walletservice walletservice) {
+                             Walletservice walletservice,EnchereRepository enchereRepository) {
         this.produitService = produitService;
         this.categorieService = categorieService;
         this.clientService = clientService;
@@ -78,6 +82,7 @@ public class ProduitController {
         this.adminService = adminService;
         this.expertiseService = expertiseService;
         this.walletservice = walletservice;
+        this.enchereRepository = enchereRepository; // 🆕 AJOUTER
     }
 
     // 🆕 ENDPOINT POUR SERVIR LES IMAGES
@@ -486,7 +491,33 @@ public class ProduitController {
                 notifType = NotificationType.PRODUCT_ACCEPTED;
             } else if ("refuse".equalsIgnoreCase(newState) || "Refusé".equalsIgnoreCase(newState)) {
                 notifType = NotificationType.PRODUCT_REFUSED;
-            } else {
+            }else if ("vendu".equalsIgnoreCase(newState)) {
+                notifType = NotificationType.TRANSACTION_ACCEPTED;
+
+                // Ajouter des informations spécifiques pour la notification de transaction
+                if (produit.getAcheteur() != null) {
+                    String buyerName = produit.getAcheteur().getPrenom() + " " + produit.getAcheteur().getNom();
+                    notifData.put("buyerName", buyerName);
+                }
+
+                if (produit.getPrixFin() != null) {
+                    notifData.put("amount", produit.getPrixFin());
+                }
+            }
+            else if ("transaction_annulee".equalsIgnoreCase(newState)) {
+                notifType = NotificationType.TRANSACTION_ANNULEE;
+
+                // Ajouter des informations spécifiques pour la notification de transaction
+                if (produit.getAcheteur() != null) {
+                    String buyerName = produit.getAcheteur().getPrenom() + " " + produit.getAcheteur().getNom();
+                    notifData.put("buyerName", buyerName);
+                }
+
+                if (produit.getPrixFin() != null) {
+                    notifData.put("amount", produit.getPrixFin());
+                }
+            }
+            else {
                 notifType = NotificationType.GENERIC;
             }
 
@@ -567,8 +598,8 @@ public class ProduitController {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produit non trouvé"));
 
             // Vérifier que le produit est dans un état qui permet de démarrer une enchère
-            if (!"accepter".equals(produit.getEtat()) && !"accepte".equals(produit.getEtat())) {
-                return ResponseEntity.badRequest().body("Le produit doit être accepté pour démarrer une enchère. État actuel: " + produit.getEtat());
+            if (!"accepte".equals(produit.getEtat()) && !"transaction_annulee".equals(produit.getEtat())) {
+                return ResponseEntity.badRequest().body("Le produit doit être accepté ou la dernier transction est annulée pour démarrer une enchère. État actuel: " + produit.getEtat());
             }
 
             // ✅ RÉCUPÉRER LA DURÉE DEPUIS LA REQUÊTE
@@ -582,7 +613,25 @@ public class ProduitController {
             produit.setDureeEnchereJours(dureeEnchereJours);
 
             // Changer l'état à "en_enchere"
-            produit.setEtat("en_enchere");
+            if ("accepte".equals(produit.getEtat()))
+            {
+                produit.setEtat("en_enchere");
+            }
+            else  if ("transaction_annulee".equals(produit.getEtat())){
+                produit.setEtat("relance");
+                long id=produit.getIdproduit();
+                // Récupérer et supprimer toutes les enchères associées à ce produit
+                List<Enchere> encheres = enchereRepository.findByProduitIdproduitOrderByMontantDesc(id);
+
+                if (!encheres.isEmpty()) {
+                    System.out.println("🗑️ Suppression de " + encheres.size() + " enchères pour le produit " + id);
+                    enchereRepository.deleteAll(encheres);
+                    System.out.println("✅ Historique d'enchère supprimé pour le produit " + id);
+                } else {
+                    System.out.println("ℹ️ Aucune enchère à supprimer pour le produit " + id);
+                }
+
+            }
 
             // ✅ DÉFINIR LA DATE DE DÉBUT D'ENCHÈRE
             produit.setDateEnchere(LocalDateTime.now());
@@ -830,14 +879,17 @@ public class ProduitController {
                     .orElseThrow(() -> new RuntimeException("Produit non trouvé"));
 
             // Vérifier que le produit est en enchère
-            if (!"en_enchere".equals(produit.getEtat())) {
+            if (!"en_enchere".equals(produit.getEtat()) && !"relance".equals(produit.getEtat())) {
                 return ResponseEntity.badRequest().body(
-                        "Le produit n'est pas en enchère. État actuel: " + produit.getEtat()
+                        "Le produit n'est pas en enchère et n'est pas relancé en enchère. État actuel: " + produit.getEtat()
                 );
             }
 
             // Récupérer l'ID du gagnant si fourni
             Long idGagnant = null;
+            Client gagnant = null;
+            String nomGagnant = "Acheteur";
+
             if (requestBody != null && requestBody.containsKey("idGagnant")) {
                 idGagnant = ((Number) requestBody.get("idGagnant")).longValue();
 
@@ -847,49 +899,86 @@ public class ProduitController {
                     return ResponseEntity.badRequest().body("Client gagnant non trouvé avec ID: " + idGagnant);
                 }
 
-                // ✅ CORRECTION : Définir l'acheteur complet, pas juste l'ID
-                produit.setAcheteur(gagnantOpt.get());
+                // ✅ Définir l'acheteur complet
+                gagnant = gagnantOpt.get();
+                produit.setAcheteur(gagnant);
 
-                // Optionnel : définir le prix final (dernière enchère)
-                // Vous pouvez récupérer le montant de la dernière enchère ici
-                // produit.setPrixFin(dernierMontant);
+                // Récupérer le nom complet du gagnant
+                nomGagnant = gagnant.getPrenom() + " " + gagnant.getNom();
             }
 
             // Mettre à jour l'état
             produit.setEtat("enchere_termine");
             Produit updatedProduit = produitService.saveProduit(produit);
 
-            // === NOTIFICATION: Enchère terminée ===
-            Map<String, Object> notifData = new HashMap<>();
-            notifData.put("productName", updatedProduit.getNom());
-            notifData.put("message", "L'enchère est terminée pour votre produit.");
+            // === NOTIFICATION 1: Pour le GAGNANT ===
+            if (idGagnant != null && gagnant != null) {
+                Map<String, Object> winnerNotifData = new HashMap<>();
+                winnerNotifData.put("productName", updatedProduit.getNom());
+                winnerNotifData.put("winningAmount", updatedProduit.getPrixFin());
+                winnerNotifData.put("sellerName", updatedProduit.getVendeur().getPrenom() + " " +
+                        updatedProduit.getVendeur().getNom());
 
-            Set<Long> recipients = new HashSet<>();
-            recipients.add(updatedProduit.getVendeur().getIdclient());
+                notificationService.processEvent(
+                        NotificationType.AUCTION_WON,
+                        Set.of(idGagnant),
+                        winnerNotifData
+                );
 
-            // Notifier aussi le gagnant s'il y en a un
-            if (idGagnant != null) {
-                recipients.add(idGagnant);
-                notifData.put("isWinner", true);
-                notifData.put("winningAmount", updatedProduit.getPrixFin());
+                System.out.println("🎯 Notification envoyée au gagnant: " + nomGagnant);
+            }
+
+            // === NOTIFICATION 2: Pour le VENDEUR ===
+            Map<String, Object> sellerNotifData = new HashMap<>();
+            sellerNotifData.put("productName", updatedProduit.getNom());
+            sellerNotifData.put("winnerName", idGagnant != null ? nomGagnant : "un acheteur");
+            if (idGagnant != null && updatedProduit.getPrixFin() != null) {
+                sellerNotifData.put("winningAmount", updatedProduit.getPrixFin());
             }
 
             notificationService.processEvent(
-                    NotificationType.AUCTION_END,
-                    recipients,
-                    notifData
+                    NotificationType.PRODUCT_SOLD,
+                    Set.of(updatedProduit.getVendeur().getIdclient()),
+                    sellerNotifData
             );
+
+            System.out.println("💰 Notification envoyée au vendeur");
+
+            // === NOTIFICATION 3: Pour les AUTRES PARTICIPANTS ===
+            if (idGagnant != null) {
+                // Récupérer les autres participants (ceux qui ont enchéri sauf le gagnant)
+                Set<Long> autresParticipants = getAutresParticipants(produitId, idGagnant);
+
+                if (!autresParticipants.isEmpty()) {
+                    Map<String, Object> participantsNotifData = new HashMap<>();
+                    participantsNotifData.put("productName", updatedProduit.getNom());
+                    participantsNotifData.put("winnerName", nomGagnant);
+                    if (updatedProduit.getPrixFin() != null) {
+                        participantsNotifData.put("winningAmount", updatedProduit.getPrixFin());
+                    }
+
+                    notificationService.processEvent(
+                            NotificationType.AUCTION_END,
+                            autresParticipants,
+                            participantsNotifData
+                    );
+
+                    System.out.println("📢 Notification envoyée à " + autresParticipants.size() +
+                            " autres participants");
+                }
+            }
 
             System.out.println("✅ Enchère terminée pour le produit: " + produitId);
             if (idGagnant != null) {
-                System.out.println("🏆 Gagnant: Client ID " + idGagnant);
-                System.out.println("📊 Acheteur défini: " + updatedProduit.getAcheteur().getNom() + " " + updatedProduit.getAcheteur().getPrenom());
+                System.out.println("🏆 Gagnant: " + nomGagnant + " (ID: " + idGagnant + ")");
             }
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Enchère terminée avec succès" + (idGagnant != null ? ", gagnant enregistré" : ""),
-                    "idClientAcheteur", idGagnant
+                    "idClientAcheteur", idGagnant,
+                    "nomGagnant", idGagnant != null ? nomGagnant : null,
+                    "participantsNotifies", idGagnant != null ? getAutresParticipants(produitId, idGagnant).size() : 0
             ));
 
         } catch (Exception e) {
@@ -898,12 +987,44 @@ public class ProduitController {
             return ResponseEntity.status(500).body("Erreur: " + e.getMessage());
         }
     }
+
+    // 🆕 MÉTHODE POUR RÉCUPÉRER LES AUTRES PARTICIPANTS
+    private Set<Long> getOtherParticipants(Long produitId, Long idGagnant) {
+        Set<Long> autresParticipants = new HashSet<>();
+
+        try {
+            // Vous devez récupérer la liste des enchérisseurs depuis votre service d'enchères
+            // Exemple: enchereService.getEncherisseursByProduit(produitId)
+            // Pour l'instant, je vais utiliser une méthode fictive que vous devez implémenter
+
+            // Récupérer les IDs de tous les enchérisseurs
+            Set<Long> tousLesEncherisseurs = getTousLesEncherisseurs(produitId);
+
+            // Exclure le gagnant
+            for (Long participantId : tousLesEncherisseurs) {
+                if (!participantId.equals(idGagnant)) {
+                    autresParticipants.add(participantId);
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la récupération des participants: " + e.getMessage());
+        }
+
+        return autresParticipants;
+    }
     // ENDPOINT POUR RÉCUPÉRER TOUS LES PRODUITS EN ENCHÈRE
     @GetMapping("/encheres")
     public ResponseEntity<List<ProduitDTO>> getProduitsEnEnchere() {
         try {
             System.out.println("🔍 Recherche des produits en enchère...");
-            List<Produit> produits = produitService.getProduitsByEtat("en_enchere");
+            List<Produit> produitsEnchere  = produitService.getProduitsByEtat("en_enchere");
+            List<Produit> produitsRelance = produitService.getProduitsByEtat("relance");
+
+            // Combiner les deux listes
+            List<Produit> produits = new ArrayList<>();
+            produits.addAll(produitsEnchere);
+            produits.addAll(produitsRelance);
             System.out.println("📦 Nombre de produits en enchère trouvés: " + produits.size());
 
             List<ProduitDTO> produitsDTO = produits.stream()
@@ -937,5 +1058,61 @@ public class ProduitController {
             e.printStackTrace();
             return ResponseEntity.status(500).build();
         }
+    }
+
+
+    // 🆕 MÉTHODE POUR RÉCUPÉRER LES AUTRES PARTICIPANTS
+    private Set<Long> getTousLesEncherisseurs(Long produitId) {
+        Set<Long> encherisseurs = new HashSet<>();
+
+        try {
+            System.out.println("🔍 Recherche des enchérisseurs pour le produit: " + produitId);
+
+            // Récupérer toutes les enchères pour ce produit
+            List<Enchere> encheres = enchereRepository.findByProduitIdproduitOrderByMontantDesc(produitId);
+            System.out.println("📊 Nombre d'enchères trouvées: " + encheres.size());
+
+            // Extraire les IDs des enchérisseurs
+            for (Enchere enchere : encheres) {
+                if (enchere.getEncherisseur() != null) {
+                    Long encherisseurId = enchere.getEncherisseur().getIdclient();
+                    encherisseurs.add(encherisseurId);
+                    System.out.println("✅ Ajout enchérisseur ID: " + encherisseurId);
+                }
+            }
+
+            System.out.println("📈 Total enchérisseurs uniques: " + encherisseurs.size());
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la récupération des enchérisseurs: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return encherisseurs;
+    }
+
+    // 🆕 MÉTHODE POUR RÉCUPÉRER LES AUTRES PARTICIPANTS (sauf le gagnant)
+    private Set<Long> getAutresParticipants(Long produitId, Long idGagnant) {
+        Set<Long> autresParticipants = new HashSet<>();
+
+        try {
+            // Récupérer tous les enchérisseurs
+            Set<Long> tousLesEncherisseurs = getTousLesEncherisseurs(produitId);
+
+            // Exclure le gagnant
+            for (Long participantId : tousLesEncherisseurs) {
+                if (!participantId.equals(idGagnant)) {
+                    autresParticipants.add(participantId);
+                }
+            }
+
+            System.out.println("👥 Autres participants (sauf gagnant): " + autresParticipants.size());
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la récupération des autres participants: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return autresParticipants;
     }
 }
