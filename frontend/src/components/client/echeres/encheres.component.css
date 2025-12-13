@@ -356,3 +356,136 @@
   50% { opacity: 0.5; }
   100% { opacity: 1; }
 }
+
+/* ... styles existants ... */
+
+/* Badge spécial pour les enchères */
+.auction-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
+
+/* Badge spécial pour les relances */
+.relance-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: linear-gradient(135deg, #805ad5 0%, #6b46c1 100%); /* Couleur violette */
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
+
+/* Tag de relance supplémentaire */
+.relance-tag {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(128, 90, 213, 0.9);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+  animation: pulse-relance 2s infinite;
+}
+
+@keyframes pulse-relance {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Message de relance */
+.relance-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #f0e6ff;
+  color: #6b46c1;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+
+.relance-icon {
+  font-size: 1rem;
+}
+
+.relance-text {
+  font-weight: 600;
+}
+
+/* Timer spécial pour les relances */
+.relance-timer {
+  background: linear-gradient(135deg, #805ad5 0%, #6b46c1 100%);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-weight: bold;
+}
+
+/* Styles pour les différents états */
+.status-published {
+  background-color: #28a745;
+  color: white;
+}
+
+.status-auction {
+  background-color: #ffc107;
+  color: black;
+}
+
+.status-relance {
+  background-color: #805ad5; /* Violet pour les relances */
+  color: white;
+}
+
+.status-finished {
+  background-color: #6c757d;
+  color: white;
+}
+
+.status-sold {
+  background-color: #dc3545;
+  color: white;
+}
+
+/* Ajouter la classe pour l'état relance dans time-badge */
+.time-badge.status-relance {
+  background-color: #805ad5;
+  color: white;
+}
+
+/* ... autres styles existants ... */
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .relance-tag {
+    font-size: 0.6rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .relance-message {
+    font-size: 0.75rem;
+  }
+}

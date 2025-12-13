@@ -446,6 +446,86 @@
           box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
       }
+
+      /* Styles pour les boutons d'action dans les détails de notification */
+      .detail-actions {
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 500;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-bottom: 12px;
+      }
+
+      .action-icon {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* Bouton pour les produits vendus */
+      .sold-action {
+        background-color: #10b981;
+        color: white;
+      }
+
+      .sold-action:hover {
+        background-color: #059669;
+      }
+
+      /* Bouton pour les enchères gagnées */
+      .won-action {
+        background-color: #8b5cf6;
+        color: white;
+      }
+
+      .won-action:hover {
+        background-color: #7c3aed;
+      }
+
+      /* Bouton pour les enchères terminées */
+      .ended-action {
+        background-color: #f59e0b;
+        color: white;
+      }
+
+      .ended-action:hover {
+        background-color: #d97706;
+      }
+
+      /* Bouton pour les enchères démarrées */
+      .start-action {
+        background-color: #3b82f6;
+        color: white;
+      }
+
+      .start-action:hover {
+        background-color: #2563eb;
+      }
+
+      /* Bouton pour les produits acceptés */
+      .accepted-action {
+        background-color: #06b6d4;
+        color: white;
+      }
+
+      .accepted-action:hover {
+        background-color: #0891b2;
+      }
+
+
     }
   }
 }

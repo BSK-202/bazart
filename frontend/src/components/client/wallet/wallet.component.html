@@ -167,60 +167,63 @@
               <option value="CREDIT">Rechargements</option>
               <option value="DEBIT">Débits</option>
             </select>
-
-
           </div>
         </div>
 
-        <div class="history-content">
-          <div *ngIf="historyLoading" class="loading-history">
-            <p>Chargement de l'historique...</p>
-          </div>
+        <!-- Conteneur de défilement -->
+        <div class="history-scroll-container">
+          <div class="history-content">
+            <div *ngIf="historyLoading" class="loading-history">
+              <p>Chargement de l'historique...</p>
+            </div>
 
-          <div *ngIf="!historyLoading && history.length === 0" class="no-history">
-            <p>Aucune opération trouvée.</p>
-          </div>
+            <div *ngIf="!historyLoading && history.length === 0" class="no-history">
+              <p>Aucune opération trouvée.</p>
+            </div>
 
-          <div *ngIf="!historyLoading && history.length > 0" class="history-list">
-            <div
-              *ngFor="let operation of history"
-              class="history-item {{getOperationClass(operation.operationType)}}"
-            >
-              <div class="operation-icon">
-                <svg *ngIf="operation.operationType === 'CREDIT'" class="icon-operation" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M12 5v14M5 12h14"></path>
-                </svg>
-                <svg *ngIf="operation.operationType === 'DEBIT'" class="icon-operation" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M5 12h14"></path>
-                </svg>
-              </div>
-
-              <div class="operation-details">
-                <div class="operation-main">
-                  <span class="operation-type">{{ operation.operationType === 'CREDIT' ? 'Rechargement' : 'Débit' }}</span>
-                  <span class="operation-amount" [class.positive]="operation.operationType === 'CREDIT'">
-                    {{ operation.operationType === 'CREDIT' ? '+' : '-' }}{{ operation.amount | currency:currency:'symbol':'1.2-2' }}
-                  </span>
+            <div *ngIf="!historyLoading && history.length > 0" class="history-list">
+              <div
+                *ngFor="let operation of history"
+                class="history-item {{getOperationClass(operation.operationType)}}"
+              >
+                <div class="operation-icon">
+                  <svg *ngIf="operation.operationType === 'CREDIT'" class="icon-operation" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 5v14M5 12h14"></path>
+                  </svg>
+                  <svg *ngIf="operation.operationType === 'DEBIT'" class="icon-operation" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M5 12h14"></path>
+                  </svg>
                 </div>
 
-                <p class="operation-description">
-                  {{ formatDescription(operation.description) }}
-                </p>
+                <div class="operation-details">
+                  <!-- CONTENU RESTAURÉ DES TRANSACTIONS -->
+                  <div class="operation-main">
+                    <span class="operation-type">{{ operation.operationType === 'CREDIT' ? 'Rechargement' : 'Débit' }}</span>
+                    <span class="operation-amount" [class.positive]="operation.operationType === 'CREDIT'">
+                  {{ operation.operationType === 'CREDIT' ? '+' : '-' }}{{ operation.amount | currency:currency:'symbol':'1.2-2' }}
+                </span>
+                  </div>
 
-                <div class="operation-meta">
-                  <span class="operation-date">
-                    {{ operation.operationDate | date:'dd/MM/yyyy HH:mm' }}
-                  </span>
-                  <span class="operation-reference">
-                    {{ operation.reference }}
-                  </span>
-                </div>
+                  <p class="operation-description">
+                    {{ formatDescription(operation.description) }}
+                  </p>
 
-                <div class="balance-change">
-                  <small>
-                    Solde: {{ operation.balanceBefore | currency:currency:'symbol':'1.2-2' }}
-                    → {{ operation.balanceAfter | currency:currency:'symbol':'1.2-2' }}
-                  </small>
+                  <div class="operation-meta">
+                <span class="operation-date">
+                  {{ operation.operationDate | date:'dd/MM/yyyy HH:mm' }}
+                </span>
+                    <span class="operation-reference">
+                  {{ operation.reference }}
+                </span>
+                  </div>
+
+                  <div class="balance-change">
+                    <small>
+                      Solde: {{ operation.balanceBefore | currency:currency:'symbol':'1.2-2' }}
+                      → {{ operation.balanceAfter | currency:currency:'symbol':'1.2-2' }}
+                    </small>
+                  </div>
+                  <!-- FIN DU CONTENU RESTAURÉ -->
                 </div>
               </div>
             </div>

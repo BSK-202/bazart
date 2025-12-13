@@ -448,7 +448,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     }
 
     // Mettre à jour l'état local du produit
-    if (this.produit && this.produit.etat === 'en_enchere') {
+    if (this.produit && (this.produit.etat === 'en_enchere' ||this.produit.etat === 'relance') ) {
       this.produit.etat = 'enchere_termine';
       console.log('✅ État du produit mis à jour: enchere_termine');
     }
@@ -771,9 +771,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
   protected readonly parseFloat = parseFloat;
 
-  // Mettre à jour isEnchereActive
   get isEnchereActive(): boolean {
-    return this.produit?.etat === 'en_enchere';
+    return this.produit?.etat === 'en_enchere' || this.produit?.etat === 'relance';
   }
 
   get auctionEndTime(): Date | null {

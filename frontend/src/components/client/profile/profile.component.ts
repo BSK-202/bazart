@@ -14,6 +14,8 @@ interface Produit {
   etat: string;
   expertiseApproved?: boolean;
   vendeurNom: string;
+  vendeurPhone?: string; // ← Ajoutez si disponible
+  vendeurEmail?: string; // ← Ajoutez si disponible
   acheteurNom: string | null;
   categorieNom: string;
   nombreInteractions: number;
@@ -68,6 +70,26 @@ class UserProfileComponent implements OnInit {
   isLoading: boolean = true;
   inAppEnabled: boolean = true;
   emailEnabled: boolean = false;
+
+  showContactModal = false;
+  showDecisionModal = false;
+  showPaymentConfirmationModal = false;
+
+  selectedSellerName = '';
+  selectedSellerPhone = '';
+  selectedSellerEmail = '';
+  selectedSellerPhoto = '';
+  selectedProductForDecision: Produit | null = null;
+  selectedSellerId: number | null = null;
+
+  // Pour la confirmation de paiement
+  confirmationTitle = '';
+  confirmationMessage = '';
+  paymentBeneficiary = '';
+  paymentDescription = '';
+  pendingAction: 'accept' | 'refuse' | null = null;
+  decisionError = '';
+  isProcessingDecision = false;
 
   // Données pour l'édition
   isEditingProfile = false;
@@ -435,7 +457,7 @@ class UserProfileComponent implements OnInit {
 
           // Maintenant filtrer les produits avec les compteurs de likes
           this.produitsEncheres = produitsAvecLikes
-            .filter(p => p.etat === 'en enchére' || p.etat === 'en_enchere')
+            .filter(p => p.etat === 'en enchére' || p.etat === 'en_enchere' || p.etat === 'relance')
             .map(p => this.ajouterImagePrincipale(p));
 
           this.produitsVendus = produitsAvecLikes
@@ -443,7 +465,7 @@ class UserProfileComponent implements OnInit {
             .map(p => this.ajouterImagePrincipale(p));
 
         this.produitsPublies = produitsAvecLikes
-          .filter((p) => ["accepter", "accepte", "expertise_validee"].includes(p.etat))
+          .filter((p) => ["accepter", "accepte", "expertise_validee", "transaction_annulee"].includes(p.etat))
           .map((p) => this.ajouterImagePrincipale(p))
 
             this.produitsEnAttente = produitsAvecLikes
@@ -631,7 +653,10 @@ class UserProfileComponent implements OnInit {
     });
   }
 
-  formatCurrency(amount: number): string {
+  formatCurrency(amount: number | undefined | null): string {
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return '0 DH';
+    }
     return amount.toLocaleString('fr-MA') + ' DH';
   }
 
@@ -1548,16 +1573,46 @@ class UserProfileComponent implements OnInit {
     });
   }
 
-  // Dans profile.component.ts, ajouter cette méthode
+// Méthode pour contacter le vendeur (modifiée)
   contactSeller(produit: Produit): void {
-    if (!produit.vendeurNom) {
-      alert('Aucun vendeur spécifié pour ce produit');
-      return;
+    console.log('📧 Contact du vendeur:', produit.vendeurNom);
+
+    // Sauvegarder le produit pour la décision
+    this.selectedProductForDecision = produit;
+    this.selectedSellerName = produit.vendeurNom || 'Vendeur';
+
+    // Récupérer les informations détaillées du vendeur
+    if (produit.vendeurId) {
+      this.selectedSellerId = produit.vendeurId;
+      this.loadSellerDetails(produit.vendeurId);
     }
 
-    console.log('📧 Contact du vendeur:', produit.vendeurNom);
-    // Implémentez la logique de contact ici
-    alert(`Fonctionnalité de contact avec le vendeur ${produit.vendeurNom} bientôt disponible!`);
+    this.showContactModal = true;
+  }
+
+  // Méthode pour charger les détails du vendeur
+  private loadSellerDetails(vendeurId: number): void {
+    const url = `${this.API_BASE_URL}/api/clients/${vendeurId}`;
+
+    this.http.get<any>(url).subscribe({
+      next: (seller) => {
+        console.log('✅ Détails du vendeur:', seller);
+        this.selectedSellerPhone = seller.telephone || seller.phone || '';
+        this.selectedSellerEmail = seller.email || '';
+
+        // Photo de profil
+        if (seller.photoProfil) {
+          this.selectedSellerPhoto = seller.photoProfil.startsWith('http')
+            ? seller.photoProfil
+            : `${this.API_BASE_URL}/api/clients/images/${seller.photoProfil}`;
+        } else {
+          this.selectedSellerPhoto = 'assets/images/default-avatar.jpg';
+        }
+      },
+      error: (error) => {
+        console.error('❌ Erreur lors du chargement des détails du vendeur:', error);
+      }
+    });
   }
 // ✅ NOUVELLE MÉTHODE : Charger les likes pour les produits gagnés
   private loadLikesForAcheteur(acheteurId: number): Promise<Map<number, number>> {
@@ -1584,6 +1639,396 @@ class UserProfileComponent implements OnInit {
       });
     });
   }
+
+
+  // Ouvrir le modal de décision
+  openDecisionModal(): void {
+    this.showContactModal = false;
+    this.showDecisionModal = true;
+    this.decisionError = '';
+  }
+
+// Fermer le modal de contact
+  closeContactModal(): void {
+    this.showContactModal = false;
+    this.selectedSellerName = '';
+    this.selectedSellerPhone = '';
+    this.selectedSellerEmail = '';
+    this.selectedSellerPhoto = '';
+  }
+
+// Fermer le modal de décision
+  closeDecisionModal(): void {
+    this.showDecisionModal = false;
+    this.selectedProductForDecision = null;
+    this.decisionError = '';
+    this.isProcessingDecision = false;
+  }
+
+  confirmPurchase(): void {
+    if (!this.selectedProductForDecision) return;
+
+    const amount = this.selectedProductForDecision.prixFin || this.selectedProductForDecision.prixDebut;
+
+    // Vérifier que le montant est valide
+    if (amount === undefined || amount === null || amount <= 0) {
+      this.decisionError = 'Montant invalide pour cet achat';
+      return;
+    }
+
+    this.confirmationTitle = 'Confirmer l\'achat';
+    this.confirmationMessage = `Êtes-vous sûr de vouloir valider l'achat de "${this.selectedProductForDecision.nom}" pour ${this.formatCurrency(amount)} ? Le vendeur sera payé et la transaction sera finalisée.`;
+    this.paymentAmount = amount;
+    this.paymentBeneficiary = this.selectedSellerName;
+    this.paymentDescription = `Paiement pour l'achat du produit "${this.selectedProductForDecision.nom}"`;
+    this.pendingAction = 'accept';
+
+    this.showDecisionModal = false;
+    this.showPaymentConfirmationModal = true;
+  }
+
+// Refuser l'achat
+  refusePurchase(): void {
+    if (!this.selectedProductForDecision) return;
+
+    const amount = this.selectedProductForDecision.prixFin || this.selectedProductForDecision.prixDebut;
+
+    // Vérifier que le montant est valide
+    if (amount === undefined || amount === null || amount <= 0) {
+      this.decisionError = 'Montant invalide pour le remboursement';
+      return;
+    }
+
+    this.confirmationTitle = 'Refuser l\'achat';
+    this.confirmationMessage = `Êtes-vous sûr de vouloir refuser l'achat de "${this.selectedProductForDecision.nom}" ? Le montant de ${this.formatCurrency(amount)} vous sera remboursé.`;
+    this.paymentAmount = amount;
+    this.paymentBeneficiary = 'Votre portefeuille';
+    this.paymentDescription = `Remboursement pour refus d'achat du produit "${this.selectedProductForDecision.nom}"`;
+    this.pendingAction = 'refuse';
+
+    this.showDecisionModal = false;
+    this.showPaymentConfirmationModal = true;
+  }
+
+  // Exécuter l'action de paiement
+  executePaymentAction(): void {
+    if (!this.pendingAction || !this.selectedProductForDecision) return;
+
+    this.isProcessingDecision = true;
+
+    if (this.pendingAction === 'accept') {
+      this.paySeller();
+    } else {
+      this.refundBuyer();
+    }
+  }
+
+  // Ajoutez cette méthode dans votre component ou créez un service
+  private processWalletRecharge(userId: number, amount: number, description: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const rechargeRequest = {
+        amount: amount,
+        description: description
+      };
+
+      const url = `${this.API_BASE_URL}/api/wallet/${userId}/recharge`;
+
+      console.log(`💰 Recharge wallet pour utilisateur ${userId}:`, rechargeRequest);
+
+      this.http.post<any>(url, rechargeRequest).subscribe({
+        next: (response) => {
+          console.log('✅ Recharge réussie:', response);
+          resolve(response);
+        },
+        error: (error) => {
+          console.error('❌ Erreur recharge:', error);
+          reject(error);
+        }
+      });
+    });
+  }
+
+
+  private paySeller(): void {
+    if (!this.selectedSellerId || !this.selectedProductForDecision || !this.user?.id) return;
+
+    const amount = this.selectedProductForDecision.prixFin || this.selectedProductForDecision.prixDebut;
+
+    // Vérification du montant
+    if (!amount || amount <= 0) {
+      this.decisionError = 'Montant invalide pour le paiement';
+      this.isProcessingDecision = false;
+      this.closePaymentConfirmationModal();
+      return;
+    }
+
+    this.isProcessingDecision = true;
+
+    console.log(`💳 Paiement au vendeur ${this.selectedSellerId}: ${amount} DH`);
+
+    // 1. Recharger le wallet du VENDEUR
+    const rechargeRequest = {
+      amount: amount,
+      description: `Paiement pour vente du produit "${this.selectedProductForDecision.nom}" (acheteur: ${this.user.name || this.user.id})`
+    };
+
+    const url = `${this.API_BASE_URL}/api/wallet/${this.selectedSellerId}/recharge`;
+
+    this.http.post<any>(url, rechargeRequest).subscribe({
+      next: (response) => {
+        console.log('✅ Wallet vendeur rechargé:', response);
+
+        // 2. Mettre à jour l'état du produit comme "vendu"
+        this.updateProductStatus('vendu').then(() => {
+          console.log('✅ Produit marqué comme vendu');
+
+          this.showSuccessMessage(`Paiement de ${this.formatCurrency(amount)} effectué au vendeur !`);
+          this.finalizeTransaction();
+        }).catch(error => {
+          console.error('❌ Erreur mise à jour statut:', error);
+          // Le paiement a été fait, on finalise quand même
+          this.finalizeTransaction();
+        });
+      },
+      error: (error) => {
+        console.error('❌ Erreur paiement vendeur:', error);
+        this.decisionError = error.error?.error || 'Erreur lors du paiement au vendeur';
+        this.isProcessingDecision = false;
+        this.closePaymentConfirmationModal();
+      }
+    });
+  }
+
+  private refundBuyer(): void {
+    if (!this.user?.id || !this.selectedProductForDecision) return;
+
+    const amount = this.selectedProductForDecision.prixFin || this.selectedProductForDecision.prixDebut;
+
+    // Vérification du montant
+    if (!amount || amount <= 0) {
+      this.decisionError = 'Montant invalide pour le remboursement';
+      this.isProcessingDecision = false;
+      this.closePaymentConfirmationModal();
+      return;
+    }
+
+    this.isProcessingDecision = true;
+
+    console.log(`💰 Remboursement à l'acheteur ${this.user.id}: ${amount} DH`);
+
+    // 1. Recharger le wallet de l'ACHETEUR (remboursement)
+    const rechargeRequest = {
+      amount: amount,
+      description: `Remboursement pour annulation d'achat du produit "${this.selectedProductForDecision.nom}"`
+    };
+
+    const url = `${this.API_BASE_URL}/api/wallet/${this.user.id}/recharge`;
+
+    this.http.post<any>(url, rechargeRequest).subscribe({
+      next: (response) => {
+        console.log('✅ Wallet acheteur rechargé (remboursement):', response);
+
+        // 2. Mettre à jour l'état du produit comme "transaction_annulee"
+        this.updateProductStatus('transaction_annulee').then(() => {
+          console.log('✅ Produit marqué comme annulé');
+
+          this.showSuccessMessage(`Remboursement de ${this.formatCurrency(amount)} effectué dans votre portefeuille !`);
+          this.finalizeTransaction();
+        }).catch(error => {
+          console.error('❌ Erreur mise à jour statut:', error);
+          // Le remboursement a été fait, on finalise quand même
+          this.finalizeTransaction();
+        });
+      },
+      error: (error) => {
+        console.error('❌ Erreur remboursement:', error);
+        this.decisionError = error.error?.error || 'Erreur lors du remboursement';
+        this.isProcessingDecision = false;
+        this.closePaymentConfirmationModal();
+      }
+    });
+  }
+
+// Méthode updateProductStatus avec Promise
+  private updateProductStatus(newStatus: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      if (!this.selectedProductForDecision?.id) {
+        reject('Produit non sélectionné');
+        return;
+      }
+
+      console.log('🔔 updateProductStatus appelé avec:', {
+        produitId: this.selectedProductForDecision.id,
+        newStatus: newStatus,
+        longueur: newStatus.length,
+        codeChaqueCaractere: Array.from(newStatus).map(c => c.charCodeAt(0))
+      });
+
+      const url = `${this.API_BASE_URL}/api/produits/${this.selectedProductForDecision.id}/etat`;
+      const request = {
+        etat: newStatus
+      };
+
+      this.http.put<any>(url, request).subscribe({
+        next: (response) => {
+          console.log('✅ Statut du produit mis à jour:', response);
+          resolve(response);
+        },
+        error: (error) => {
+          console.error('❌ Erreur mise à jour statut produit:', error);
+          reject(error);
+        }
+      });
+    });
+  }
+
+
+
+// Finaliser la transaction
+  private finalizeTransaction(): void {
+    this.isProcessingDecision = false;
+    this.closePaymentConfirmationModal();
+
+    // Recharger les produits gagnés
+    if (this.user?.id) {
+      this.loadProduitsGagnes(this.user.id);
+    }
+
+    // Réinitialiser
+    this.selectedProductForDecision = null;
+    this.pendingAction = null;
+  }
+
+// Fermer le modal de confirmation de paiement
+  closePaymentConfirmationModal(): void {
+    this.showPaymentConfirmationModal = false;
+    this.confirmationTitle = '';
+    this.confirmationMessage = '';
+    this.paymentAmount = 0;
+    this.paymentBeneficiary = '';
+    this.paymentDescription = '';
+    this.pendingAction = null;
+  }
+
+// Afficher un message de succès
+  private showSuccessMessage(message: string): void {
+    alert(`✅ ${message}`);
+    this.closePaymentConfirmationModal();
+  }
+
+
+  // Ajouter ces méthodes dans la classe UserProfileComponent
+
+  getSoldStatusClass(etat: string): string {
+    const statusClasses: { [key: string]: string } = {
+      'vendu': 'sold-badge-completed',
+      'enchere_termine': 'sold-badge-pending',
+      'transaction_annulee': 'sold-badge-cancelled'
+    };
+    return statusClasses[etat] || 'sold-badge-default';
+  }
+
+  getSoldStatusText(etat: string): string {
+    const statusTexts: { [key: string]: string } = {
+      'vendu': 'Vendu',
+      'enchere_termine': 'Terminé',
+      'transaction_annulee': 'Annulé'
+    };
+    return statusTexts[etat] || 'Vendu';
+  }
+
+  getSaleStatusClass(etat: string): string {
+    const statusClasses: { [key: string]: string } = {
+      'vendu': 'sale-status-completed',
+      'enchere_termine': 'sale-status-pending',
+      'transaction_annulee': 'sale-status-cancelled'
+    };
+    return statusClasses[etat] || 'sale-status-default';
+  }
+
+  getSaleStatusText(etat: string): string {
+    const statusTexts: { [key: string]: string } = {
+      'vendu': 'Transaction terminée',
+      'enchere_termine': 'Transaction en cours',
+      'transaction_annulee': 'Transaction annulée'
+    };
+    return statusTexts[etat] || 'Transaction terminée';
+  }
+
+  getTransactionStatusClass(etat: string): string {
+    const statusClasses: { [key: string]: string } = {
+      'vendu': 'status-completed',
+      'enchere_termine': 'status-pending',
+      'transaction_annulee': 'status-cancelled'
+    };
+    return statusClasses[etat] || 'status-default';
+  }
+
+  getTransactionStatusText(etat: string): string {
+    const statusTexts: { [key: string]: string } = {
+      'vendu': '✅ Transaction terminée',
+      'enchere_termine': '⏳ Transaction en cours',
+      'transaction_annulee': '❌ Transaction annulée'
+    };
+    return statusTexts[etat] || 'Transaction';
+  }
+
+  getAuctionButtonText(produit: Produit): string {
+    if (produit.etat === 'transaction_annulee') {
+      return 'Remettre en enchère';
+    }
+    return 'Mettre en enchère';
+  }
+
+  getAuctionButtonIcon(produit: Produit): string {
+    if (produit.etat === 'transaction_annulee') {
+      return `
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+    `;
+    }
+    return `
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+  `;
+  }
+  hasBeenInAuction(produit: Produit): boolean {
+    // Vérifie si le produit a déjà été en enchère (transaction annulée)
+    return produit.etat === 'transaction_annulee' || !!produit.dateenchere;
+  }
+
+  getAuctionHistoryText(produit: Produit): string {
+    if (produit.etat === 'transaction_annulee') {
+      return 'Ancienne enchère annulée';
+    }
+    return '';
+  }
+
+  getProductStatusIndicator(produit: Produit): string {
+    switch (produit.etat) {
+      case 'transaction_annulee':
+        return 'status-cancelled';
+      case 'accepter':
+      case 'accepte':
+      case 'expertise_validee':
+        return 'status-approved';
+      default:
+        return 'status-default';
+    }
+  }
+
+  getProductStatusText1(produit: Produit): string {
+    switch (produit.etat) {
+      case 'transaction_annulee':
+        return 'Transaction annulée';
+      case 'accepter':
+      case 'accepte':
+        return 'Accepté';
+      case 'expertise_validee':
+        return 'Expertisé';
+      default:
+        return 'Publié';
+    }
+  }
+
 
 }
 

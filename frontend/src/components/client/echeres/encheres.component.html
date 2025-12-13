@@ -39,7 +39,14 @@
           (click)="$event.stopPropagation(); goToProductDetail(produit.id)">
 
           <!-- Badge spécial pour les enchères -->
-          <div class="auction-badge">ENCHÈRE</div>
+          <div class="auction-badge" [ngClass]="getRelanceBadgeClass(produit)">
+            {{ getRelanceBadgeText(produit) }}
+          </div>
+
+          <!-- Badge de relance supplémentaire -->
+          <div *ngIf="produit.isRelance" class="relance-tag">
+            🔄 Nouvelle opportunité
+          </div>
 
           <div class="auction-image">
             <img [src]="produit.imagePrincipale" [alt]="produit.nom" class="item-image">
@@ -50,13 +57,23 @@
 
           <div class="auction-content">
             <h3 class="auction-title">{{ produit.nom }}</h3>
+
+            <!-- Message spécial pour les relances -->
+            <div *ngIf="produit.isRelance" class="relance-message">
+              <span class="relance-icon">🔄</span>
+              <span class="relance-text">Enchère relancée - Faites vos offres !</span>
+            </div>
+
             <p class="auction-description">
               {{ produit.description | slice:0:120 }}{{ produit.description.length > 120 ? '...' : '' }}
             </p>
 
             <div class="price-section">
               <div class="current-price">{{ produit.prixDebut }} DH</div>
-              <div class="time-remaining" [class.time-warning]="isTimeCritical(produit)" [class.time-ended]="isEnchereTerminee(produit)">
+              <div class="time-remaining"
+                   [class.time-warning]="isTimeCritical(produit)"
+                   [class.time-ended]="isEnchereTerminee(produit)"
+                   [class.relance-timer]="produit.isRelance">
                 <span class="time-icon">⏱️</span>
                 {{ getTempsRestant(produit) }}
               </div>
