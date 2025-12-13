@@ -17,5 +17,7 @@ public enum NotificationType {
     GENERIC,
     AUCTION_END,
     PRODUCT_EXPERTISE_REQUIRED,     // produit accepté mais expertise à planifier
-    PRODUCT_EXPERTISE_PLANNED       // (plus tard) quand la date est vraiment planifiée
+    PRODUCT_EXPERTISE_PLANNED ,
+    TRANSACTION_ACCEPTED,
+    TRANSACTION_ANNULEE// (plus tard) quand la date est vraiment planifiée
 }
