@@ -49,7 +49,11 @@ public class ExpertiseRequest {
     // date de création + date d'expiration de la réponse expert
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
-
+    @ElementCollection
+    @CollectionTable(name = "expertise_request_exclusions",
+            joinColumns = @JoinColumn(name = "request_id"))
+    @Column(name = "expert_client_id")
+    private Set<Long> excludedExpertClientIds = new HashSet<>();
 
 
     // prix
@@ -69,8 +73,7 @@ public class ExpertiseRequest {
     @Column(name = "report_submission_deadline")
     private LocalDateTime reportSubmissionDeadline; //deadline pour envoyer le rapport
 
-    @ElementCollection
-    private Set<Long> excludedExpertClientIds = new HashSet<>();
+
 
     public Set<Long> getExcludedExpertClientIds() {
         return excludedExpertClientIds;

@@ -21,4 +21,6 @@ public interface ExpertiseRequestRepository extends JpaRepository<ExpertiseReque
 
     // --- ADD THIS FOR THE 3-DAY REPORT DEADLINE EXPIRATION ---
     List<ExpertiseRequest> findByStatusAndReportSubmissionDeadlineBefore(ExpertiseStatus status, LocalDateTime now);
+    List<ExpertiseRequest> findByStatusIn(List<ExpertiseStatus> statuses);
+
 }

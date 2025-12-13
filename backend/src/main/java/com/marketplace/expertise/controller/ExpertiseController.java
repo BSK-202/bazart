@@ -50,7 +50,10 @@ public class ExpertiseController {
                 expertiseService.refuseExpertiseRequest(requestId, expertId)
         );
     }
-
+    @GetMapping("/requests/{requestId}/can-submit-report")
+    public ResponseEntity<Boolean> canSubmitReport(@PathVariable Long requestId) {
+        return ResponseEntity.ok(expertiseService.canSubmitReport(requestId));
+    }
     // Optionnel : permet de récupérer une demande précise (pour un détail ou countdown)
     @GetMapping("/requests/{requestId}/detail")
     public ResponseEntity<ExpertiseRequestDTO> getRequestDetail(@PathVariable Long requestId) {

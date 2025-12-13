@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
-
+import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -36,11 +36,11 @@ public class ExpertiseServiceImpl implements ExpertiseService {
     // ---- PARAMS DEADLINES ----
     private static final double ONLINE_PRICE = 50.0;
     private static final double ONSITE_PRICE = 100.0;
-    private static final int EXPERT_ACTION_RESPONSE_HOURS = 24;   // Temps pour accepter/refuser la première demande
-    private static final int REPORT_SUBMISSION_DAYS = 3;           // Nombre de jours pour soumettre le rapport après acceptation
-
-    private static final double EXPERT_PAYOUT_RATE = 0.7; // 70% pour l’expert
+    private static final int EXPERT_ACTION_RESPONSE_HOURS = 1;   // Temps pour accepter/refuser la première demande
+    private static final int REPORT_SUBMISSION_DAYS = 1;           // Nombre de jours pour soumettre le rapport après acceptation
+    private static final double EXPERT_PAYOUT_RATE = 0.7; // 70% pour l'expert
     // -------------------------
+
 
     // ==== 1) CRÉATION DE LA DEMANDE APRÈS ACCEPTATION ADMIN ====
     @Override
@@ -71,16 +71,24 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         request.setPrice(price);
         Client vendeur = produit.getVendeur();
 
-        // Deadline pour accepter/refuser la demande (24h)
-        request.setExpertResponseDeadline(LocalDateTime.now().plusHours(EXPERT_ACTION_RESPONSE_HOURS));
+        // Deadline pour accepter/refuser la demande
+        // Deadline pour accepter/refuser la demande
+        request.setExpertResponseDeadline(LocalDateTime.now().plusMinutes(EXPERT_ACTION_RESPONSE_HOURS));
 
-        // Location précisée si sur place
+// Location précisée si sur place
         if (request.getMethod() == ExpertiseMethod.ONSITE) {
             request.setLocation("Magasin Bazart, Avenue XXX, Ville YYY");
         } else {
             request.setLocation("ONLINE");
         }
 
+// DEADLINE RAPPORT : SEULEMENT POUR ONLINE, PAS POUR ONSITE
+        if (request.getMethod() == ExpertiseMethod.ONLINE) {
+            request.setReportSubmissionDeadline(LocalDateTime.now().plusMinutes(REPORT_SUBMISSION_DAYS));
+        } else {
+            // ONSITE : pas de deadline fixe, sera disponible après le rendez-vous
+            request.setReportSubmissionDeadline(null);
+        }
         ExpertiseRequest savedRequest = expertiseRequestRepository.save(request);
 
         // Enregistrer les slots (si ONSITE)
@@ -121,7 +129,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         assignExpertAndNotify(request, request.getExcludedExpertClientIds());
     }
 
-    // Implémentation avec exclusion
+    // Implémentation avec exclusion - AMÉLIORÉE
     private void assignExpertAndNotify(ExpertiseRequest request, Set<Long> excludeIds) {
         Produit produit = request.getProduit();
         if (produit.getCategorie() == null || produit.getCategorie().getDomaine() == null) return;
@@ -134,11 +142,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
                 .toList();
 
         if (expertsDomain.isEmpty()) {
-            request.setStatus(ExpertiseStatus.NO_EXPERT_AVAILABLE);
-            expertiseRequestRepository.save(request);
-            Map<String, Object> data = new HashMap<>();
-            data.put("message", "Aucun expert n'est disponible pour le produit \"" + produit.getNom() + "\".");
-            notificationService.processEvent(NotificationType.GENERIC, Set.of(request.getVendeur().getIdclient()), data);
+            handleNoExpertsAvailable(request, produit);
             return;
         }
 
@@ -159,15 +163,16 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         }
 
         if (candidates.isEmpty()) {
-            request.setStatus(ExpertiseStatus.NO_EXPERT_AVAILABLE);
-            expertiseRequestRepository.save(request);
-            Map<String, Object> data = new HashMap<>();
-            data.put("message", "Aucun expert n'est disponible pour le produit \"" + produit.getNom() + "\".");
-            notificationService.processEvent(NotificationType.GENERIC, Set.of(request.getVendeur().getIdclient()), data);
+            // Si tous les experts ont été essayés
+            if (excludeIds != null && excludeIds.size() >= expertsDomain.size()) {
+                handleAllExpertsTried(request, produit);
+            } else {
+                handleNoExpertsAvailable(request, produit);
+            }
             return;
         }
 
-        // Choisir l’expert le moins chargé
+        // Choisir l'expert le moins chargé
         Expert chosen = candidates.stream()
                 .min(Comparator.comparingInt(Expert::getNombreProduitsExpertise))
                 .orElseThrow();
@@ -175,23 +180,104 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         // Assignation
         request.setExpert(chosen);
         request.setStatus(ExpertiseStatus.PENDING_EXPERT_DECISION);
-        request.setExpertResponseDeadline(LocalDateTime.now().plusHours(EXPERT_ACTION_RESPONSE_HOURS));
+        request.setExpertResponseDeadline(LocalDateTime.now().plusMinutes(EXPERT_ACTION_RESPONSE_HOURS));
         expertiseRequestRepository.save(request);
 
-        // Notification à l’expert
+        // Notification à l'expert
         if (chosen.getClient() != null) {
             Long expertUserId = chosen.getClient().getIdclient();
             Map<String, Object> expertNotif = new HashMap<>();
             expertNotif.put("productName", produit.getNom());
             expertNotif.put("expertiseMethod", request.getMethod().name());
             expertNotif.put("productId", produit.getIdproduit());
+            expertNotif.put("requestId", request.getId());
+            expertNotif.put("deadline", request.getExpertResponseDeadline().toString());
             expertNotif.put("message",
                     "Vous avez une nouvelle demande d'expertise sur le produit \"" + produit.getNom() + "\". " +
                             (request.getMethod() == ExpertiseMethod.ONSITE
-                                    ? "Veuillez consulter les créneaux proposés et accepter/refuser."
-                                    : "Veuillez accepter/refuser pour expertise en ligne depuis votre espace expert.")
+                                    ? "Veuillez consulter les créneaux proposés et accepter/refuser avant " +
+                                    request.getExpertResponseDeadline().toLocalTime() + "."
+                                    : "Veuillez accepter/refuser pour expertise en ligne avant " +
+                                    request.getExpertResponseDeadline().toLocalTime() + ".")
             );
             notificationService.processEvent(NotificationType.MESSAGE, Set.of(expertUserId), expertNotif);
+        }
+
+        // Notification au vendeur
+        Map<String, Object> vendeurNotif = new HashMap<>();
+        vendeurNotif.put("message", "Un expert a été assigné à votre produit \"" + produit.getNom() +
+                "\". Attente de sa réponse (délai: " + EXPERT_ACTION_RESPONSE_HOURS + " heure(s)).");
+        notificationService.processEvent(NotificationType.GENERIC,
+                Set.of(request.getVendeur().getIdclient()), vendeurNotif);
+    }
+
+    // Gestion quand aucun expert n'est disponible
+    private void handleNoExpertsAvailable(ExpertiseRequest request, Produit produit) {
+        request.setStatus(ExpertiseStatus.NO_EXPERTS_AVAILABLE);
+        expertiseRequestRepository.save(request);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("message", "Aucun expert n'est disponible pour le produit \"" + produit.getNom() +
+                "\". La demande sera réessayée automatiquement.");
+        notificationService.processEvent(NotificationType.GENERIC,
+                Set.of(request.getVendeur().getIdclient()), data);
+
+        // Mettre à jour l'état du produit
+        produit.setEtat_expertise("attente_expert_disponible");
+        produitRepository.save(produit);
+    }
+
+    // Gestion quand tous les experts ont été essayés
+    private void handleAllExpertsTried(ExpertiseRequest request, Produit produit) {
+        request.setStatus(ExpertiseStatus.ALL_EXPERTS_TRIED);
+        expertiseRequestRepository.save(request);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("message", "Tous les experts disponibles ont été contactés pour le produit \"" +
+                produit.getNom() + "\". Aucun n'a répondu. Contactez le support.");
+        notificationService.processEvent(NotificationType.GENERIC,
+                Set.of(request.getVendeur().getIdclient()), data);
+
+        // Mettre à jour l'état du produit
+        produit.setEtat_expertise("tous_experts_contactes");
+        produitRepository.save(produit);
+
+        // TODO: Notifier les administrateurs
+        // notificationService.notifyAdmins(...);
+    }
+
+    // ==== 2) MÉTHODE POUR RÉESSAYER LES DEMANDES BLOQUÉES ====
+    @Override
+    public void retryBlockedRequests() {
+        List<ExpertiseStatus> blockedStatuses = Arrays.asList(
+                ExpertiseStatus.NO_EXPERTS_AVAILABLE,
+                ExpertiseStatus.ALL_EXPERTS_TRIED
+        );
+
+        List<ExpertiseRequest> blockedRequests = expertiseRequestRepository
+                .findByStatusIn(blockedStatuses);
+
+        for (ExpertiseRequest req : blockedRequests) {
+            // Pour ALL_EXPERTS_TRIED, on réinitialise les exclusions après un certain temps
+            if (req.getStatus() == ExpertiseStatus.ALL_EXPERTS_TRIED) {
+                // Réinitialiser les exclusions après 24h
+                LocalDateTime createdAt = req.getCreatedAt() != null ? req.getCreatedAt() : LocalDateTime.now();
+                if (LocalDateTime.now().isAfter(createdAt.plusHours(24))) {
+                    req.getExcludedExpertClientIds().clear();
+                }
+            }
+
+            req.setStatus(ExpertiseStatus.CREATED);
+            expertiseRequestRepository.save(req);
+
+            // Notifier le vendeur
+            Map<String, Object> vendeurNotif = new HashMap<>();
+            vendeurNotif.put("message", "Réessai d'assignation d'expert pour votre produit \"" +
+                    req.getProduit().getNom() + "\".");
+            notificationService.processEvent(NotificationType.GENERIC,
+                    Set.of(req.getVendeur().getIdclient()), vendeurNotif);
+
+            assignExpertAndNotify(req, req.getExcludedExpertClientIds());
         }
     }
 
@@ -216,7 +302,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         ExpertiseRequest request = expertiseRequestRepository.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("Demande d'expertise non trouvée"));
 
-        // Vérifier sur l’ID client de l’expert
+        // Vérifier sur l'ID client de l'expert
         Long assignedClientId = request.getExpert() != null && request.getExpert().getClient() != null
                 ? request.getExpert().getClient().getIdclient()
                 : null;
@@ -231,6 +317,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
             throw new IllegalStateException("Le délai de réponse est dépassé !");
         }
 
+        // Deadline pour soumettre le rapport
         // Deadline pour soumettre le rapport
         if (request.getMethod() == ExpertiseMethod.ONSITE) {
             // Choix du slot
@@ -247,12 +334,12 @@ public class ExpertiseServiceImpl implements ExpertiseService {
             expertiseSlotRepository.save(chosen);
 
             request.setConfirmedDateTime(chosen.getDateTime());
-            // Deadline rapport : 3j après le slot choisi
-            request.setReportSubmissionDeadline(chosen.getDateTime().plusDays(REPORT_SUBMISSION_DAYS));
+            // ONSITE : pas de deadline fixe pour le rapport, formulaire disponible après le rendez-vous
+            request.setReportSubmissionDeadline(null);
         } else {
             // Online : deadline rapport à partir de l'acceptation
             request.setConfirmedDateTime(null);
-            request.setReportSubmissionDeadline(LocalDateTime.now().plusDays(REPORT_SUBMISSION_DAYS));
+            request.setReportSubmissionDeadline(LocalDateTime.now().plusMinutes(REPORT_SUBMISSION_DAYS));
         }
 
         request.setStatus(ExpertiseStatus.PLANNED);
@@ -287,11 +374,18 @@ public class ExpertiseServiceImpl implements ExpertiseService {
             Map<String, Object> expertNotif = new HashMap<>();
             expertNotif.put("productName", request.getProduit().getNom());
             expertNotif.put("dateTime", request.getConfirmedDateTime() != null ? request.getConfirmedDateTime().toString() : null);
-            expertNotif.put("message", "Vous avez accepté l'expertise pour le produit \"" +
+// Ne mettre la deadline que si elle existe (uniquement pour ONLINE)
+            if (request.getReportSubmissionDeadline() != null) {
+                expertNotif.put("deadline", request.getReportSubmissionDeadline().toString());
+            } else {
+                // Pour ONSITE, indiquer qu'il n'y a pas de deadline fixe
+                expertNotif.put("deadline", "Aucune deadline fixe - Formulaire disponible après le rendez-vous");
+            }            expertNotif.put("message", "Vous avez accepté l'expertise pour le produit \"" +
                     request.getProduit().getNom() + "\"" +
-                    (request.getConfirmedDateTime() != null ? " le " + request.getConfirmedDateTime() : ""));
+                    (request.getConfirmedDateTime() != null ? " le " + request.getConfirmedDateTime() : "") );
             notificationService.processEvent(NotificationType.GENERIC, Set.of(expertUserId), expertNotif);
         }
+
         // Mettre à jour état du produit
         Produit produit = request.getProduit();
         produit.setEtat_expertise("expertise_planifiee");
@@ -318,6 +412,15 @@ public class ExpertiseServiceImpl implements ExpertiseService {
             request.getExcludedExpertClientIds().add(assignedClientId);
         }
 
+        // Notification à l'expert
+        if (request.getExpert() != null && request.getExpert().getClient() != null) {
+            Map<String, Object> expertNotif = new HashMap<>();
+            expertNotif.put("message", "Vous avez refusé l'expertise pour le produit \"" +
+                    request.getProduit().getNom() + "\".");
+            notificationService.processEvent(NotificationType.GENERIC,
+                    Set.of(request.getExpert().getClient().getIdclient()), expertNotif);
+        }
+
         // Réinitialiser la demande
         request.setExpert(null);
         request.setStatus(ExpertiseStatus.CREATED);
@@ -328,7 +431,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         // Notif vendeur (refus)
         Map<String, Object> vendeurNotif = new HashMap<>();
         vendeurNotif.put("message", "L'expert a refusé la demande d'expertise pour le produit \"" +
-                request.getProduit().getNom() + "\". Elle sera réassignée.");
+                request.getProduit().getNom() + "\". Un nouvel expert sera assigné.");
         notificationService.processEvent(NotificationType.GENERIC,
                 Set.of(request.getVendeur().getIdclient()), vendeurNotif);
 
@@ -338,37 +441,113 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         return toDto(request);
     }
 
-    // ==== 6) SCHEDULER POUR TRAITER LES DEADLINES ====
+    // ==== 6) SCHEDULER POUR TRAITER LES DEADLINES - AMÉLIORÉ ====
     @Override
     public void processExpiredExpertDecisions() {
         LocalDateTime now = LocalDateTime.now();
         List<ExpertiseRequest> expired = expertiseRequestRepository
                 .findByStatusAndExpertResponseDeadlineBefore(ExpertiseStatus.PENDING_EXPERT_DECISION, now);
+
         for (ExpertiseRequest req : expired) {
+            // Ajouter l'expert actuel à la liste d'exclusion
+            if (req.getExpert() != null && req.getExpert().getClient() != null) {
+                Long expertClientId = req.getExpert().getClient().getIdclient();
+                req.getExcludedExpertClientIds().add(expertClientId);
+
+                // Notifier l'expert qui a dépassé le délai
+                Map<String, Object> expertNotif = new HashMap<>();
+                expertNotif.put("message", "Vous avez dépassé le délai de réponse pour l'expertise du produit \"" +
+                        req.getProduit().getNom() + "\". La demande a été réassignée à un autre expert.");
+                notificationService.processEvent(
+                        NotificationType.GENERIC,
+                        Set.of(expertClientId),
+                        expertNotif
+                );
+            }
+
+            // Réinitialiser la demande
             req.setExpert(null);
             req.setStatus(ExpertiseStatus.CREATED);
             req.setExpertResponseDeadline(null);
             expertiseRequestRepository.save(req);
-            assignExpertAndNotify(req);
+
+            // Notifier le vendeur
+            Map<String, Object> vendeurNotif = new HashMap<>();
+            vendeurNotif.put("message", "L'expert n'a pas répondu dans les délais pour le produit \"" +
+                    req.getProduit().getNom() + "\". Réassignation à un nouvel expert en cours.");
+            notificationService.processEvent(
+                    NotificationType.GENERIC,
+                    Set.of(req.getVendeur().getIdclient()),
+                    vendeurNotif
+            );
+
+            // Réassigner à un nouvel expert (en excluant ceux déjà essayés)
+            assignExpertAndNotify(req, req.getExcludedExpertClientIds());
         }
     }
 
     @Override
     public void processExpiredReportSubmissions() {
         LocalDateTime now = LocalDateTime.now();
+
+        // Récupérer toutes les demandes avec deadline expirée
         List<ExpertiseRequest> expired = expertiseRequestRepository
                 .findByStatusAndReportSubmissionDeadlineBefore(ExpertiseStatus.PLANNED, now);
-        for (ExpertiseRequest req : expired) {
+
+        // Filtrer pour ne garder que les ONLINE (ONSITE n'a pas de deadline)
+        List<ExpertiseRequest> onlineExpired = expired.stream()
+                .filter(req -> req.getMethod() == ExpertiseMethod.ONLINE)
+                .collect(Collectors.toList());
+
+        for (ExpertiseRequest req : onlineExpired) {
+            // Ajouter l'expert actuel à la liste d'exclusion
+            if (req.getExpert() != null && req.getExpert().getClient() != null) {
+                Long expertClientId = req.getExpert().getClient().getIdclient();
+                req.getExcludedExpertClientIds().add(expertClientId);
+
+                // Notifier l'expert qui n'a pas soumis le rapport
+                Map<String, Object> expertNotif = new HashMap<>();
+                expertNotif.put("message", "Vous avez dépassé le délai de soumission du rapport pour l'expertise du produit \"" +
+                        req.getProduit().getNom() + "\". La demande a été réassignée.");
+                notificationService.processEvent(
+                        NotificationType.GENERIC,
+                        Set.of(expertClientId),
+                        expertNotif
+                );
+            }
+
+            // Notifier le vendeur
+            Map<String, Object> vendeurNotif = new HashMap<>();
+            vendeurNotif.put("message", "L'expert n'a pas soumis le rapport dans les délais pour le produit \"" +
+                    req.getProduit().getNom() + "\". Réassignation à un autre expert en cours.");
+            notificationService.processEvent(
+                    NotificationType.GENERIC,
+                    Set.of(req.getVendeur().getIdclient()),
+                    vendeurNotif
+            );
+
+            // Réinitialiser la demande
             req.setStatus(ExpertiseStatus.CREATED);
             req.setExpert(null);
             req.setReportSubmissionDeadline(null);
+            req.setConfirmedDateTime(null);
+
+            // Réinitialiser les slots si ONSITE
+            if (req.getMethod() == ExpertiseMethod.ONSITE) {
+                for (ExpertiseSlot slot : req.getSlots()) {
+                    slot.setChosen(false);
+                }
+                expertiseSlotRepository.saveAll(req.getSlots());
+            }
+
             expertiseRequestRepository.save(req);
-            assignExpertAndNotify(req);
+
+            // Réassigner à un nouvel expert
+            assignExpertAndNotify(req, req.getExcludedExpertClientIds());
         }
     }
 
     // ==== 7) CONVERSION DTO ====
-    // ... dans toDto(ExpertiseRequest req)
     private ExpertiseRequestDTO toDto(ExpertiseRequest req) {
         ExpertiseRequestDTO dto = new ExpertiseRequestDTO();
         dto.setId(req.getId());
@@ -417,14 +596,13 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         dto.setMethod(req.getMethod());
         dto.setStatus(req.getStatus());
 
-
         double totalPrice = req.getPrice() != null
                 ? req.getPrice()
                 : (req.getMethod() == ExpertiseMethod.ONLINE ? ONLINE_PRICE : ONSITE_PRICE);
         double expertShare = totalPrice * EXPERT_PAYOUT_RATE;
 
         dto.setPrice(totalPrice);      // montant total payé par le vendeur
-        dto.setExpertShare(expertShare); // part de l’expert
+        dto.setExpertShare(expertShare); // part de l'expert
 
         dto.setConfirmedDateTime(req.getConfirmedDateTime() != null ? req.getConfirmedDateTime().toString() : null);
         dto.setLocation(req.getLocation());
@@ -467,7 +645,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         // reset assignment and deadlines
         req.setExpert(null);
         req.setStatus(ExpertiseStatus.CREATED);
-        req.setExpertResponseDeadline(LocalDateTime.now().plusHours(EXPERT_ACTION_RESPONSE_HOURS));
+        req.setExpertResponseDeadline(LocalDateTime.now().plusMinutes(EXPERT_ACTION_RESPONSE_HOURS));
         req.setReportSubmissionDeadline(null);
         expertiseRequestRepository.save(req);
 
@@ -488,4 +666,20 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         return toDto(req);
     }
 
+    @Override
+    public boolean canSubmitReport(Long requestId) {
+        ExpertiseRequest request = expertiseRequestRepository.findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Demande non trouvée"));
+
+        if (request.getMethod() == ExpertiseMethod.ONLINE) {
+            // ONLINE : accessible immédiatement après acceptation
+            return request.getStatus() == ExpertiseStatus.PLANNED;
+        } else {
+            // ONSITE : accessible uniquement après la date du rendez-vous
+            if (request.getConfirmedDateTime() == null) {
+                return false;
+            }
+            return LocalDateTime.now().isAfter(request.getConfirmedDateTime());
+        }
+    }
 }

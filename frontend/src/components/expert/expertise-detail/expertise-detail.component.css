@@ -835,3 +835,282 @@
   font-size: 1.4rem;
   color: #059669;
 }
+/* États spéciaux */
+.chip-expired {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+}
+
+/* Carte d'expiration */
+.state-expired,
+.deadline-expired {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
+  border-color: #fecaca !important;
+}
+
+.expired-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.expired-icon {
+  font-size: 2rem;
+  background: #dc2626;
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.expired-title {
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: #dc2626;
+  margin: 0 0 0.5rem 0;
+}
+
+.expired-message {
+  color: #7f1d1d;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Carte d'attente */
+.waiting-slot {
+  background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%) !important;
+  border-color: #fde047 !important;
+}
+
+.waiting-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.waiting-icon {
+  font-size: 2rem;
+  background: #eab308;
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.waiting-title {
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: #854d0e;
+  margin: 0 0 0.5rem 0;
+}
+
+.waiting-message {
+  color: #854d0e;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Carte terminée */
+.completed {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+  border-color: #6ee7b7 !important;
+}
+
+.completed-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.completed-icon {
+  font-size: 2rem;
+  background: #10b981;
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.completed-title {
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: #047857;
+  margin: 0 0 0.5rem 0;
+}
+
+.completed-message {
+  color: #047857;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Carte annulée */
+.cancelled {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%) !important;
+  border-color: #d1d5db !important;
+}
+
+.cancelled-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.cancelled-icon {
+  font-size: 2rem;
+  background: #6b7280;
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cancelled-title {
+  font-weight: 800;
+  font-size: 1.2rem;
+  color: #374151;
+  margin: 0 0 0.5rem 0;
+}
+
+.cancelled-message {
+  color: #4b5563;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Badges pour les créneaux */
+.slot-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  margin-left: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.slot-badge.expired {
+  background: #fecaca;
+  color: #dc2626;
+}
+
+.slot-badge.soon {
+  background: #fde68a;
+  color: #854d0e;
+}
+
+/* Styles pour les créneaux expirés/bientôt */
+.slots button.expired {
+  opacity: 0.6;
+  cursor: not-allowed !important;
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+}
+
+.slots button.soon {
+  border-color: #fde047 !important;
+  background: #fefce8 !important;
+  color: #854d0e !important;
+}
+
+.slots button.expired:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Sous-titre du formulaire */
+.form-subtitle {
+  color: #047857;
+  margin: 0.5rem 0 0 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.form-subtitle strong {
+  color: #0f766e;
+}
+
+/* Styles pour les champs désactivés */
+.field select:disabled,
+.field input:disabled,
+.field textarea:disabled {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Animation pour les états urgents */
+@keyframes urgentPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
+  }
+}
+
+.deadline-expired {
+  animation: urgentPulse 2s infinite;
+}
+/* Styles pour le message d'attente ONSITE */
+.waiting-onsite {
+  border-left: 4px solid #FFA726;
+  background-color: #FFF3E0;
+  padding: 16px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+
+.waiting-onsite .waiting-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.waiting-onsite .waiting-icon {
+  font-size: 24px;
+  color: #FFA726;
+  line-height: 1;
+}
+
+.waiting-onsite .waiting-title {
+  font-weight: 600;
+  color: #E65100;
+  margin-bottom: 4px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.waiting-onsite .waiting-message {
+  color: #5D4037;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.waiting-onsite .waiting-message strong {
+  color: #E65100;
+}

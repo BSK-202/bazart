@@ -42,6 +42,11 @@ export class ExpertExpertiseListComponent implements OnInit, OnDestroy {
   selectedSlotIndex: Record<number, number | null> = {};
   countdowns: Record<number, string> = {};
 
+  // Variables de pagination
+  currentPage: number = 1;
+  itemsPerPage: number = 6; // Nombre d'éléments par page
+  totalPages: number = 1;
+
   private intervalId: any;
 
   constructor(private http: HttpClient, private router: Router) {}
@@ -65,6 +70,45 @@ export class ExpertExpertiseListComponent implements OnInit, OnDestroy {
     if (this.intervalId) clearInterval(this.intervalId);
   }
 
+  // Méthode pour obtenir les éléments de la page courante
+  getCurrentPageRequests(): ExpertiseRequest[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.requests.slice(startIndex, endIndex);
+  }
+
+  // Méthode pour aller à une page spécifique
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      // Optionnel: Scroll vers le haut de la page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  // Méthode pour calculer le nombre total de pages
+  updatePagination(): void {
+    this.totalPages = Math.ceil(this.requests.length / this.itemsPerPage);
+    // Si la page courante est au-delà du nombre total de pages, revenir à la première
+    if (this.currentPage > this.totalPages && this.totalPages > 0) {
+      this.currentPage = 1;
+    }
+  }
+
+  // Méthode pour obtenir le texte du statut
+  getStatusText(status: string): string {
+    const statusMap: {[key: string]: string} = {
+      'PENDING_EXPERT_DECISION': 'En attente',
+      'EXPERT_ACCEPTED': 'Accepté',
+      'EXPERT_REFUSED': 'Refusé',
+      'COMPLETED': 'Terminé',
+      'CANCELLED': 'Annulé',
+      'EXPERTISE_IN_PROGRESS': 'En cours',
+      'REPORT_SUBMITTED': 'Rapport soumis'
+    };
+    return statusMap[status] || status;
+  }
+
   loadPendingRequests(): void {
     this.isLoading = true;
     this.errorMessage = '';
@@ -74,6 +118,7 @@ export class ExpertExpertiseListComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (data) => {
           this.requests = data || [];
+          this.updatePagination(); // Mettre à jour la pagination
           this.requests.forEach((r) => (this.selectedSlotIndex[r.id] = null));
 
           // countdown uniquement pour les PENDING
@@ -140,54 +185,11 @@ export class ExpertExpertiseListComponent implements OnInit, OnDestroy {
 
   onChooseSlot(request: ExpertiseRequest, slotIndex: number): void {
     if (request.status !== 'PENDING_EXPERT_DECISION') return;
-      this.selectedSlotIndex[request.id] = slotIndex;
+    this.selectedSlotIndex[request.id] = slotIndex;
   }
 
-  acceptRequest(req: ExpertiseRequest): void {
-    const params: any = { expertId: this.expertId };
-    if (req.method === 'ONSITE') {
-      const slotIdx = this.selectedSlotIndex[req.id];
-      if (!slotIdx) {
-        alert("Veuillez sélectionner un créneau avant d'accepter.");
-        return;
-      }
-      params.slotIndex = slotIdx;
-    }
-
-    this.isLoading = true;
-    this.http
-      .post(`${this.API_BASE_URL}/api/expertise/requests/${req.id}/accept`, null, { params })
-      .subscribe({
-        next: () => {
-          alert('✅ Expertise acceptée !');
-          this.loadPendingRequests();
-        },
-        error: () => {
-          this.isLoading = false;
-          alert("Erreur lors de l'acceptation de la demande.");
-        }
-      });
-  }
-
-  refuseRequest(req: ExpertiseRequest): void {
-    this.isLoading = true;
-    this.http
-      .post(
-        `${this.API_BASE_URL}/api/expertise/requests/${req.id}/refuse`,
-        null,
-        { params: { expertId: this.expertId } }
-      )
-      .subscribe({
-        next: () => {
-          alert('Demande refusée, elle sera réassignée.');
-          this.loadPendingRequests();
-        },
-        error: () => {
-          this.isLoading = false;
-          alert('Erreur lors du refus de la demande.');
-        }
-      });
-  }
+  // Note: Les méthodes acceptRequest() et refuseRequest() sont gardées pour référence
+  // mais ne sont plus utilisées dans le template HTML mis à jour
 
   confirmOnsiteExpertise(request: ExpertiseRequest): void {
     const slotIdx = this.selectedSlotIndex[request.id];

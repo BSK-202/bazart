@@ -17,10 +17,12 @@ public interface ExpertiseService {
 
     // méthode appelée pour soumettre le rapport côté reportService
     void processExpiredReportSubmissions(); // pour gérer deadline 3j rapport
+    boolean canSubmitReport(Long requestId);  // Ajoutez cette ligne
 
     public ExpertiseRequestDTO getRequestDetailById(Long requestId);
 
     ExpertiseRequestDTO reopenAfterSellerInfo(Long requestId);
 
+    public void retryBlockedRequests();
     public List<ExpertiseRequestDTO> getAssignedRequestsForExpert(Long clientId);
 }

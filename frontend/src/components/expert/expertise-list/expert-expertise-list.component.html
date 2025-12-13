@@ -20,62 +20,68 @@
     Aucune demande d'expertise en attente.
   </div>
 
-  <div class="card-list" *ngIf="!isLoading && requests.length > 0">
-    <div class="expert-card" *ngFor="let req of requests">
-      <div class="card-left" (click)="onViewDetails(req)">
-        <img [src]="getImageUrl(req)" alt="Produit" />
-      </div>
+  <div *ngIf="!isLoading && requests.length > 0">
+    <div class="card-grid">
+      <div class="expert-card" *ngFor="let req of getCurrentPageRequests()">
+        <div class="card-image" (click)="onViewDetails(req)">
+          <img [src]="getImageUrl(req)" alt="Produit" />
+        </div>
 
-      <div class="card-mid">
-        <div class="top-row">
-          <div class="product-title" (click)="onViewDetails(req)">{{ req.produitNom }}</div>
-          <div class="top-right">
-            <span class="badge" [ngClass]="{'badge-online': req.method === 'ONLINE', 'badge-onsite': req.method === 'ONSITE'}">
-              {{ req.method === 'ONLINE' ? 'En ligne' : 'Sur place' }}
-            </span>
-            <div *ngIf="req.expertResponseDeadline && req.status === 'PENDING_EXPERT_DECISION'" class="pill-countdown">
-              {{ countdowns[req.id] || '...' }}
+        <div class="card-content">
+          <div class="card-header">
+            <div class="product-title" (click)="onViewDetails(req)">{{ req.produitNom }}</div>
+
+            <div class="badges-row">
+              <span class="badge" [ngClass]="{'badge-online': req.method === 'ONLINE', 'badge-onsite': req.method === 'ONSITE'}">
+                {{ req.method === 'ONLINE' ? 'En ligne' : 'Sur place' }}
+              </span>
+
+              <div *ngIf="req.expertResponseDeadline && req.status === 'PENDING_EXPERT_DECISION'" class="pill-countdown">
+                {{ countdowns[req.id] || '...' }}
+              </div>
+
+              <span class="status-badge">
+                {{ getStatusText(req.status) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="meta-info">
+            <div class="meta-row">
+              <span class="vendor">Vendeur : {{ req.vendeurNom }}</span>
+              <span class="price">{{ req.expertShare || req.price * 0.7 | number:'1.0-2' }} DH</span>
+            </div>
+          </div>
+
+          <div *ngIf="req.method === 'ONSITE' && req.slots?.length" class="slot-info">
+            <span class="slot-title">Créneau prévu :</span>
+            <div class="slot-display">
+              {{ req.slots[0] | date:'EEE dd/MM HH:mm':'fr-FR' }}
             </div>
           </div>
         </div>
-
-        <div class="meta-row">
-          <span class="vendor">Vendeur : {{ req.vendeurNom }}</span>
-          <span class="price">Rémunération : <b>{{ req.expertShare || req.price * 0.7 | number:'1.0-2' }} DH</b></span>
-          <span *ngIf="req.method === 'ONSITE' && req.slots?.length" class="slot-bubble">
-            {{ req.slots[0] | date:'EEE dd/MM HH:mm':'fr-FR' }}
-          </span>
-        </div>
-
-        <div *ngIf="req.method === 'ONSITE' && req.slots?.length" class="slot-picker">
-          <span class="slot-title">Sélectionnez un créneau :</span>
-          <div class="slot-list">
-            <button
-              *ngFor="let slot of req.slots; let i = index"
-              type="button"
-              (click)="onChooseSlot(req, i + 1)"
-              [class.selected]="selectedSlotIndex[req.id] === i + 1"
-              [disabled]="req.status !== 'PENDING_EXPERT_DECISION'"
-              [class.disabled]="req.status !== 'PENDING_EXPERT_DECISION'"
-            >
-              {{ slot | date:'EEE dd/MM HH:mm':'fr-FR' }}
-            </button>
-          </div>
-        </div>
       </div>
+    </div>
 
-      <div class="card-right">
-        <button class="btn primary"
-                (click)="acceptRequest(req)"
-                [disabled]="req.status !== 'PENDING_EXPERT_DECISION'">
-          Accepter
-        </button>
-        <button class="btn ghost"
-                (click)="refuseRequest(req)"
-                [disabled]="req.status !== 'PENDING_EXPERT_DECISION'">
-          Refuser
-        </button>
-      </div>
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="pagination">
+      <button
+        class="pagination-btn"
+        (click)="goToPage(currentPage - 1)"
+        [disabled]="currentPage === 1">
+        ← Précédent
+      </button>
+
+      <span class="page-info">
+        Page {{ currentPage }} sur {{ totalPages }}
+      </span>
+
+      <button
+        class="pagination-btn"
+        (click)="goToPage(currentPage + 1)"
+        [disabled]="currentPage === totalPages">
+        Suivant →
+      </button>
     </div>
   </div>
 </section>

@@ -3,6 +3,7 @@ package com.marketplace.expertise.controller;
 import com.marketplace.expertise.dto.ExpertiseReportDTO;
 import com.marketplace.expertise.entity.ExpertiseReport;
 import com.marketplace.expertise.service.ExpertiseReportService;
+import com.marketplace.expertise.service.ExpertiseService;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -19,13 +20,15 @@ import java.nio.file.Path;
 public class ExpertiseReportController {
 
     private final ExpertiseReportService reportService;
+    private final ExpertiseService expertiseService; // AJOUTER CETTE LIGNE
 
-    public ExpertiseReportController(ExpertiseReportService reportService) {
+    public ExpertiseReportController(ExpertiseReportService reportService, ExpertiseService expertiseService) {
         this.reportService = reportService;
+        this.expertiseService = expertiseService;
     }
 
     @PostMapping("/{id}/submit-report")
-    public ResponseEntity<ExpertiseReportDTO> submitReport(
+    public ResponseEntity<?> submitReport(
             @PathVariable("id") Long expertiseRequestId,
             @RequestParam("expertId") Long expertId,
             @RequestParam("productCondition") String productCondition,
@@ -37,7 +40,13 @@ public class ExpertiseReportController {
             @RequestParam(value="commentsPublic", required = false) String commentsPublic,
             @RequestParam(value="commentsInternal", required = false) String commentsInternal,
             @RequestPart(value="document", required = false) MultipartFile document
+
     ) {
+        if (!expertiseService.canSubmitReport(expertiseRequestId)) {
+            return ResponseEntity.badRequest()
+                    .body("Le rapport ne peut pas être soumis maintenant. " +
+                            "Pour les expertises sur place, attendez la date du rendez-vous.");
+        }
         var report = reportService.createReportAndGeneratePDF(
                 expertiseRequestId,
                 expertId,

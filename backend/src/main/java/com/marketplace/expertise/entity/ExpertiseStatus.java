@@ -4,7 +4,8 @@ public enum ExpertiseStatus {
     CREATED,
     PENDING_EXPERT_DECISION,  // attente réponse expert (24h)
     PLANNED,
-    NO_EXPERT_AVAILABLE,
+    NO_EXPERTS_AVAILABLE,
     CANCELLED,
-    EXPERTISED
+    EXPERTISED,
+    ALL_EXPERTS_TRIED
 }
