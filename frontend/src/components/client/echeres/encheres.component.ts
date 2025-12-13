@@ -31,7 +31,7 @@ interface Produit {
   dateenchere?: string; // ✅ AJOUTER
   dureeEnchereJours?: number; // ✅ AJOUTER
   tempsRestant?: string; // ✅ AJOUTER - pour stocker le temps restant calculé
-
+  isRelance?: boolean;
 }
 
 // Interface pour la réponse du like
@@ -99,7 +99,7 @@ export class EncheresComponent implements OnInit {
   // ✅ AJOUTER: Mettre à jour tous les timers
   private updateAllTimers(): void {
     this.produits.forEach(produit => {
-      if (produit.etat === 'en_enchere' && produit.dateenchere && produit.dureeEnchereJours) {
+      if ((produit.etat === 'en_enchere' || produit.etat === 'relance') && produit.dateenchere && produit.dureeEnchereJours) {
         produit.tempsRestant = this.calculateTimeLeft(produit);
       }
     });
@@ -145,8 +145,10 @@ export class EncheresComponent implements OnInit {
             ? this.getProduitImageUrl(prod.id, prod.images[0])
             : 'assets/images/placeholder.jpg';
 
+
+          prod.isRelance = prod.etat === 'relance';
           // ✅ CALCULER LE TEMPS RESTANT POUR CHAQUE PRODUIT
-          if (prod.etat === 'en_enchere' && prod.dateenchere && prod.dureeEnchereJours) {
+          if ((prod.etat === 'en_enchere' || prod.etat === 'relance') && prod.dateenchere && prod.dureeEnchereJours) {
             prod.tempsRestant = this.calculateTimeLeft(prod);
           } else {
             prod.tempsRestant = this.getEtatDisplayText(prod.etat);
@@ -288,6 +290,8 @@ export class EncheresComponent implements OnInit {
         return 'Publié';
       case 'en_enchere':
         return 'En enchère';
+      case 'relance':
+        return 'Enchère relancé';
       case 'enchere_termine':
         return 'Enchère terminée';
       case 'vendu':
@@ -297,6 +301,14 @@ export class EncheresComponent implements OnInit {
     }
   }
 
+  getRelanceBadgeClass(produit: Produit): string {
+    return produit.isRelance ? 'relance-badge' : 'auction-badge';
+  }
+
+  // Ajouter une méthode pour obtenir le texte du badge spécial
+  getRelanceBadgeText(produit: Produit): string {
+    return produit.isRelance ? 'RELANCE' : 'ENCHÈRE';
+  }
   // Méthode pour obtenir la classe CSS selon l'état
   getEtatClass(etat: string): string {
     switch (etat?.toLowerCase()) {
@@ -336,7 +348,7 @@ export class EncheresComponent implements OnInit {
 
   // ✅ AJOUTER: Vérifier si une enchère est active
   isEnchereActive(produit: Produit): boolean {
-    return produit.etat === 'en_enchere';
+    return produit.etat === 'en_enchere' || produit.etat === 'relance';
   }
 
   // ✅ AJOUTER: Vérifier si une enchère est terminée

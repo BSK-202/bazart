@@ -699,3 +699,194 @@
     gap: 5px;
   }
 }
+
+/* Styles pour le défilement de l'historique */
+.history-scroll-container {
+  flex: 1;
+  max-height: 500px; /* Hauteur maximale pour le défilement */
+  overflow-y: auto; /* Active le défilement vertical */
+  border-radius: 8px;
+  margin: 0 5px;
+}
+
+/* Personnaliser la barre de défilement */
+.history-scroll-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.history-scroll-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.history-scroll-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.history-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Styles pour le contenu de l'historique */
+.history-content {
+  padding: 0;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 15px;
+}
+
+/* État de chargement et vide */
+.loading-history,
+.no-history {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+}
+
+/* Styles pour les éléments d'historique (garantir qu'ils sont visibles) */
+.history-item {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  border-radius: 0.75rem;
+  border-left: 4px solid #e2e8f0;
+  transition: all 0.3s;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.history-item:hover {
+  background: #f8fafc;
+  transform: translateX(3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Garantir la visibilité des opérations CREDIT/DEBIT */
+.credit-operation {
+  border-left-color: #2b6cb0;
+  background: #f0f8ff;
+}
+
+.credit-operation .icon-operation {
+  color: #2b6cb0;
+}
+
+.debit-operation {
+  border-left-color: #e53e3e;
+  background: #fff0f0;
+}
+
+.debit-operation .icon-operation {
+  color: #e53e3e;
+}
+
+/* Détails des opérations - s'assurer qu'ils sont visibles */
+.operation-details {
+  flex: 1;
+}
+
+.operation-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.operation-type {
+  font-weight: 600;
+  color: #2c3e50;
+  text-transform: uppercase;
+  font-size: 0.85em;
+}
+
+.operation-amount {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.operation-amount.positive {
+  color: #2b6cb0;
+}
+
+.operation-amount:not(.positive) {
+  color: #e53e3e;
+}
+
+.operation-description {
+  margin: 0 0 8px 0;
+  color: #34495e;
+  font-size: 0.95em;
+}
+
+.operation-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8em;
+  color: #7f8c8d;
+  margin-bottom: 5px;
+}
+
+.balance-change {
+  color: #95a5a6;
+  font-size: 0.8em;
+}
+
+/* Ajustements pour la carte d'historique */
+.history-card {
+  height: auto;
+  max-height: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.history-header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-radius: 12px 12px 0 0;
+}
+
+.history-footer {
+  flex-shrink: 0;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #ecf0f1;
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 0.9em;
+  background: white;
+  padding: 12px;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .history-scroll-container {
+    max-height: 400px;
+  }
+
+  .operation-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .operation-meta {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+

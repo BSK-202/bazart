@@ -3,6 +3,7 @@ import { NotificationWebSocketService } from "../../services/notification-websoc
 import { HttpClient } from "@angular/common/http"
 import { CommonModule } from "@angular/common"
 import { Subscription } from "rxjs"
+import {Router} from '@angular/router';
 
 @Component({
   selector: "app-notification",
@@ -25,6 +26,7 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
   constructor(
     private notifWebSocketService: NotificationWebSocketService,
     private http: HttpClient,
+    private router: Router, // ← Ajouter cette ligne
   ) {}
 
   ngOnInit() {
@@ -193,4 +195,78 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
     this.wsSub?.unsubscribe();
     this.notifWebSocketService.disconnect();
   }
+
+  // Méthode pour rediriger vers les produits vendus (pour le vendeur)
+  goToSoldProducts(): void {
+    console.log('📤 Redirection vers les produits vendus');
+    this.closeSidebar();
+    this.closeDetailSidebar();
+
+    // Rediriger vers le profil avec l'onglet "sold"
+    this.router.navigate(['/profil'], {
+      queryParams: { tab: 'sold' },
+      state: { activeTab: 'sold' }
+    });
+  }
+
+// Méthode pour rediriger vers les enchères gagnées (pour l'acheteur)
+  goToWonProducts(): void {
+    console.log('🏆 Redirection vers les enchères gagnées');
+    this.closeSidebar();
+    this.closeDetailSidebar();
+
+    // Rediriger vers le profil avec l'onglet "won"
+    this.router.navigate(['/profil'], {
+      queryParams: { tab: 'won' },
+      state: { activeTab: 'won' }
+    });
+  }
+
+// Méthode pour rediriger vers les enchères
+  goToAuctions(): void {
+    console.log('🔨 Redirection vers les enchères');
+    this.closeSidebar();
+    this.closeDetailSidebar();
+
+    // Rediriger vers la page des enchères
+    this.router.navigate(['/encheres']);
+  }
+
+// Méthode pour rediriger vers les enchères actives
+  goToActiveAuctions(): void {
+    console.log('🚀 Redirection vers les enchères actives');
+    this.closeSidebar();
+    this.closeDetailSidebar();
+
+    // Rediriger vers le profil avec l'onglet "bids"
+    this.router.navigate(['/profil'], {
+      queryParams: { tab: 'bids' },
+      state: { activeTab: 'bids' }
+    });
+  }
+
+// Méthode pour rediriger vers les produits publiés
+  goToPublishedProducts(): void {
+    console.log('📄 Redirection vers les produits publiés');
+    this.closeSidebar();
+    this.closeDetailSidebar();
+
+    // Rediriger vers le profil avec l'onglet "published"
+    this.router.navigate(['/profil'], {
+      queryParams: { tab: 'published' },
+      state: { activeTab: 'published' }
+    });
+  }
+
+  // Dans la classe NotificationComponent, après les autres méthodes de redirection
+// Méthode pour rediriger vers le portefeuille
+  goToWallet(): void {
+    console.log('💰 Redirection vers le portefeuille');
+    this.closeSidebar();
+    this.closeDetailSidebar();
+
+    // Rediriger vers la page du portefeuille
+    this.router.navigate(['/wallet']);
+  }
+
 }
