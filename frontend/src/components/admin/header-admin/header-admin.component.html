@@ -22,6 +22,9 @@
       {{ pendingCount }}
     </span>
         </a>
+        <a routerLink="/admin/validation-achat" class="nav-link">
+          Validation d'achat
+        </a>
         <a routerLink="/admin/experts-inactifs" class="nav-link">Demande</a>
         <a routerLink="/admin/experts-actifs" class="nav-link">Experts</a>
       </nav>
@@ -38,7 +41,7 @@
         <app-notification
           *ngIf="isAuthenticated && adminUserId"
           [userId]="adminUserId"
-          [inAppEnabled]="true">
+          [isAdmin]="true"> <!-- AJOUTER CETTE LIGNE -->
         </app-notification>
 
         <ng-container *ngIf="isAuthenticated">

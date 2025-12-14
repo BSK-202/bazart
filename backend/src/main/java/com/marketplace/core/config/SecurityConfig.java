@@ -57,7 +57,11 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/admins/login").permitAll() // Admin login public
-                        .requestMatchers("/api/admins/register").permitAll() // Admin register public
+                        .requestMatchers("/api/admins/register").permitAll()
+                        .requestMatchers("/api/produits/*/valider-vente").permitAll()
+                        .requestMatchers("/api/produits/*/refuser-vente").permitAll()
+
+                        .requestMatchers("/api/admin/notifications/**").permitAll()
                         .requestMatchers("/api/domaines/**").permitAll()
                         .requestMatchers("/api/categories/**").permitAll()
                         .requestMatchers("/api/produits/**").permitAll()

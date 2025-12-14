@@ -72,28 +72,17 @@ class UserProfileComponent implements OnInit {
   emailEnabled: boolean = false;
 
   showContactModal = false;
-  showDecisionModal = false;
-  showPaymentConfirmationModal = false;
+
+  selectedProductForDecision: Produit | null = null;
 
   selectedSellerName = '';
   selectedSellerPhone = '';
   selectedSellerEmail = '';
   selectedSellerPhoto = '';
-  selectedProductForDecision: Produit | null = null;
-  selectedSellerId: number | null = null;
 
-  // Pour la confirmation de paiement
-  confirmationTitle = '';
-  confirmationMessage = '';
-  paymentBeneficiary = '';
-  paymentDescription = '';
-  pendingAction: 'accept' | 'refuse' | null = null;
-  decisionError = '';
-  isProcessingDecision = false;
 
   // Données pour l'édition
   isEditingProfile = false;
-  isEditingProduct = false;
   isFullEditProduct = false;
   editedUser: any = {};
   editedProduct: Produit | null = null;
@@ -135,6 +124,11 @@ class UserProfileComponent implements OnInit {
   pricePerDay: number = 100; // Prix par jour (fixe)
   calculatedPrice: number = 0;
   produitsFavoris: Produit[] = [];
+
+  showSaleValidationModal: boolean = false;
+  selectedProductForValidation: Produit | null = null;
+  saleValidationMessage: string = '';
+  isProcessingSaleValidation: boolean = false;
 
   // Remplacez les données mockées par les vraies données
   produitsEncheres: Produit[] = [];
@@ -370,42 +364,6 @@ class UserProfileComponent implements OnInit {
     }
   }
 
-  // ✅ NOUVELLE MÉTHODE : Charger tous les likes de l'utilisateur en une seule fois
-  private loadAllLikesForUser(userId: number): Promise<Map<number, number>> {
-    return new Promise((resolve) => {
-      const url = `${this.API_BASE_URL}/api/interactions/client/${userId}/produits-likes`;
-
-      console.log('🔄 Chargement de tous les likes utilisateur:', url);
-
-      this.http.get<any[]>(url).subscribe({
-        next: (produitsLikes) => {
-          console.log('✅ Tous les produits likés reçus:', produitsLikes);
-
-          // Créer une Map pour un accès rapide (produitId → nombre de likes)
-          const likesMap = new Map<number, number>();
-
-          // Compter les likes par produit
-          produitsLikes.forEach(produit => {
-            if (produit.id) {
-              // Si l'API retourne directement le compteur, l'utiliser
-              // Sinon, compter les occurrences (chaque entrée = 1 like)
-              const currentCount = likesMap.get(produit.id) || 0;
-              likesMap.set(produit.id, currentCount + 1);
-            }
-          });
-
-          console.log('📊 Map des likes créée:', likesMap);
-          resolve(likesMap);
-        },
-        error: (error) => {
-          console.error('❌ Erreur lors du chargement des likes utilisateur:', error);
-          // En cas d'erreur, retourner une Map vide
-          resolve(new Map<number, number>());
-        }
-      });
-    });
-  }
-
   // ✅ NOUVELLE MÉTHODE : Charger tous les likes pour les produits du vendeur
   private loadAllLikesForVendeur(vendeurId: number): Promise<Map<number, number>> {
     return new Promise((resolve) => {
@@ -461,11 +419,11 @@ class UserProfileComponent implements OnInit {
             .map(p => this.ajouterImagePrincipale(p));
 
           this.produitsVendus = produitsAvecLikes
-            .filter(p => p.etat === 'vendu' || p.etat === 'enchere_termine')
+            .filter(p => p.etat === 'vendu' || p.etat === 'enchere_termine' || p.etat === 'vendeur_accepte_vente')
             .map(p => this.ajouterImagePrincipale(p));
 
         this.produitsPublies = produitsAvecLikes
-          .filter((p) => ["accepter", "accepte", "expertise_validee", "transaction_annulee"].includes(p.etat))
+          .filter((p) => ["accepter", "accepte", "expertise_validee", "transaction_annulee","enchere_termine_sans_gagnant","vendeur_refuse_vente"].includes(p.etat))
           .map((p) => this.ajouterImagePrincipale(p))
 
             this.produitsEnAttente = produitsAvecLikes
@@ -681,36 +639,6 @@ class UserProfileComponent implements OnInit {
     }
   }
 
-  // Méthode pour démarrer une enchère
-  startAuction(produit: Produit): void {
-    console.log('🚀 Démarrage de l\'enchère pour le produit:', produit.id);
-    this.isAuctionStarting = true;
-
-    // Ici vous pouvez appeler votre API pour démarrer l'enchère
-    const url = `${this.API_BASE_URL}/api/produits/${produit.id}/start-auction`;
-
-    this.http.post(url, {}).subscribe({
-      next: (response) => {
-        console.log('✅ Enchère démarrée avec succès:', response);
-        this.isAuctionStarting = false;
-
-        // Recharger les données pour mettre à jour l'affichage
-        if (this.user?.id) {
-          this.loadUserProducts(this.user.id);
-        }
-
-        // Optionnel: Afficher un message de succès
-        alert('L\'enchère a été démarrée avec succès!');
-      },
-      error: (error) => {
-        console.error('❌ Erreur lors du démarrage de l\'enchère:', error);
-        this.isAuctionStarting = false;
-
-        // Optionnel: Afficher un message d'erreur
-        alert('Erreur lors du démarrage de l\'enchère. Veuillez réessayer.');
-      }
-    });
-  }
 
   manageAuction(produit: Produit) {
     // Implémentation de la gestion de l'enchère ici
@@ -740,16 +668,6 @@ class UserProfileComponent implements OnInit {
     }
   }
 
-  // Méthode pour démarrer l'enchère avec paiement
-  startAuctionWithPayment(produit: Produit): void {
-    console.log('💳 Démarrage avec paiement pour le produit:', produit.id);
-    this.selectedProduct = produit;
-    this.showPaymentModal = true;
-    this.paymentError = '';
-
-    // Charger le solde du wallet
-    this.loadWalletBalance();
-  }
 
   // Méthode pour charger le solde du wallet
   private loadWalletBalance(): void {
@@ -993,8 +911,9 @@ class UserProfileComponent implements OnInit {
   getEtatDisplay(etat: string): string {
     const etats: { [key: string]: string } = {
       'en_attente': 'En attente',
-      'accepte': 'Accepté',
-      'accepter': 'Accepté',
+      'accepte': 'Publié',
+      'accepter': 'Publié',
+      'vendeur_refuse_vente': 'Republié',
       'en_enchere': 'En enchère',
       'vendu': 'Vendu',
       'refuser': 'Refusé'
@@ -1280,14 +1199,6 @@ class UserProfileComponent implements OnInit {
     });
   }
 
-  // ✅ NOUVELLE MÉTHODE pour obtenir le statut des images
-  getImageStatus(index: number): string {
-    if (index < this.originalImages.length) {
-      return this.imagesToDelete.includes(this.originalImages[index]) ? 'supprimée' : 'existante';
-    }
-    return 'nouvelle';
-  }
-
   saveFullProduct(): void {
     if (!this.editedProduct) return;
 
@@ -1365,11 +1276,6 @@ class UserProfileComponent implements OnInit {
         alert(`❌ ${errorMessage}`);
       }
     });
-  }
-
-  getDisplayedImages(): string[] {
-    // Retourne seulement les 3 premières images pour l'affichage
-    return this.imagePreviews.slice(0, 3);
   }
 
   cancelFullEdit(): void {
@@ -1457,58 +1363,6 @@ class UserProfileComponent implements OnInit {
     this.editedUser = {};
   }
 
-  openEditProduct(produit: Produit): void {
-    this.isEditingProduct = true;
-    this.editedProduct = { ...produit };
-    console.log("📝 Ouverture édition produit:", this.editedProduct);
-  }
-
-  saveProduct(): void {
-    if (!this.editedProduct) return;
-
-    console.log("💾 Sauvegarde produit:", this.editedProduct);
-
-    const index = this.produitsEnAttente.findIndex((p) => p.id === this.editedProduct!.id);
-    if (index !== -1) {
-      this.produitsEnAttente[index] = { ...this.editedProduct };
-    }
-
-    this.isEditingProduct = false;
-    this.editedProduct = null;
-    alert("Produit mis à jour avec succès!");
-  }
-
-  cancelEditProduct(): void {
-    this.isEditingProduct = false;
-    this.editedProduct = null;
-  }
-
-  getEnchereStatus(produit: any): string {
-    if (!produit.dateenchere) return 'Nouvelle';
-
-    const now = new Date();
-    const startDate = new Date(produit.dateenchere);
-    const diffTime = Math.abs(now.getTime() - startDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 1) return '1er jour';
-    if (diffDays < 7) return `${diffDays} jours`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} semaines`;
-
-    return 'Long terme';
-  }
-
-  getProductStatusClass(produit: any): string {
-    if (produit.etat === 'pending') return 'status-pending';
-    if (produit.etat === 'active') return 'status-active';
-    return 'status-draft';
-  }
-
-  getProductStatusText(produit: any): string {
-    if (produit.etat === 'pending') return 'En attente';
-    if (produit.etat === 'active') return 'Actif';
-    return 'Brouillon';
-  }
 
   getFavoriteCount(produit: Produit): number {
     // ✅ CORRECTION : Utiliser nombreInteractions au lieu de nombreFavoris
@@ -1537,6 +1391,132 @@ class UserProfileComponent implements OnInit {
     alert(`Fonctionnalité de contact avec ${produit.acheteurNom} bientôt disponible!`);
   }
 
+  openSaleValidationModal(produit: Produit): void {
+    console.log('📝 Ouverture modal validation vente pour:', produit);
+
+    if (produit.etat !== 'vendu' && produit.etat !== 'enchere_termine' && produit.etat !== 'vendeur_accepte_vente') {
+      console.warn('⚠️ Ce produit n\'est pas en état de vente:', produit.etat);
+      alert('Ce produit n\'est pas encore vendu ou l\'enchère n\'est pas terminée.');
+      return;
+    }
+
+    // ✅ CORRECTION: Initialiser selectedProductForDecision aussi
+    this.selectedProductForValidation = produit;
+    this.selectedProductForDecision = produit; // ← AJOUTER CETTE LIGNE
+
+    this.saleValidationMessage = '';
+    this.isProcessingSaleValidation = false;
+
+    if (produit.acheteurNom) {
+      this.saleValidationMessage = `Voulez-vous confirmer la vente à ${produit.acheteurNom} pour ${this.formatCurrency(produit.prixFin || produit.prixDebut)} ?`;
+    } else {
+      this.saleValidationMessage = `Voulez-vous confirmer la vente pour ${this.formatCurrency(produit.prixFin || produit.prixDebut)} ?`;
+    }
+
+    this.showSaleValidationModal = true;
+  }
+
+// CORRECTION 2: Modifier closeSaleValidationModal
+  closeSaleValidationModal(): void {
+    this.showSaleValidationModal = false;
+    this.selectedProductForValidation = null;
+    this.selectedProductForDecision = null; // ← AJOUTER CETTE LIGNE
+    this.saleValidationMessage = '';
+    this.isProcessingSaleValidation = false;
+  }
+// CORRECTION 3: Modifier confirmSale() pour utiliser le bon produit
+  confirmSale(): void {
+    if (!this.selectedProductForValidation) return;
+
+    this.isProcessingSaleValidation = true;
+    console.log('✅ Vendeur confirme la vente:', this.selectedProductForValidation.id);
+
+    // Utiliser selectedProductForValidation au lieu de selectedProductForDecision
+    const newStatus = 'vendeur_accepte_vente';
+
+    // ✅ CORRECTION: Passer l'ID du produit correct
+    this.updateProductStatus(this.selectedProductForValidation.id, newStatus)
+      .then((response) => {
+        console.log('✅ État du produit mis à jour:', response);
+
+        // Mettre à jour localement le produit
+        this.selectedProductForValidation!.etat = newStatus;
+
+        // Recharger les produits
+        if (this.user?.id) {
+          this.loadUserProducts(this.user.id);
+        }
+
+        this.closeSaleValidationModal();
+        alert('✅ Vente confirmée avec succès! Le produit est maintenant marqué comme vendu.');
+      })
+      .catch((error) => {
+        console.error('❌ Erreur lors de la confirmation de la vente:', error);
+        this.isProcessingSaleValidation = false;
+        alert('❌ Erreur lors de la confirmation de la vente. Veuillez réessayer.');
+      });
+  }
+
+// CORRECTION 4: Modifier rejectSale() de la même manière
+  rejectSale(): void {
+    if (!this.selectedProductForValidation) return;
+
+    this.isProcessingSaleValidation = true;
+    console.log('❌ Vendeur refuse la vente:', this.selectedProductForValidation.id);
+
+    const newStatus = 'vendeur_refuse_vente';
+
+    // ✅ CORRECTION: Passer l'ID du produit correct
+    this.updateProductStatus(this.selectedProductForValidation.id, newStatus)
+      .then((response) => {
+        console.log('✅ État du produit mis à jour:', response);
+
+        // Mettre à jour localement le produit
+        this.selectedProductForValidation!.etat = newStatus;
+
+        // Recharger les produits
+        if (this.user?.id) {
+          this.loadUserProducts(this.user.id);
+        }
+
+        this.closeSaleValidationModal();
+        alert('❌ Vente refusée. Le produit sera peut-être remis en enchère.');
+      })
+      .catch((error) => {
+        console.error('❌ Erreur lors du refus de la vente:', error);
+        this.isProcessingSaleValidation = false;
+        alert('❌ Erreur lors du refus de la vente. Veuillez réessayer.');
+      });
+  }
+
+// CORRECTION 5: Modifier updateProductStatus pour accepter l'ID en paramètre
+  private updateProductStatus(produitId: number, newStatus: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      console.log('🔔 updateProductStatus appelé avec:', {
+        produitId: produitId,
+        newStatus: newStatus,
+        longueur: newStatus.length,
+        codeChaqueCaractere: Array.from(newStatus).map(c => c.charCodeAt(0))
+      });
+
+      const url = `${this.API_BASE_URL}/api/produits/${produitId}/etat`;
+      const request = {
+        etat: newStatus
+      };
+
+      this.http.put<any>(url, request).subscribe({
+        next: (response) => {
+          console.log('✅ Statut du produit mis à jour:', response);
+          resolve(response);
+        },
+        error: (error) => {
+          console.error('❌ Erreur mise à jour statut produit:', error);
+          reject(error);
+        }
+      });
+    });
+  }
+
 // ✅ MODIFIER la méthode pour les produits gagnés
   private loadProduitsGagnes(userId: number): void {
     const url = `${this.API_BASE_URL}/api/produits/acheteur/${userId}`;
@@ -1551,7 +1531,7 @@ class UserProfileComponent implements OnInit {
         this.loadLikesForAcheteur(userId).then(likesMap => {
           // Filtrer pour ne garder que les produits avec état "enchere_termine" ou "vendu"
           this.produitsGagnes = produits
-            .filter(p => p.etat === 'enchere_termine' || p.etat === 'vendu')
+            .filter(p => p.etat === 'enchere_termine' || p.etat === 'vendu' || p.etat === 'vendeur_accepte_vente')
             .map(p => {
               const likeCount = likesMap.get(p.id) || 0;
               return this.ajouterImagePrincipale({
@@ -1573,47 +1553,6 @@ class UserProfileComponent implements OnInit {
     });
   }
 
-// Méthode pour contacter le vendeur (modifiée)
-  contactSeller(produit: Produit): void {
-    console.log('📧 Contact du vendeur:', produit.vendeurNom);
-
-    // Sauvegarder le produit pour la décision
-    this.selectedProductForDecision = produit;
-    this.selectedSellerName = produit.vendeurNom || 'Vendeur';
-
-    // Récupérer les informations détaillées du vendeur
-    if (produit.vendeurId) {
-      this.selectedSellerId = produit.vendeurId;
-      this.loadSellerDetails(produit.vendeurId);
-    }
-
-    this.showContactModal = true;
-  }
-
-  // Méthode pour charger les détails du vendeur
-  private loadSellerDetails(vendeurId: number): void {
-    const url = `${this.API_BASE_URL}/api/clients/${vendeurId}`;
-
-    this.http.get<any>(url).subscribe({
-      next: (seller) => {
-        console.log('✅ Détails du vendeur:', seller);
-        this.selectedSellerPhone = seller.telephone || seller.phone || '';
-        this.selectedSellerEmail = seller.email || '';
-
-        // Photo de profil
-        if (seller.photoProfil) {
-          this.selectedSellerPhoto = seller.photoProfil.startsWith('http')
-            ? seller.photoProfil
-            : `${this.API_BASE_URL}/api/clients/images/${seller.photoProfil}`;
-        } else {
-          this.selectedSellerPhoto = 'assets/images/default-avatar.jpg';
-        }
-      },
-      error: (error) => {
-        console.error('❌ Erreur lors du chargement des détails du vendeur:', error);
-      }
-    });
-  }
 // ✅ NOUVELLE MÉTHODE : Charger les likes pour les produits gagnés
   private loadLikesForAcheteur(acheteurId: number): Promise<Map<number, number>> {
     return new Promise((resolve) => {
@@ -1641,13 +1580,6 @@ class UserProfileComponent implements OnInit {
   }
 
 
-  // Ouvrir le modal de décision
-  openDecisionModal(): void {
-    this.showContactModal = false;
-    this.showDecisionModal = true;
-    this.decisionError = '';
-  }
-
 // Fermer le modal de contact
   closeContactModal(): void {
     this.showContactModal = false;
@@ -1657,264 +1589,6 @@ class UserProfileComponent implements OnInit {
     this.selectedSellerPhoto = '';
   }
 
-// Fermer le modal de décision
-  closeDecisionModal(): void {
-    this.showDecisionModal = false;
-    this.selectedProductForDecision = null;
-    this.decisionError = '';
-    this.isProcessingDecision = false;
-  }
-
-  confirmPurchase(): void {
-    if (!this.selectedProductForDecision) return;
-
-    const amount = this.selectedProductForDecision.prixFin || this.selectedProductForDecision.prixDebut;
-
-    // Vérifier que le montant est valide
-    if (amount === undefined || amount === null || amount <= 0) {
-      this.decisionError = 'Montant invalide pour cet achat';
-      return;
-    }
-
-    this.confirmationTitle = 'Confirmer l\'achat';
-    this.confirmationMessage = `Êtes-vous sûr de vouloir valider l'achat de "${this.selectedProductForDecision.nom}" pour ${this.formatCurrency(amount)} ? Le vendeur sera payé et la transaction sera finalisée.`;
-    this.paymentAmount = amount;
-    this.paymentBeneficiary = this.selectedSellerName;
-    this.paymentDescription = `Paiement pour l'achat du produit "${this.selectedProductForDecision.nom}"`;
-    this.pendingAction = 'accept';
-
-    this.showDecisionModal = false;
-    this.showPaymentConfirmationModal = true;
-  }
-
-// Refuser l'achat
-  refusePurchase(): void {
-    if (!this.selectedProductForDecision) return;
-
-    const amount = this.selectedProductForDecision.prixFin || this.selectedProductForDecision.prixDebut;
-
-    // Vérifier que le montant est valide
-    if (amount === undefined || amount === null || amount <= 0) {
-      this.decisionError = 'Montant invalide pour le remboursement';
-      return;
-    }
-
-    this.confirmationTitle = 'Refuser l\'achat';
-    this.confirmationMessage = `Êtes-vous sûr de vouloir refuser l'achat de "${this.selectedProductForDecision.nom}" ? Le montant de ${this.formatCurrency(amount)} vous sera remboursé.`;
-    this.paymentAmount = amount;
-    this.paymentBeneficiary = 'Votre portefeuille';
-    this.paymentDescription = `Remboursement pour refus d'achat du produit "${this.selectedProductForDecision.nom}"`;
-    this.pendingAction = 'refuse';
-
-    this.showDecisionModal = false;
-    this.showPaymentConfirmationModal = true;
-  }
-
-  // Exécuter l'action de paiement
-  executePaymentAction(): void {
-    if (!this.pendingAction || !this.selectedProductForDecision) return;
-
-    this.isProcessingDecision = true;
-
-    if (this.pendingAction === 'accept') {
-      this.paySeller();
-    } else {
-      this.refundBuyer();
-    }
-  }
-
-  // Ajoutez cette méthode dans votre component ou créez un service
-  private processWalletRecharge(userId: number, amount: number, description: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const rechargeRequest = {
-        amount: amount,
-        description: description
-      };
-
-      const url = `${this.API_BASE_URL}/api/wallet/${userId}/recharge`;
-
-      console.log(`💰 Recharge wallet pour utilisateur ${userId}:`, rechargeRequest);
-
-      this.http.post<any>(url, rechargeRequest).subscribe({
-        next: (response) => {
-          console.log('✅ Recharge réussie:', response);
-          resolve(response);
-        },
-        error: (error) => {
-          console.error('❌ Erreur recharge:', error);
-          reject(error);
-        }
-      });
-    });
-  }
-
-
-  private paySeller(): void {
-    if (!this.selectedSellerId || !this.selectedProductForDecision || !this.user?.id) return;
-
-    const amount = this.selectedProductForDecision.prixFin || this.selectedProductForDecision.prixDebut;
-
-    // Vérification du montant
-    if (!amount || amount <= 0) {
-      this.decisionError = 'Montant invalide pour le paiement';
-      this.isProcessingDecision = false;
-      this.closePaymentConfirmationModal();
-      return;
-    }
-
-    this.isProcessingDecision = true;
-
-    console.log(`💳 Paiement au vendeur ${this.selectedSellerId}: ${amount} DH`);
-
-    // 1. Recharger le wallet du VENDEUR
-    const rechargeRequest = {
-      amount: amount,
-      description: `Paiement pour vente du produit "${this.selectedProductForDecision.nom}" (acheteur: ${this.user.name || this.user.id})`
-    };
-
-    const url = `${this.API_BASE_URL}/api/wallet/${this.selectedSellerId}/recharge`;
-
-    this.http.post<any>(url, rechargeRequest).subscribe({
-      next: (response) => {
-        console.log('✅ Wallet vendeur rechargé:', response);
-
-        // 2. Mettre à jour l'état du produit comme "vendu"
-        this.updateProductStatus('vendu').then(() => {
-          console.log('✅ Produit marqué comme vendu');
-
-          this.showSuccessMessage(`Paiement de ${this.formatCurrency(amount)} effectué au vendeur !`);
-          this.finalizeTransaction();
-        }).catch(error => {
-          console.error('❌ Erreur mise à jour statut:', error);
-          // Le paiement a été fait, on finalise quand même
-          this.finalizeTransaction();
-        });
-      },
-      error: (error) => {
-        console.error('❌ Erreur paiement vendeur:', error);
-        this.decisionError = error.error?.error || 'Erreur lors du paiement au vendeur';
-        this.isProcessingDecision = false;
-        this.closePaymentConfirmationModal();
-      }
-    });
-  }
-
-  private refundBuyer(): void {
-    if (!this.user?.id || !this.selectedProductForDecision) return;
-
-    const amount = this.selectedProductForDecision.prixFin || this.selectedProductForDecision.prixDebut;
-
-    // Vérification du montant
-    if (!amount || amount <= 0) {
-      this.decisionError = 'Montant invalide pour le remboursement';
-      this.isProcessingDecision = false;
-      this.closePaymentConfirmationModal();
-      return;
-    }
-
-    this.isProcessingDecision = true;
-
-    console.log(`💰 Remboursement à l'acheteur ${this.user.id}: ${amount} DH`);
-
-    // 1. Recharger le wallet de l'ACHETEUR (remboursement)
-    const rechargeRequest = {
-      amount: amount,
-      description: `Remboursement pour annulation d'achat du produit "${this.selectedProductForDecision.nom}"`
-    };
-
-    const url = `${this.API_BASE_URL}/api/wallet/${this.user.id}/recharge`;
-
-    this.http.post<any>(url, rechargeRequest).subscribe({
-      next: (response) => {
-        console.log('✅ Wallet acheteur rechargé (remboursement):', response);
-
-        // 2. Mettre à jour l'état du produit comme "transaction_annulee"
-        this.updateProductStatus('transaction_annulee').then(() => {
-          console.log('✅ Produit marqué comme annulé');
-
-          this.showSuccessMessage(`Remboursement de ${this.formatCurrency(amount)} effectué dans votre portefeuille !`);
-          this.finalizeTransaction();
-        }).catch(error => {
-          console.error('❌ Erreur mise à jour statut:', error);
-          // Le remboursement a été fait, on finalise quand même
-          this.finalizeTransaction();
-        });
-      },
-      error: (error) => {
-        console.error('❌ Erreur remboursement:', error);
-        this.decisionError = error.error?.error || 'Erreur lors du remboursement';
-        this.isProcessingDecision = false;
-        this.closePaymentConfirmationModal();
-      }
-    });
-  }
-
-// Méthode updateProductStatus avec Promise
-  private updateProductStatus(newStatus: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      if (!this.selectedProductForDecision?.id) {
-        reject('Produit non sélectionné');
-        return;
-      }
-
-      console.log('🔔 updateProductStatus appelé avec:', {
-        produitId: this.selectedProductForDecision.id,
-        newStatus: newStatus,
-        longueur: newStatus.length,
-        codeChaqueCaractere: Array.from(newStatus).map(c => c.charCodeAt(0))
-      });
-
-      const url = `${this.API_BASE_URL}/api/produits/${this.selectedProductForDecision.id}/etat`;
-      const request = {
-        etat: newStatus
-      };
-
-      this.http.put<any>(url, request).subscribe({
-        next: (response) => {
-          console.log('✅ Statut du produit mis à jour:', response);
-          resolve(response);
-        },
-        error: (error) => {
-          console.error('❌ Erreur mise à jour statut produit:', error);
-          reject(error);
-        }
-      });
-    });
-  }
-
-
-
-// Finaliser la transaction
-  private finalizeTransaction(): void {
-    this.isProcessingDecision = false;
-    this.closePaymentConfirmationModal();
-
-    // Recharger les produits gagnés
-    if (this.user?.id) {
-      this.loadProduitsGagnes(this.user.id);
-    }
-
-    // Réinitialiser
-    this.selectedProductForDecision = null;
-    this.pendingAction = null;
-  }
-
-// Fermer le modal de confirmation de paiement
-  closePaymentConfirmationModal(): void {
-    this.showPaymentConfirmationModal = false;
-    this.confirmationTitle = '';
-    this.confirmationMessage = '';
-    this.paymentAmount = 0;
-    this.paymentBeneficiary = '';
-    this.paymentDescription = '';
-    this.pendingAction = null;
-  }
-
-// Afficher un message de succès
-  private showSuccessMessage(message: string): void {
-    alert(`✅ ${message}`);
-    this.closePaymentConfirmationModal();
-  }
 
 
   // Ajouter ces méthodes dans la classe UserProfileComponent
@@ -1923,6 +1597,7 @@ class UserProfileComponent implements OnInit {
     const statusClasses: { [key: string]: string } = {
       'vendu': 'sold-badge-completed',
       'enchere_termine': 'sold-badge-pending',
+      'vendeur_accepte_vente': 'sold-badge-pending',
       'transaction_annulee': 'sold-badge-cancelled'
     };
     return statusClasses[etat] || 'sold-badge-default';
@@ -1932,7 +1607,9 @@ class UserProfileComponent implements OnInit {
     const statusTexts: { [key: string]: string } = {
       'vendu': 'Vendu',
       'enchere_termine': 'Terminé',
-      'transaction_annulee': 'Annulé'
+      'vendeur_accepte_vente': 'Terminé',
+      'vendeur_refuse_vente': 'Annulé',
+      'transaction_annulee': 'Annulé',
     };
     return statusTexts[etat] || 'Vendu';
   }
@@ -1940,6 +1617,8 @@ class UserProfileComponent implements OnInit {
   getSaleStatusClass(etat: string): string {
     const statusClasses: { [key: string]: string } = {
       'vendu': 'sale-status-completed',
+      'vendeur_accepte_vente': 'sale-status-completed', // Validé
+      'vendeur_refuse_vente': 'sale-status-cancelled', // Refusé
       'enchere_termine': 'sale-status-pending',
       'transaction_annulee': 'sale-status-cancelled'
     };
@@ -1948,64 +1627,36 @@ class UserProfileComponent implements OnInit {
 
   getSaleStatusText(etat: string): string {
     const statusTexts: { [key: string]: string } = {
-      'vendu': 'Transaction terminée',
+      'vendu': 'Vendu',
+      'vendeur_accepte_vente': 'Vente confirmée par vendeur', // Nouveau
+      'vendeur_refuse_vente': 'Vente refusée par vendeur',    // Nouveau
       'enchere_termine': 'Transaction en cours',
       'transaction_annulee': 'Transaction annulée'
     };
     return statusTexts[etat] || 'Transaction terminée';
   }
 
-  getTransactionStatusClass(etat: string): string {
-    const statusClasses: { [key: string]: string } = {
-      'vendu': 'status-completed',
-      'enchere_termine': 'status-pending',
-      'transaction_annulee': 'status-cancelled'
-    };
-    return statusClasses[etat] || 'status-default';
-  }
-
-  getTransactionStatusText(etat: string): string {
-    const statusTexts: { [key: string]: string } = {
-      'vendu': '✅ Transaction terminée',
-      'enchere_termine': '⏳ Transaction en cours',
-      'transaction_annulee': '❌ Transaction annulée'
-    };
-    return statusTexts[etat] || 'Transaction';
-  }
-
   getAuctionButtonText(produit: Produit): string {
-    if (produit.etat === 'transaction_annulee') {
+    if (produit.etat === 'transaction_annulee' ||
+      produit.etat === 'enchere_termine_sans_gagnant' ||
+      produit.etat === 'vendeur_refuse_vente') { // Ajouter ce cas
       return 'Remettre en enchère';
     }
     return 'Mettre en enchère';
   }
 
-  getAuctionButtonIcon(produit: Produit): string {
-    if (produit.etat === 'transaction_annulee') {
-      return `
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-    `;
-    }
-    return `
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-  `;
-  }
+
   hasBeenInAuction(produit: Produit): boolean {
     // Vérifie si le produit a déjà été en enchère (transaction annulée)
-    return produit.etat === 'transaction_annulee' || !!produit.dateenchere;
-  }
-
-  getAuctionHistoryText(produit: Produit): string {
-    if (produit.etat === 'transaction_annulee') {
-      return 'Ancienne enchère annulée';
-    }
-    return '';
+    return produit.etat === 'transaction_annulee' || produit.etat === 'enchere_termine_sans_gagnant' || !!produit.dateenchere;
   }
 
   getProductStatusIndicator(produit: Produit): string {
     switch (produit.etat) {
       case 'transaction_annulee':
         return 'status-cancelled';
+      case 'enchere_termine_sans_gagnant': // ← AJOUTER CE CAS
+        return 'status-republished';
       case 'accepter':
       case 'accepte':
       case 'expertise_validee':
@@ -2019,15 +1670,71 @@ class UserProfileComponent implements OnInit {
     switch (produit.etat) {
       case 'transaction_annulee':
         return 'Transaction annulée';
+      case 'vendeur_refuse_vente':
+        return 'Transaction annulée';
       case 'accepter':
       case 'accepte':
         return 'Accepté';
       case 'expertise_validee':
         return 'Expertisé';
+      case 'enchere_termine_sans_gagnant' : // ← AJOUTER CE CAS
+        return 'Republié';
       default:
         return 'Publié';
     }
   }
+
+  // Méthode pour contacter le vendeur (version simplifiée - seulement afficher les coordonnées)
+  contactSeller(produit: Produit): void {
+    console.log('📧 Contact du vendeur:', produit.vendeurNom);
+
+    // Initialiser les informations du vendeur
+    this.selectedSellerName = produit.vendeurNom || 'Vendeur';
+    this.selectedSellerPhone = '';
+    this.selectedSellerEmail = '';
+    this.selectedSellerPhoto = 'assets/images/default-avatar.jpg';
+
+    // Récupérer les informations détaillées du vendeur si disponible
+    if (produit.vendeurId) {
+      this.loadSellerDetails(produit.vendeurId);
+    } else {
+      // Si pas de vendeurId, utiliser les informations de base du produit
+      if (produit.vendeurPhone) {
+        this.selectedSellerPhone = produit.vendeurPhone;
+      }
+      if (produit.vendeurEmail) {
+        this.selectedSellerEmail = produit.vendeurEmail;
+      }
+    }
+
+    // Afficher le modal de contact
+    this.showContactModal = true;
+  }
+
+// Méthode pour charger les détails du vendeur (garder cette méthode)
+  private loadSellerDetails(vendeurId: number): void {
+    const url = `${this.API_BASE_URL}/api/clients/${vendeurId}`;
+
+    this.http.get<any>(url).subscribe({
+      next: (seller) => {
+        console.log('✅ Détails du vendeur:', seller);
+        this.selectedSellerPhone = seller.telephone || seller.phone || '';
+        this.selectedSellerEmail = seller.email || '';
+
+        // Photo de profil
+        if (seller.photoProfil) {
+          this.selectedSellerPhoto = seller.photoProfil.startsWith('http')
+            ? seller.photoProfil
+            : `${this.API_BASE_URL}/api/clients/images/${seller.photoProfil}`;
+        }
+      },
+      error: (error) => {
+        console.error('❌ Erreur lors du chargement des détails du vendeur:', error);
+      }
+    });
+  }
+
+
 
 
 }

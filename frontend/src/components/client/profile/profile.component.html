@@ -453,11 +453,14 @@
                   <svg class="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                   </svg>
-                  <span *ngIf="produit.etat !== 'transaction_annulee'">
-                    Publié le {{ formatDate(produit.datepublication) }}
+                  <span *ngIf="produit.etat === 'enchere_termine_sans_gagnant'">
+                    Republié le {{ formatDate(produit.datepublication) }}
                   </span>
-                  <span *ngIf="produit.etat === 'transaction_annulee'">
+                          <span *ngIf="produit.etat === 'transaction_annulee'">
                     Relancé le {{ formatDate(produit.datepublication) }}
+                  </span>
+                          <span *ngIf="produit.etat !== 'transaction_annulee' && produit.etat !== 'enchere_termine_sans_gagnant'">
+                    Publié le {{ formatDate(produit.datepublication) }}
                   </span>
                 </div>
 
@@ -465,7 +468,11 @@
                   <svg class="h-4 w-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
-                  <span>Dernière enchère: {{ formatDate(produit.dateenchere) }}</span>
+                  <span>Dernière enchère: {{ formatDate(produit.dateenchere) }}
+                    <span *ngIf="produit.etat === 'enchere_termine_sans_gagnant'">
+              (sans gagnant)
+            </span>
+                  </span>
                 </div>
               </div>
 
@@ -474,10 +481,10 @@
                         (click)="$event.stopPropagation(); openDurationModal(produit)"
                         [disabled]="isAuctionStarting">
                   <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <svg *ngIf="produit.etat === 'transaction_annulee'">
+                    <svg *ngIf="produit.etat === 'transaction_annulee' || produit.etat === 'enchere_termine_sans_gagnant'">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                     </svg>
-                    <svg *ngIf="produit.etat !== 'transaction_annulee'">
+                    <svg *ngIf="produit.etat !== 'transaction_annulee' && produit.etat !== 'enchere_termine_sans_gagnant'">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                   </svg>
@@ -636,11 +643,16 @@
                   Voir détails
                 </button>
                 <button class="btn-sold-secondary"
-                        (click)="$event.stopPropagation(); contactBuyer(produit)">
+                        (click)="$event.stopPropagation(); openSaleValidationModal(produit)"
+                        [disabled]="produit.etat === 'vendeur_accepte_vente' ||
+                     produit.etat === 'vendeur_refuse_vente'">
                   <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
-                  Contacter
+                  <span *ngIf="produit.etat === 'vendu'">Valider la vente</span>
+                  <span *ngIf="produit.etat === 'vendeur_accepte_vente'">✔ Vente confirmée</span>
+                  <span *ngIf="produit.etat === 'vendeur_refuse_vente'">✘ Vente refusée</span>
                 </button>
               </div>
 
@@ -775,24 +787,19 @@
                    class="absolute top-3 left-3 px-3 py-1 rounded-full bg-emerald-600 text-white text-xs font-semibold shadow">
                 Expertisé
               </div>
-
-
-
-              <div class="won-overlay">
-                <div class="won-badge">
-                  <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  Gagné
-                </div>
-              </div>
-
               <!-- Indicateur de statut -->
-              <div class="won-status-indicator">
+              <!-- Indicateur de statut -->
+              <div class="won-status-indicator" [ngClass]="{
+                'status-won': produit.etat === 'vendu',
+                'status-confirmed': produit.etat === 'vendeur_accepte_vente',
+                'status-pending': produit.etat === 'enchere_termine'
+              }">
                 <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                Félicitations !
+                <span *ngIf="produit.etat === 'vendu'">Gagné</span>
+                <span *ngIf="produit.etat === 'vendeur_accepte_vente'">Vente confirmée par le vendeur</span>
+                <span *ngIf="produit.etat === 'enchere_termine'">Transaction en cours</span>
               </div>
             </div>
 
@@ -1011,26 +1018,26 @@
       </div>
 
 
-      <div class="card">
-        <div class="card-header">
-          <h3 class="font-serif card-title">Notifications</h3>
-          <p class="card-description">Gérez vos préférences de notification</p>
-        </div>
-        <div class="card-content space-y-4 notif-preferences">
-          <div>
-            <label class="flex items-center gap-2">
-              <input type="checkbox" [(ngModel)]="inAppEnabled" (change)="savePreferences()" />
-              <span>Activer les notifications in-app <span class="text-muted-foreground">(pop-up en haut)</span></span>
-            </label>
-          </div>
-          <div>
-            <label class="flex items-center gap-2">
-              <input type="checkbox" [(ngModel)]="emailEnabled" (change)="savePreferences()" />
-              <span>Activer les notifications par email</span>
-            </label>
-          </div>
-        </div>
-      </div>
+		<div class="card">
+		  <div class="card-header">
+		    <h3 class="font-serif card-title">Notifications</h3>
+		    <p class="card-description">Gérez vos préférences de notification</p>
+		  </div>
+		  <div class="card-content space-y-4 notif-preferences">
+		    <div>
+		      <label class="flex items-center gap-2">
+		        <input type="checkbox" [(ngModel)]="inAppEnabled" (change)="savePreferences()" />
+		        <span>Activer les notifications in-app <span class="text-muted-foreground">(pop-up en haut)</span></span>
+		      </label>
+		    </div>
+		    <div>
+		      <label class="flex items-center gap-2">
+		        <input type="checkbox" [(ngModel)]="emailEnabled" (change)="savePreferences()" />
+		        <span>Activer les notifications par email</span>
+		      </label>
+		    </div>
+		  </div>
+		</div>
 
       <div class="card">
         <div class="card-header">
@@ -1476,125 +1483,96 @@
       <button class="btn-cancel" (click)="closeContactModal()">
         Fermer
       </button>
-      <button class="btn-confirm" (click)="openDecisionModal()">
-        Prendre décision
-      </button>
     </div>
   </div>
 </div>
 
-<!-- Modal de prise de décision -->
-<div *ngIf="showDecisionModal" class="modal-overlay">
-  <div class="modal-content decision-modal">
+
+<!-- Modal de validation de vente - Ajouter après le modal de contact -->
+<div *ngIf="showSaleValidationModal" class="modal-overlay">
+  <div class="modal-content sale-validation-modal">
     <div class="modal-header">
-      <h3 class="modal-title">Confirmation d'achat</h3>
-      <button class="modal-close" (click)="closeDecisionModal()">
+      <h3 class="modal-title">Confirmation de vente</h3>
+      <button class="modal-close"
+              (click)="closeSaleValidationModal()"
+              [disabled]="isProcessingSaleValidation">
         &times;
       </button>
     </div>
 
     <div class="modal-body">
-      <div class="decision-warning">
-        <svg class="warning-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.342 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-        </svg>
-        <h4>Assurez-vous d'avoir bien contacté le vendeur</h4>
-        <p class="warning-text">
-          Avant de prendre une décision, veuillez vous assurer que vous avez bien contacté
-          le vendeur pour :
-        </p>
-        <ul class="warning-list">
-          <li>Vérifier l'état réel du produit</li>
-          <li>Confirmer les modalités de livraison</li>
-          <li>Définir les frais de livraison éventuels</li>
-          <li>Convenir d'un délai de livraison</li>
-        </ul>
-
-        <div class="product-info">
-          <h5>Récapitulatif de l'achat :</h5>
-          <div class="info-row">
-            <span class="info-label">Produit :</span>
-            <span class="info-value">{{ selectedProductForDecision?.nom }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Prix final :</span>
-            <span class="info-value">{{ formatCurrency(selectedProductForDecision?.prixFin || selectedProductForDecision?.prixDebut) }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Vendeur :</span>
-            <span class="info-value">{{ selectedSellerName }}</span>
-          </div>
+      <div class="sale-validation-info">
+        <!-- Image du produit -->
+        <div class="product-image-preview">
+          <img [src]="selectedProductForValidation?.imagePrincipale || 'assets/images/placeholder.jpg'"
+               [alt]="selectedProductForValidation?.nom"
+               class="validation-product-image">
         </div>
-      </div>
 
-      <div *ngIf="decisionError" class="decision-error">
-        {{ decisionError }}
-      </div>
+        <!-- Détails du produit -->
+        <div class="product-details">
+          <h4>{{ selectedProductForValidation?.nom }}</h4>
 
-      <div *ngIf="isProcessingDecision" class="processing-spinner">
-        <div class="spinner"></div>
-        <p>Traitement en cours...</p>
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn-cancel" (click)="closeDecisionModal()" [disabled]="isProcessingDecision">
-        Annuler
-      </button>
-      <button class="btn-refuse" (click)="refusePurchase()" [disabled]="isProcessingDecision">
-        Refuser l'achat
-      </button>
-      <button class="btn-confirm-purchase" (click)="confirmPurchase()" [disabled]="isProcessingDecision">
-        Valider l'achat
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal de confirmation de paiement -->
-<div *ngIf="showPaymentConfirmationModal" class="modal-overlay">
-  <div class="modal-content confirmation-modal">
-    <div class="modal-header">
-      <h3 class="modal-title">Confirmation requise</h3>
-      <button class="modal-close" (click)="closePaymentConfirmationModal()" [disabled]="isProcessingDecision">
-        &times;
-      </button>
-    </div>
-
-    <div class="modal-body">
-      <div class="confirmation-content">
-        <svg class="confirmation-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-        <h4>{{ confirmationTitle }}</h4>
-        <p class="confirmation-text">{{ confirmationMessage }}</p>
-
-        <div class="payment-details" *ngIf="paymentAmount > 0">
-          <div class="detail-row">
-            <span class="detail-label">Montant :</span>
-            <span class="detail-value">{{ formatCurrency(paymentAmount) }}</span>
+          <div class="validation-detail">
+            <svg class="validation-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="validation-label">Prix final:</span>
+            <span class="validation-value">{{ formatCurrency(selectedProductForValidation?.prixFin || selectedProductForValidation?.prixDebut) }}</span>
           </div>
-          <div class="detail-row">
-            <span class="detail-label">Bénéficiaire :</span>
-            <span class="detail-value">{{ paymentBeneficiary }}</span>
+
+          <div class="validation-detail" *ngIf="selectedProductForValidation?.acheteurNom">
+            <svg class="validation-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            <span class="validation-label">Acheteur gagnant:</span>
+            <span class="validation-value">{{ selectedProductForValidation?.acheteurNom }}</span>
           </div>
-          <div class="detail-row">
-            <span class="detail-label">Description :</span>
-            <span class="detail-value">{{ paymentDescription }}</span>
+
+          <div class="validation-message">
+            <p>{{ saleValidationMessage }}</p>
+          </div>
+
+          <div class="validation-notes">
+            <p class="notes-title">💡 Important:</p>
+            <ul class="notes-list">
+              <li>En confirmant, vous acceptez de vendre le produit à ce prix</li>
+              <li>Vous serez contacté par l'acheteur pour organiser la livraison</li>
+              <li>En refusant, le produit pourra être remis en enchère</li>
+            </ul>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="modal-footer">
-      <button class="btn-cancel" (click)="closePaymentConfirmationModal()" [disabled]="isProcessingDecision">
-        Non, annuler
+    <div class="modal-footer validation-footer">
+      <button class="btn-cancel"
+              (click)="rejectSale()"
+              [disabled]="isProcessingSaleValidation">
+        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+        Refuser la vente
       </button>
-      <button class="btn-confirm-action" (click)="executePaymentAction()" [disabled]="isProcessingDecision">
-        Oui, confirmer
+      <button class="btn-confirm"
+              (click)="confirmSale()"
+              [disabled]="isProcessingSaleValidation">
+        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        Confirmer la vente
       </button>
+    </div>
+
+    <div *ngIf="isProcessingSaleValidation" class="processing-overlay">
+      <div class="spinner"></div>
+      <p>Traitement en cours...</p>
     </div>
   </div>
 </div>
+
+
+
+

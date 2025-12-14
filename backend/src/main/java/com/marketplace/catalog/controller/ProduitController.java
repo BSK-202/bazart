@@ -273,7 +273,6 @@ public class ProduitController {
             );
 
             // === NOTIFICATION: Produit en attente de validation (pour tous les admins) ===
-            // Récupère tous les admins
             List<Admin> allAdmins = adminService.getAllAdmins();
             Set<Long> adminIds = allAdmins.stream()
                     .map(Admin::getId)
@@ -281,6 +280,7 @@ public class ProduitController {
 
             Map<String, Object> adminNotifData = new HashMap<>();
             adminNotifData.put("productName", finalProduit.getNom());
+            // CORRECTION ICI : Utiliser "message" au lieu de "adminMessage"
             adminNotifData.put("message", "Un nouveau produit est en attente de validation.");
             adminNotifData.put("vendeurName", vendeur.getPrenom() + " " + vendeur.getNom());
 
@@ -288,7 +288,7 @@ public class ProduitController {
                 notificationService.processEvent(
                         NotificationType.ADMIN_ALERT,
                         adminIds,
-                        adminNotifData
+                        adminNotifData  // Envoi des données
                 );
             }
 
@@ -422,28 +422,6 @@ public class ProduitController {
     }
 
     // ENDPOINT POUR RÉCUPÉRER TOUS LES PRODUITS AVEC FILTRE ÉTAT (optionnel)
-    @GetMapping("/etat/{etat}")
-    public ResponseEntity<List<ProduitDTO>> getProduitsByEtat(@PathVariable String etat) {
-        try {
-            System.out.println(" Recherche des produits avec état: " + etat);
-
-            List<Produit> produits = produitRepository.findByEtat(etat);
-
-            System.out.println(" Nombre de produits avec état '" + etat + "': " + produits.size());
-
-            List<ProduitDTO> produitsDTO = produits.stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.ok(produitsDTO);
-        } catch (Exception e) {
-            System.err.println(" Erreur lors de la récupération des produits par état: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(500).build();
-        }
-    }
-
-    // ENDPOINT POUR METTRE À JOUR L'ÉTAT DU PRODUIT
     @PutMapping("/{id}/etat")
     public ResponseEntity<?> updateProductState(
             @PathVariable Long id,
@@ -475,15 +453,118 @@ public class ProduitController {
             }
 
             Produit updatedProduit = produit;
+            String oldState = produit.getEtat();
+            produit.setEtat(newState);
+            Produit updatedProduit = produitService.saveProduit(produit);
 
-            // === NOTIFICATION LOGIC STARTS HERE ===
-            Map<String, Object> notifData = new HashMap<>();
-            notifData.put("productName", updatedProduit.getNom());
-            if (noteAdmin != null && !noteAdmin.trim().isEmpty()) {
-                notifData.put("adminMessage", noteAdmin);
-            }
+            // === GESTION DES NOTIFICATIONS POUR LES DÉCISIONS DU VENDEUR ===
+            if ("vendeur_accepte_vente".equalsIgnoreCase(newState)) {
+                // === NOTIFICATION: Pour l'ACHETEUR quand le vendeur accepte la vente ===
+                if (updatedProduit.getAcheteur() != null) {
+                    Map<String, Object> acheteurNotifData = new HashMap<>();
+                    acheteurNotifData.put("productName", updatedProduit.getNom());
+                    acheteurNotifData.put("sellerName", updatedProduit.getVendeur().getPrenom() + " " +
+                            updatedProduit.getVendeur().getNom());
 
-            Set<Long> recipients = Set.of(updatedProduit.getVendeur().getIdclient());
+                    if (updatedProduit.getPrixFin() != null) {
+                        acheteurNotifData.put("amount", updatedProduit.getPrixFin());
+                    }
+                    acheteurNotifData.put("state", "VENDOR_ACCEPTED"); // Ajouter un champ pour différencier
+
+                    notificationService.processEvent(
+                            NotificationType.TRANSACTION_ACCEPTED,
+                            Set.of(updatedProduit.getAcheteur().getIdclient()),
+                            acheteurNotifData
+                    );
+
+                    System.out.println("📢 Notification envoyée à l'acheteur (vendeur accepte): " +
+                            updatedProduit.getAcheteur().getPrenom() + " " +
+                            updatedProduit.getAcheteur().getNom());
+                }
+
+                // === NOTIFICATION 2: Pour l'ADMIN ===
+                List<Admin> allAdmins = adminService.getAllAdmins();
+
+                if (allAdmins != null && !allAdmins.isEmpty()) {
+                    Set<Long> adminIds = allAdmins.stream()
+                            .map(Admin::getId)
+                            .collect(Collectors.toSet());
+
+                    Map<String, Object> adminNotifData = new HashMap<>();
+                    adminNotifData.put("productName", updatedProduit.getNom());
+
+                    String acheteurNom = "Acheteur inconnu";
+                    if (updatedProduit.getAcheteur() != null) {
+                        acheteurNom = updatedProduit.getAcheteur().getPrenom() + " " +
+                                updatedProduit.getAcheteur().getNom();
+                    }
+
+                    String vendeurNom = updatedProduit.getVendeur().getPrenom() + " " +
+                            updatedProduit.getVendeur().getNom();
+
+                    String montant = updatedProduit.getPrixFin() != null ?
+                            String.format("%.2f DH", updatedProduit.getPrixFin()) : "Montant non spécifié";
+
+                    adminNotifData.put("message",
+                            "Nouvelle demande de validation d'achat:\n" +
+                                    "• Produit: " + updatedProduit.getNom() + "\n" +
+                                    "• Acheteur: " + acheteurNom + "\n" +
+                                    "• Vendeur: " + vendeurNom + "\n" +
+                                    "• Montant: " + montant);
+
+                    notificationService.processEvent(
+                            NotificationType.ADMIN_ALERT,
+                            adminIds,
+                            adminNotifData
+                    );
+                }
+
+            } else if ("vendeur_refuse_vente".equalsIgnoreCase(newState)) {
+                // === NOTIFICATION: Pour l'ACHETEUR quand le vendeur refuse la vente ===
+                if (updatedProduit.getAcheteur() != null) {
+                    Map<String, Object> acheteurNotifData = new HashMap<>();
+                    acheteurNotifData.put("productName", updatedProduit.getNom());
+                    acheteurNotifData.put("sellerName", updatedProduit.getVendeur().getPrenom() + " " +
+                            updatedProduit.getVendeur().getNom());
+
+                    if (updatedProduit.getPrixFin() != null) {
+                        acheteurNotifData.put("amount", updatedProduit.getPrixFin());
+
+                            walletservice.rechargeWallet(
+                                    updatedProduit.getAcheteur(),
+                                    updatedProduit.getPrixFin()
+                            );
+
+                    }
+                    acheteurNotifData.put("state", "VENDOR_REFUSED"); // Ajouter un champ pour différencier
+
+                    notificationService.processEvent(
+                            NotificationType.TRANSACTION_ANNULEE,
+                            Set.of(updatedProduit.getAcheteur().getIdclient()),
+                            acheteurNotifData
+                    );
+
+                    System.out.println("📢 Notification envoyée à l'acheteur (vendeur refuse): " +
+                            updatedProduit.getAcheteur().getPrenom() + " " +
+                            updatedProduit.getAcheteur().getNom());
+                }
+
+            } else {
+                // === LOGIQUE EXISTANTE POUR LES AUTRES ÉTATS ===
+                if ("accepte".equalsIgnoreCase(newState) && produit.isAExpertise()) {
+                    produit.setEtat("en_attente_expertise");
+                    produit = produitService.saveProduit(produit);
+                    expertiseService.createRequestAfterProductAccepted(produit.getIdproduit());
+                }
+
+                // === NOTIFICATION LOGIC STARTS HERE ===
+                Map<String, Object> notifData = new HashMap<>();
+                notifData.put("productName", updatedProduit.getNom());
+                if (noteAdmin != null && !noteAdmin.trim().isEmpty()) {
+                    notifData.put("adminMessage", noteAdmin);
+                }
+
+                Set<Long> recipients = Set.of(updatedProduit.getVendeur().getIdclient());
 
             // 1) Notif principale en fonction de l'état demandé par l'admin
             NotificationType notifType;
@@ -518,36 +599,65 @@ public class ProduitController {
             } else {
                 notifType = NotificationType.GENERIC;
             }
-
-            notificationService.processEvent(
-                    notifType,
-                    recipients,
-                    notifData
-            );
-
-            // 2) CAS SPÉCIAL : produit accepté + expertise demandée
-            if (("accepte".equalsIgnoreCase(newState) || "Accepté".equalsIgnoreCase(newState))
-                    && updatedProduit.isAExpertise()) {
-
-                Map<String, Object> expertiseNotifData = new HashMap<>();
-                expertiseNotifData.put("productName", updatedProduit.getNom());
-
-                String methodeStr = "d'expertise";
-                if (updatedProduit.getExpertiseMethod() != null) {
-                    switch (updatedProduit.getExpertiseMethod().name()) {
-                        case "ONLINE" -> methodeStr = "d'expertise en ligne";
-                        case "ONSITE" -> methodeStr = "d'expertise présentielle";
+                NotificationType notifType;
+                if ("accepte".equalsIgnoreCase(newState) || "Accepté".equalsIgnoreCase(newState)) {
+                    notifType = NotificationType.PRODUCT_ACCEPTED;
+                } else if ("refuse".equalsIgnoreCase(newState) || "Refusé".equalsIgnoreCase(newState)) {
+                    notifType = NotificationType.PRODUCT_REFUSED;
+                } else if ("vendu".equalsIgnoreCase(newState)) {
+                    notifType = NotificationType.TRANSACTION_ACCEPTED;
+                    if (produit.getAcheteur() != null) {
+                        String buyerName = produit.getAcheteur().getPrenom() + " " + produit.getAcheteur().getNom();
+                        notifData.put("buyerName", buyerName);
                     }
+                    if (produit.getPrixFin() != null) {
+                        notifData.put("amount", produit.getPrixFin());
+                    }
+                    notifData.put("state", "SOLD"); // Ajouter un champ pour différencier
+                } else if ("transaction_annulee".equalsIgnoreCase(newState)) {
+                    notifType = NotificationType.TRANSACTION_ANNULEE;
+                    if (produit.getAcheteur() != null) {
+                        String buyerName = produit.getAcheteur().getPrenom() + " " + produit.getAcheteur().getNom();
+                        notifData.put("buyerName", buyerName);
+                    }
+                    if (produit.getPrixFin() != null) {
+                        notifData.put("amount", produit.getPrixFin());
+                    }
+                    notifData.put("state", "ADMIN_CANCELLED"); // Ajouter un champ pour différencier
+                } else {
+                    notifType = NotificationType.GENERIC;
                 }
-                expertiseNotifData.put("expertiseMethod", methodeStr);
 
                 notificationService.processEvent(
-                        NotificationType.PRODUCT_EXPERTISE_REQUIRED,
+                        notifType,
                         recipients,
-                        expertiseNotifData
+                        notifData
                 );
+
+                // 2) CAS SPÉCIAL : produit accepté + expertise demandée
+                if (("accepte".equalsIgnoreCase(newState) || "Accepté".equalsIgnoreCase(newState))
+                        && updatedProduit.isAExpertise()) {
+
+                    Map<String, Object> expertiseNotifData = new HashMap<>();
+                    expertiseNotifData.put("productName", updatedProduit.getNom());
+
+                    String methodeStr = "d'expertise";
+                    if (updatedProduit.getExpertiseMethod() != null) {
+                        switch (updatedProduit.getExpertiseMethod().name()) {
+                            case "ONLINE" -> methodeStr = "d'expertise en ligne";
+                            case "ONSITE" -> methodeStr = "d'expertise présentielle";
+                        }
+                    }
+                    expertiseNotifData.put("expertiseMethod", methodeStr);
+
+                    notificationService.processEvent(
+                            NotificationType.PRODUCT_EXPERTISE_REQUIRED,
+                            recipients,
+                            expertiseNotifData
+                    );
+                }
+                // === NOTIFICATION LOGIC ENDS HERE ===
             }
-            // === NOTIFICATION LOGIC ENDS HERE ===
 
             String msgEtat;
             switch (newState.toLowerCase()) {
@@ -914,7 +1024,14 @@ public class ProduitController {
 
             // Mettre à jour l'état
 
+            if (idGagnant != null && gagnant != null) {
             produit.setEtat("enchere_termine");
+            }
+            else{
+                produit.setEtat("enchere_termine_sans_gagnant");
+            }
+
+
             Produit updatedProduit = produitService.saveProduit(produit);
 
             // === NOTIFICATION 1: Pour le GAGNANT ===
@@ -932,27 +1049,23 @@ public class ProduitController {
                 );
 
                 System.out.println("🎯 Notification envoyée au gagnant: " + nomGagnant);
-            }
+                // === NOTIFICATION 2: Pour le VENDEUR ===
+                Map<String, Object> sellerNotifData = new HashMap<>();
+                sellerNotifData.put("productName", updatedProduit.getNom());
+                sellerNotifData.put("winnerName", nomGagnant);
+                if (updatedProduit.getPrixFin() != null) {
+                    sellerNotifData.put("winningAmount", updatedProduit.getPrixFin());
+                }
 
-            // === NOTIFICATION 2: Pour le VENDEUR ===
-            Map<String, Object> sellerNotifData = new HashMap<>();
-            sellerNotifData.put("productName", updatedProduit.getNom());
-            sellerNotifData.put("winnerName", idGagnant != null ? nomGagnant : "un acheteur");
-            if (idGagnant != null && updatedProduit.getPrixFin() != null) {
-                sellerNotifData.put("winningAmount", updatedProduit.getPrixFin());
-            }
+                notificationService.processEvent(
+                        NotificationType.PRODUCT_SOLD,
+                        Set.of(updatedProduit.getVendeur().getIdclient()),
+                        sellerNotifData
+                );
 
-            notificationService.processEvent(
-                    NotificationType.PRODUCT_SOLD,
-                    Set.of(updatedProduit.getVendeur().getIdclient()),
-                    sellerNotifData
-            );
+                System.out.println("💰 Notification envoyée au vendeur");
 
-            System.out.println("💰 Notification envoyée au vendeur");
-
-            // === NOTIFICATION 3: Pour les AUTRES PARTICIPANTS ===
-            if (idGagnant != null) {
-                // Récupérer les autres participants (ceux qui ont enchéri sauf le gagnant)
+                // NOTIFICATION 3: Pour les AUTRES PARTICIPANTS
                 Set<Long> autresParticipants = getAutresParticipants(produitId, idGagnant);
 
                 if (!autresParticipants.isEmpty()) {
@@ -972,8 +1085,26 @@ public class ProduitController {
                     System.out.println("📢 Notification envoyée à " + autresParticipants.size() +
                             " autres participants");
                 }
-            }
 
+                System.out.println("✅ Enchère terminée avec gagnant: " + nomGagnant);
+
+            }
+            else {
+                // === CAS 2: AUCUN GAGNANT ===
+                System.out.println("⚠️ Enchère terminée SANS gagnant");
+
+                // NOTIFICATION SPÉCIALE POUR LE VENDEUR
+                Map<String, Object> noWinnerNotifData = new HashMap<>();
+                noWinnerNotifData.put("productName", updatedProduit.getNom());
+
+                notificationService.processEvent(
+                        NotificationType.AUCTION_END_NO_WINNER, // 🆕 NOUVEAU TYPE
+                        Set.of(updatedProduit.getVendeur().getIdclient()),
+                        noWinnerNotifData
+                );
+
+                System.out.println("📢 Notification spéciale envoyée au vendeur (pas de gagnant)");
+            }
             System.out.println("✅ Enchère terminée pour le produit: " + produitId);
             if (idGagnant != null) {
                 System.out.println("🏆 Gagnant: " + nomGagnant + " (ID: " + idGagnant + ")");
@@ -1120,5 +1251,167 @@ public class ProduitController {
         }
 
         return autresParticipants;
+    }
+
+    // Dans ProduitController.java, ajoutez ces endpoints :
+
+    @GetMapping("/etat/vendeur_accepte_vente")
+    public ResponseEntity<List<ProduitDTO>> getProduitsVendeurAccepteVente() {
+        try {
+            System.out.println("🔍 Recherche des produits avec état vendeur_accepte_vente...");
+            List<Produit> produits = produitService.getProduitsByEtat("vendeur_accepte_vente");
+            System.out.println("📦 Nombre de produits trouvés: " + produits.size());
+
+            List<ProduitDTO> produitsDTO = produits.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(produitsDTO);
+        } catch (Exception e) {
+            System.err.println("❌ Erreur lors de la récupération: " + e.getMessage());
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @PutMapping("/{id}/valider-vente")
+    public ResponseEntity<?> validerVente(@PathVariable Long id) {
+        try {
+            Produit produit = produitService.getProduitById(id)
+                    .orElseThrow(() -> new RuntimeException("Produit non trouvé"));
+
+            // Vérifier que l'état est correct
+            if (!"vendeur_accepte_vente".equals(produit.getEtat())) {
+                return ResponseEntity.badRequest().body("Le produit n'est pas dans l'état 'vendeur_accepte_vente'");
+            }
+
+            // Mettre à jour l'état
+            produit.setEtat("vendu");
+            Produit updatedProduit = produitService.saveProduit(produit);
+
+            // === CRÉDITER LE PORTEFEUILLE DU VENDEUR ===
+            if (produit.getPrixFin() != null) {
+                walletservice.rechargeWallet(
+                        produit.getVendeur(),
+                        produit.getPrixFin()
+                );
+            }
+
+            // === NOTIFICATION POUR L'ACHETEUR ===
+            if (produit.getAcheteur() != null) {
+                Map<String, Object> acheteurNotifData = new HashMap<>();
+                acheteurNotifData.put("productName", produit.getNom());
+                acheteurNotifData.put("sellerName", produit.getVendeur().getPrenom() + " " + produit.getVendeur().getNom());
+
+                if (produit.getPrixFin() != null) {
+                    acheteurNotifData.put("amount", produit.getPrixFin());
+                }
+                acheteurNotifData.put("state", "SOLD"); // Indiquer que c'est l'admin qui valide
+
+                notificationService.processEvent(
+                        NotificationType.TRANSACTION_ACCEPTED,
+                        Set.of(produit.getAcheteur().getIdclient()),
+                        acheteurNotifData
+                );
+            }
+
+            // === NOTIFICATION POUR LE VENDEUR ===
+            Map<String, Object> vendeurNotifData = new HashMap<>();
+            vendeurNotifData.put("productName", produit.getNom());
+            if (produit.getPrixFin() != null) {
+                vendeurNotifData.put("amount", produit.getPrixFin());
+            }
+            vendeurNotifData.put("message", "La vente de votre produit a été validée par l'administrateur. Votre portefeuille a été crédité.");
+
+            notificationService.processEvent(
+                    NotificationType.MESSAGE, // Utiliser MESSAGE pour le vendeur
+                    Set.of(produit.getVendeur().getIdclient()),
+                    vendeurNotifData
+            );
+
+            System.out.println("✅ Vente validée pour le produit: " + produit.getNom());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Vente validée avec succès"
+            ));
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur validation vente: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
+                    "success", false,
+                    "message", "Erreur lors de la validation"
+            ));
+        }
+    }
+
+    @PutMapping("/{id}/refuser-vente")
+    public ResponseEntity<?> refuserVente(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        try {
+            Produit produit = produitService.getProduitById(id)
+                    .orElseThrow(() -> new RuntimeException("Produit non trouvé"));
+
+            String raison = request.get("raison");
+
+            // Vérifier que l'état est correct
+            if (!"vendeur_accepte_vente".equals(produit.getEtat())) {
+                return ResponseEntity.badRequest().body("Le produit n'est pas dans l'état 'vendeur_accepte_vente'");
+            }
+
+            // Mettre à jour l'état
+            produit.setEtat("transaction_annulee");
+            Produit updatedProduit = produitService.saveProduit(produit);
+
+            // === RECHARGER LE PORTEFEUILLE DE L'ACHETEUR ===
+            if (updatedProduit.getAcheteur() != null && updatedProduit.getPrixFin() != null) {
+                walletservice.rechargeWallet(
+                        updatedProduit.getAcheteur(),
+                        updatedProduit.getPrixFin()
+                );
+            }
+
+            // === NOTIFICATION POUR L'ACHETEUR ===
+            if (produit.getAcheteur() != null) {
+                Map<String, Object> acheteurNotifData = new HashMap<>();
+                acheteurNotifData.put("productName", produit.getNom());
+                acheteurNotifData.put("sellerName", produit.getVendeur().getPrenom() + " " + produit.getVendeur().getNom());
+
+                if (produit.getPrixFin() != null) {
+                    acheteurNotifData.put("amount", produit.getPrixFin());
+                }
+                acheteurNotifData.put("state", "ADMIN_CANCELLED"); // Indiquer que c'est l'admin qui refuse
+
+                notificationService.processEvent(
+                        NotificationType.TRANSACTION_ANNULEE,
+                        Set.of(produit.getAcheteur().getIdclient()),
+                        acheteurNotifData
+                );
+            }
+
+            // === NOTIFICATION POUR LE VENDEUR ===
+            Map<String, Object> vendeurNotifData = new HashMap<>();
+            vendeurNotifData.put("productName", produit.getNom());
+            vendeurNotifData.put("message", "La vente de votre produit a été refusée par l'administrateur." +
+                    (raison != null ? " Raison: " + raison : ""));
+
+            notificationService.processEvent(
+                    NotificationType.MESSAGE, // Utiliser MESSAGE pour le vendeur
+                    Set.of(produit.getVendeur().getIdclient()),
+                    vendeurNotifData
+            );
+
+            System.out.println("❌ Vente refusée pour le produit: " + produit.getNom());
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Vente refusée avec succès"
+            ));
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur refus vente: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
+                    "success", false,
+                    "message", "Erreur lors du refus"
+            ));
+        }
     }
 }

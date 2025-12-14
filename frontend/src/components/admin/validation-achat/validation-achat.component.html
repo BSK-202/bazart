@@ -1,0 +1,206 @@
+<div class="validation-achat-container">
+  <!-- Header -->
+  <div class="header-section">
+    <h1 class="page-title">
+      <i class="icon-shield"></i>
+      Validation d'Achat
+    </h1>
+    <p class="page-description">
+      Validez ou refusez les ventes acceptées par les vendeurs. Les transactions seront finalisées après votre validation.
+    </p>
+  </div>
+
+  <!-- Messages d'état -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    <i class="icon-check"></i>
+    {{ successMessage }}
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-error">
+    <i class="icon-alert"></i>
+    {{ errorMessage }}
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters-section">
+    <div class="filters-grid">
+      <!-- Recherche -->
+      <div class="filter-group">
+        <label for="search">
+          <i class="icon-search"></i>
+          Rechercher
+        </label>
+        <input
+          id="search"
+          type="text"
+          [(ngModel)]="searchTerm"
+          (input)="applyFilters()"
+          placeholder="Nom ou description du produit..."
+          class="filter-input">
+      </div>
+
+      <!-- Filtre vendeur -->
+      <div class="filter-group">
+        <label for="vendeur">
+          <i class="icon-user"></i>
+          Vendeur
+        </label>
+        <select
+          id="vendeur"
+          [(ngModel)]="selectedVendeur"
+          (change)="applyFilters()"
+          class="filter-select">
+          <option value="">Tous les vendeurs</option>
+          <option *ngFor="let vendeur of vendeurs" [value]="vendeur">
+            {{ vendeur }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Filtre acheteur -->
+      <div class="filter-group">
+        <label for="acheteur">
+          <i class="icon-users"></i>
+          Acheteur
+        </label>
+        <select
+          id="acheteur"
+          [(ngModel)]="selectedAcheteur"
+          (change)="applyFilters()"
+          class="filter-select">
+          <option value="">Tous les acheteurs</option>
+          <option *ngFor="let acheteur of acheteurs" [value]="acheteur">
+            {{ acheteur }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Bouton réinitialiser -->
+      <div class="filter-group">
+        <button (click)="clearFilters()" class="btn-clear-filters">
+          <i class="icon-refresh"></i>
+          Réinitialiser
+        </button>
+      </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-label">Total à valider</span>
+        <span class="stat-value">{{ produits.length }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Filtrés</span>
+        <span class="stat-value">{{ produitsFiltres.length }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Liste des produits -->
+  <div class="produits-section">
+    <!-- Loading state -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Chargement des produits à valider...</p>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="!isLoading && produitsFiltres.length === 0" class="empty-state">
+      <i class="icon-check-circle"></i>
+      <h3>Aucune validation en attente</h3>
+      <p>Toutes les ventes ont été traitées ou aucun produit n'est en attente de validation.</p>
+    </div>
+
+    <!-- Liste des produits -->
+    <div *ngIf="!isLoading && produitsFiltres.length > 0" class="produits-grid">
+      <div *ngFor="let produit of produitsFiltres" class="produit-card">
+        <!-- En-tête de la carte -->
+        <div class="card-header">
+          <h3 class="produit-title">{{ produit.nom }}</h3>
+          <span class="produit-date">{{ formatDate(produit.datePublication) }}</span>
+        </div>
+
+        <!-- Contenu de la carte -->
+        <div class="card-content">
+          <!-- Images - CORRIGÉ -->
+          <div class="produit-images" *ngIf="produit.images && produit.images.length > 0">
+            <img
+              [src]="getProductImageUrl(produit)"
+              [alt]="produit.nom"
+              class="main-image"
+              (error)="onImageError($event)">
+            <div class="image-count" *ngIf="produit.images.length > 1">
+              +{{ produit.images.length - 1 }} image(s)
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="produit-description">
+            <p>{{ produit.description || 'Pas de description' }}</p>
+          </div>
+
+          <!-- Prix -->
+          <div class="produit-prix">
+            <div class="prix-item">
+              <span class="prix-label">Prix initial:</span>
+              <span class="prix-value">{{ produit.prixDebut }} DH</span>
+            </div>
+            <div class="prix-item highlight">
+              <span class="prix-label">Prix final:</span>
+              <span class="prix-value">{{ produit.prixFin }} DH</span>
+            </div>
+          </div>
+
+          <!-- Informations parties -->
+          <div class="parties-info">
+            <!-- Vendeur -->
+            <div class="party-section">
+              <h4><i class="icon-seller"></i> Vendeur</h4>
+              <div class="party-details">
+                <div class="detail-item">
+                  <span class="detail-label">Nom:</span>
+                  <span class="detail-value">{{ produit.vendeurNom }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Acheteur -->
+            <div class="party-section">
+              <h4><i class="icon-buyer"></i> Acheteur</h4>
+              <div class="party-details">
+                <div class="detail-item">
+                  <span class="detail-label">Nom:</span>
+                  <span class="detail-value">{{ produit.acheteurNom }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Catégorie -->
+          <div class="produit-categorie">
+            <span class="categorie-label">Catégorie:</span>
+            <span class="categorie-value">{{ produit.categorieNom || 'Non spécifiée' }}</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card-actions">
+          <button
+            (click)="validerVente(produit)"
+            class="btn-validate">
+            <i class="icon-check"></i>
+            Valider la vente
+          </button>
+
+          <button
+            (click)="refuserVente(produit)"
+            class="btn-refuse">
+            <i class="icon-x"></i>
+            Refuser
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
