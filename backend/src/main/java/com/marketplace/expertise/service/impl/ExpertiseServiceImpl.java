@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -40,8 +41,15 @@ public class ExpertiseServiceImpl implements ExpertiseService {
     private static final int EXPERT_ACTION_RESPONSE_HOURS = 1;   // Temps pour accepter/refuser la première demande
     private static final int REPORT_SUBMISSION_DAYS = 1;           // Nombre de jours pour soumettre le rapport après acceptation
     private static final double EXPERT_PAYOUT_RATE = 0.7; // 70% pour l'expert
-    // -------------------------
 
+    // ---- TYPES DE NOTIFICATION ----
+    private static final String NOTIF_TYPE_EXPERT_ASSIGNED = "EXPERT_ASSIGNED";
+    private static final String NOTIF_TYPE_REQUEST_ACCEPTED = "REQUEST_ACCEPTED";
+    private static final String NOTIF_TYPE_REQUEST_REFUSED = "REQUEST_REFUSED";
+    private static final String NOTIF_TYPE_EXPIRED_DEADLINE = "EXPIRED_DEADLINE";
+    private static final String NOTIF_TYPE_REPORT_DEADLINE_EXPIRED = "REPORT_DEADLINE_EXPIRED";
+    private static final String NOTIF_TYPE_NO_EXPERTS = "NO_EXPERTS_AVAILABLE";
+    private static final String NOTIF_TYPE_ALL_EXPERTS_TRIED = "ALL_EXPERTS_TRIED";
 
     // ==== 1) CRÉATION DE LA DEMANDE APRÈS ACCEPTATION ADMIN ====
     @Override
@@ -73,17 +81,16 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         Client vendeur = produit.getVendeur();
 
         // Deadline pour accepter/refuser la demande
-        // Deadline pour accepter/refuser la demande
         request.setExpertResponseDeadline(LocalDateTime.now().plusMinutes(EXPERT_ACTION_RESPONSE_HOURS));
 
-// Location précisée si sur place
+        // Location précisée si sur place
         if (request.getMethod() == ExpertiseMethod.ONSITE) {
             request.setLocation("Magasin Bazart, Avenue XXX, Ville YYY");
         } else {
             request.setLocation("ONLINE");
         }
 
-// DEADLINE RAPPORT : SEULEMENT POUR ONLINE, PAS POUR ONSITE
+        // DEADLINE RAPPORT : SEULEMENT POUR ONLINE, PAS POUR ONSITE
         if (request.getMethod() == ExpertiseMethod.ONLINE) {
             request.setReportSubmissionDeadline(LocalDateTime.now().plusMinutes(REPORT_SUBMISSION_DAYS));
         } else {
@@ -123,6 +130,37 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         slot.setDateTime(dt);
         slot.setExpertiseRequest(req);
         return slot;
+    }
+
+    // Méthodes utilitaires pour formater les dates
+    private String formatDateTime(LocalDateTime dateTime) {
+        if (dateTime == null) return "Non spécifié";
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy à HH:mm");
+        return dateTime.format(formatter);
+    }
+
+    private String formatTime(LocalDateTime dateTime) {
+        if (dateTime == null) return "";
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+        return dateTime.format(formatter);
+    }
+
+    private String formatDuration(LocalDateTime start, LocalDateTime end) {
+        if (start == null || end == null) return "Non calculé";
+
+        long minutes = java.time.Duration.between(start, end).toMinutes();
+
+        if (minutes < 60) {
+            return minutes + " minute(s)";
+        } else if (minutes < 1440) {
+            long hours = minutes / 60;
+            long remainingMinutes = minutes % 60;
+            return hours + " heure(s) " + (remainingMinutes > 0 ? remainingMinutes + " minute(s)" : "");
+        } else {
+            long days = minutes / 1440;
+            long remainingHours = (minutes % 1440) / 60;
+            return days + " jour(s) " + (remainingHours > 0 ? remainingHours + " heure(s)" : "");
+        }
     }
 
     // Appel par défaut (sans exclusion)
@@ -184,31 +222,92 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         request.setExpertResponseDeadline(LocalDateTime.now().plusMinutes(EXPERT_ACTION_RESPONSE_HOURS));
         expertiseRequestRepository.save(request);
 
-        // Notification à l'expert
+        // NOTIFICATION AMÉLIORÉE À L'EXPERT
         if (chosen.getClient() != null) {
             Long expertUserId = chosen.getClient().getIdclient();
             Map<String, Object> expertNotif = new HashMap<>();
+
+            String urgency = request.getExpertResponseDeadline().isBefore(LocalDateTime.now().plusHours(6))
+                    ? "URGENT" : "NORMAL";
+
+            StringBuilder message = new StringBuilder();
+            message.append("📋 Nouvelle demande d'expertise\n\n");
+            message.append("Produit : ").append(produit.getNom()).append("\n");
+            message.append("Référence : PROD-").append(produit.getIdproduit()).append("\n");
+            message.append("Vendeur : ").append(request.getVendeur().getPrenom()).append(" ")
+                    .append(request.getVendeur().getNom()).append("\n\n");
+
+            if (produit.getCategorie() != null) {
+                message.append("Catégorie : ").append(produit.getCategorie().getNomCategorie()).append("\n");
+            }
+
+            message.append("Méthode : ").append(request.getMethod() == ExpertiseMethod.ONSITE
+                    ? "Expertise sur site" : "Expertise en ligne").append("\n");
+
+            if (request.getMethod() == ExpertiseMethod.ONSITE) {
+                message.append("📍 Adresse : ").append(request.getLocation() != null
+                        ? request.getLocation() : "À définir").append("\n");
+                message.append("📅 Créneaux proposés :\n");
+                for (int i = 0; i < request.getSlots().size(); i++) {
+                    ExpertiseSlot slot = request.getSlots().get(i);
+                    message.append(i+1).append(". ").append(formatDateTime(slot.getDateTime())).append("\n");
+                }
+            }
+
+            message.append("\n⏰ Délai de réponse : ");
+            message.append(formatDateTime(request.getExpertResponseDeadline())).append("\n");
+            message.append("Statut : ").append(urgency).append("\n\n");
+
+            message.append("📞 Contact vendeur si besoin :\n");
+            message.append("- Email : ").append(request.getVendeur().getEmail()).append("\n");
+
+            message.append("\n➡️ Actions possibles :\n");
+            message.append("• Accepter et choisir un créneau (ONSITE)\n");
+            message.append("• Accepter directement (ONLINE)\n");
+            message.append("• Refuser (un nouvel expert sera contacté)\n");
+
+            expertNotif.put("message", message.toString());
             expertNotif.put("productName", produit.getNom());
-            expertNotif.put("expertiseMethod", request.getMethod().name());
             expertNotif.put("productId", produit.getIdproduit());
             expertNotif.put("requestId", request.getId());
             expertNotif.put("deadline", request.getExpertResponseDeadline().toString());
-            expertNotif.put("message",
-                    "Vous avez une nouvelle demande d'expertise sur le produit \"" + produit.getNom() + "\". " +
-                            (request.getMethod() == ExpertiseMethod.ONSITE
-                                    ? "Veuillez consulter les créneaux proposés et accepter/refuser avant " +
-                                    request.getExpertResponseDeadline().toLocalTime() + "."
-                                    : "Veuillez accepter/refuser pour expertise en ligne avant " +
-                                    request.getExpertResponseDeadline().toLocalTime() + ".")
-            );
+            expertNotif.put("urgency", urgency);
+            expertNotif.put("method", request.getMethod().name());
+            expertNotif.put("notificationType", NOTIF_TYPE_EXPERT_ASSIGNED);
+
             notificationService.processEvent(NotificationType.MESSAGE, Set.of(expertUserId), expertNotif);
         }
 
-        // Notification au vendeur
+        // NOTIFICATION AMÉLIORÉE AU VENDEUR
         Map<String, Object> vendeurNotif = new HashMap<>();
-        vendeurNotif.put("message", "Un expert a été assigné à votre produit \"" + produit.getNom() +
-                "\". Attente de sa réponse (délai: " + EXPERT_ACTION_RESPONSE_HOURS + " heure(s)).");
-        notificationService.processEvent(NotificationType.GENERIC,
+
+        StringBuilder vendeurMessage = new StringBuilder();
+        vendeurMessage.append("✅ Expert assigné\n\n");
+        vendeurMessage.append("Produit : ").append(produit.getNom()).append("\n");
+        vendeurMessage.append("Expert : ").append(chosen.getClient().getPrenom()).append(" ")
+                .append(chosen.getClient().getNom()).append("\n");
+        vendeurMessage.append("Spécialité : ").append(chosen.getDomaine() != null
+                ? chosen.getDomaine().getNomDomaine() : "Général").append("\n\n");
+
+        vendeurMessage.append("📊 Informations expert :\n");
+        vendeurMessage.append("• Nombre d'expertises réalisées : ").append(chosen.getNombreProduitsExpertise()).append("\n");
+
+
+        vendeurMessage.append("⏳ Prochaines étapes :\n");
+        vendeurMessage.append("L'expert a ").append(EXPERT_ACTION_RESPONSE_HOURS)
+                .append(" heure(s) pour accepter ou refuser la demande.\n");
+        vendeurMessage.append("Vous serez notifié dès qu'une décision sera prise.\n\n");
+
+        vendeurMessage.append("📞 Support :\n");
+        vendeurMessage.append("Pour toute question, contactez-nous à support@bazart.com");
+
+        vendeurNotif.put("message", vendeurMessage.toString());
+        vendeurNotif.put("productName", produit.getNom());
+        vendeurNotif.put("expertName", chosen.getClient().getPrenom() + " " + chosen.getClient().getNom());
+        vendeurNotif.put("expertiseMethod", request.getMethod().name());
+        vendeurNotif.put("notificationType", NOTIF_TYPE_EXPERT_ASSIGNED);
+
+        notificationService.processEvent(NotificationType.MESSAGE,
                 Set.of(request.getVendeur().getIdclient()), vendeurNotif);
     }
 
@@ -226,49 +325,30 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         vendeurData.put("productName", produit.getNom());
         vendeurData.put("productId", produit.getIdproduit());
         vendeurData.put("status", "NO_EXPERTS_AVAILABLE");
-        vendeurData.put("message",
-                "⚠️ Aucun expert disponible actuellement\n\n" +
-                        "Produit : \"" + produit.getNom() + "\"\n" +
-                        "Catégorie : " + (produit.getCategorie() != null ? produit.getCategorie().getNomCategorie() : "Non spécifiée") + "\n\n" +
-                        "📋 Détails :\n" +
-                        "• Méthode d'expertise : " + request.getMethod() + "\n" +
-                        "• Statut : En attente d'expert disponible\n" +
-                        "• Créneau : " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + "\n\n" +
-                        "⚡ Système automatique :\n" +
-                        "Le système va réessayer automatiquement d'assigner un expert toutes les heures.\n\n" +
-                        "📞 Support :\n" +
-                        "Si l'attente persiste plus de 24h, contactez notre support pour obtenir de l'aide."
-        );
+
+        StringBuilder message = new StringBuilder();
+        message.append("⚠️ Aucun expert disponible actuellement\n\n");
+        message.append("Produit : \"").append(produit.getNom()).append("\"\n");
+        message.append("Catégorie : ").append(produit.getCategorie() != null ? produit.getCategorie().getNomCategorie() : "Non spécifiée").append("\n\n");
+        message.append("📋 Détails :\n");
+        message.append("• Méthode d'expertise : ").append(request.getMethod()).append("\n");
+        message.append("• Statut : En attente d'expert disponible\n");
+        message.append("• Créneau : ").append(formatDateTime(LocalDateTime.now())).append("\n\n");
+        message.append("⚡ Système automatique :\n");
+        message.append("Le système va réessayer automatiquement d'assigner un expert toutes les heures.\n\n");
+        message.append("📞 Support :\n");
+        message.append("Si l'attente persiste plus de 24h, contactez notre support pour obtenir de l'aide.\n");
+        message.append("Email : support@bazart.com\n");
+        message.append("Téléphone : +XXX XXX XXX");
+
+        vendeurData.put("message", message.toString());
+        vendeurData.put("notificationType", NOTIF_TYPE_NO_EXPERTS);
 
         notificationService.processEvent(
                 NotificationType.MESSAGE,
                 Set.of(request.getVendeur().getIdclient()),
                 vendeurData
         );
-
-        // Notification aux administrateurs
-        Map<String, Object> adminData = new HashMap<>();
-        adminData.put("productName", produit.getNom());
-        adminData.put("productId", produit.getIdproduit());
-        adminData.put("vendeurName", request.getVendeur().getPrenom() + " " + request.getVendeur().getNom());
-        adminData.put("category", produit.getCategorie() != null ? produit.getCategorie().getNomCategorie() : "N/A");
-        adminData.put("domain", produit.getCategorie() != null && produit.getCategorie().getDomaine() != null
-                ? produit.getCategorie().getDomaine().getNomDomaine() : "N/A");
-        adminData.put("message",
-                "🚨 Alerte : Aucun expert disponible\n\n" +
-                        "Produit : " + produit.getNom() + " (ID: " + produit.getIdproduit() + ")\n" +
-                        "Vendeur : " + request.getVendeur().getPrenom() + " " + request.getVendeur().getNom() + "\n" +
-                        "Catégorie : " + (produit.getCategorie() != null ? produit.getCategorie().getNomCategorie() : "N/A") + "\n" +
-                        "Domaine : " + (produit.getCategorie() != null && produit.getCategorie().getDomaine() != null
-                        ? produit.getCategorie().getDomaine().getNomDomaine() : "N/A") + "\n\n" +
-                        "Action requise :\n" +
-                        "1. Vérifier la disponibilité des experts dans ce domaine\n" +
-                        "2. Contacter un expert manuellement si nécessaire\n" +
-                        "3. Informer le vendeur des délais supplémentaires"
-        );
-
-        // Vous devriez avoir une méthode pour récupérer les IDs des administrateurs
-        // notificationService.processEvent(NotificationType.ADMIN_ALERT, adminUserIds, adminData);
     }
 
     // Gestion quand tous les experts ont été essayés
@@ -286,24 +366,27 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         vendeurData.put("productName", produit.getNom());
         vendeurData.put("productId", produit.getIdproduit());
         vendeurData.put("status", "ALL_EXPERTS_TRIED");
-        vendeurData.put("message",
-                "🚨 Situation exceptionnelle - Processus d'expertise en pause\n\n" +
-                        "Produit : \"" + produit.getNom() + "\"\n" +
-                        "Catégorie : " + (produit.getCategorie() != null ? produit.getCategorie().getNomCategorie() : "Non spécifiée") + "\n\n" +
-                        "📊 État actuel :\n" +
-                        "Tous les experts disponibles (" + request.getExcludedExpertClientIds().size() + ") ont été contactés mais aucun n'a pu accepter.\n\n" +
-                        "⏰ Historique :\n" +
-                        "• Première tentative : " + request.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + "\n" +
-                        "• Dernière tentative : " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + "\n\n" +
-                        "⏸️ Système en pause :\n" +
-                        "Le système a temporairement arrêté les tentatives automatiques pour éviter les notifications répétitives.\n\n" +
-                        "🔄 Prochaine tentative automatique :\n" +
-                        "Dans 24 heures (le " + LocalDateTime.now().plusHours(24).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + ")\n\n" +
-                        "📞 Action immédiate (optionnelle) :\n" +
-                        "Si vous souhaitez accélérer le processus, contactez notre support client.\n" +
-                        "Email : support@bazart.com\n" +
-                        "Téléphone : +XXX XXX XXX"
-        );
+
+        StringBuilder message = new StringBuilder();
+        message.append("🚨 Situation exceptionnelle - Processus d'expertise en pause\n\n");
+        message.append("Produit : \"").append(produit.getNom()).append("\"\n");
+        message.append("Catégorie : ").append(produit.getCategorie() != null ? produit.getCategorie().getNomCategorie() : "Non spécifiée").append("\n\n");
+        message.append("📊 État actuel :\n");
+        message.append("Tous les experts disponibles (").append(request.getExcludedExpertClientIds().size()).append(") ont été contactés mais aucun n'a pu accepter.\n\n");
+        message.append("⏰ Historique :\n");
+        message.append("• Première tentative : ").append(formatDateTime(request.getCreatedAt())).append("\n");
+        message.append("• Dernière tentative : ").append(formatDateTime(LocalDateTime.now())).append("\n\n");
+        message.append("⏸️ Système en pause :\n");
+        message.append("Le système a temporairement arrêté les tentatives automatiques pour éviter les notifications répétitives.\n\n");
+        message.append("🔄 Prochaine tentative automatique :\n");
+        message.append("Dans 24 heures (le ").append(formatDateTime(LocalDateTime.now().plusHours(24))).append(")\n\n");
+        message.append("📞 Action immédiate (optionnelle) :\n");
+        message.append("Si vous souhaitez accélérer le processus, contactez notre support client.\n");
+        message.append("Email : support@bazart.com\n");
+        message.append("Téléphone : +XXX XXX XXX");
+
+        vendeurData.put("message", message.toString());
+        vendeurData.put("notificationType", NOTIF_TYPE_ALL_EXPERTS_TRIED);
 
         notificationService.processEvent(
                 NotificationType.MESSAGE,
@@ -311,6 +394,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
                 vendeurData
         );
     }
+
     // ==== 2) MÉTHODE POUR RÉESSAYER LES DEMANDES BLOQUÉES ====
     @Override
     public void retryBlockedRequests() {
@@ -336,13 +420,17 @@ public class ExpertiseServiceImpl implements ExpertiseService {
 
                     // Notifier le vendeur UNE SEULE FOIS de la réinitialisation
                     Map<String, Object> resetNotif = new HashMap<>();
-                    resetNotif.put("message",
-                            "🔄 Réinitialisation du processus d'expertise\n\n" +
-                                    "Produit : \"" + req.getProduit().getNom() + "\"\n\n" +
-                                    "Après 24 heures d'attente, le système a réinitialisé la recherche d'expert.\n" +
-                                    "Tous les experts sont à nouveau disponibles pour évaluer votre produit.\n\n" +
-                                    "📅 Nouvelle tentative en cours..."
-                    );
+
+                    StringBuilder message = new StringBuilder();
+                    message.append("🔄 Réinitialisation du processus d'expertise\n\n");
+                    message.append("Produit : \"").append(req.getProduit().getNom()).append("\"\n\n");
+                    message.append("Après 24 heures d'attente, le système a réinitialisé la recherche d'expert.\n");
+                    message.append("Tous les experts sont à nouveau disponibles pour évaluer votre produit.\n\n");
+                    message.append("📅 Nouvelle tentative en cours...");
+
+                    resetNotif.put("message", message.toString());
+                    resetNotif.put("notificationType", NOTIF_TYPE_ALL_EXPERTS_TRIED);
+
                     notificationService.processEvent(
                             NotificationType.MESSAGE,
                             Set.of(req.getVendeur().getIdclient()),
@@ -363,13 +451,17 @@ public class ExpertiseServiceImpl implements ExpertiseService {
 
                 // Notifier le vendeur du réessai (UNIQUEMENT pour NO_EXPERTS_AVAILABLE)
                 Map<String, Object> vendeurNotif = new HashMap<>();
-                vendeurNotif.put("message",
-                        "🔄 Nouvelle tentative d'assignation d'expert\n\n" +
-                                "Produit : \"" + req.getProduit().getNom() + "\"\n\n" +
-                                "Le système relance automatiquement la recherche d'un expert disponible.\n" +
-                                "Vous recevrez une notification dès qu'un expert sera assigné.\n\n" +
-                                "⏳ Statut : En cours de recherche..."
-                );
+
+                StringBuilder message = new StringBuilder();
+                message.append("🔄 Nouvelle tentative d'assignation d'expert\n\n");
+                message.append("Produit : \"").append(req.getProduit().getNom()).append("\"\n\n");
+                message.append("Le système relance automatiquement la recherche d'un expert disponible.\n");
+                message.append("Vous recevrez une notification dès qu'un expert sera assigné.\n\n");
+                message.append("⏳ Statut : En cours de recherche...");
+
+                vendeurNotif.put("message", message.toString());
+                vendeurNotif.put("notificationType", NOTIF_TYPE_NO_EXPERTS);
+
                 notificationService.processEvent(
                         NotificationType.MESSAGE,
                         Set.of(req.getVendeur().getIdclient()),
@@ -380,6 +472,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
             }
         }
     }
+
     // ==== 3) LISTE DES DEMANDES POUR UN EXPERT ====
     @Override
     @Transactional(readOnly = true)
@@ -416,7 +509,6 @@ public class ExpertiseServiceImpl implements ExpertiseService {
             throw new IllegalStateException("Le délai de réponse est dépassé !");
         }
 
-        // Deadline pour soumettre le rapport
         // Deadline pour soumettre le rapport
         if (request.getMethod() == ExpertiseMethod.ONSITE) {
             // Choix du slot
@@ -457,32 +549,113 @@ public class ExpertiseServiceImpl implements ExpertiseService {
 
         expertiseRequestRepository.save(request);
 
-        // Notif vendeur
+        // NOTIFICATION AMÉLIORÉE AU VENDEUR
         Map<String, Object> vendeurNotif = new HashMap<>();
+
+        StringBuilder vendeurMessage = new StringBuilder();
+        vendeurMessage.append("✅ Expertise acceptée\n\n");
+        vendeurMessage.append("Produit : ").append(request.getProduit().getNom()).append("\n");
+        vendeurMessage.append("Expert : ").append(request.getExpert().getClient().getPrenom())
+                .append(" ").append(request.getExpert().getClient().getNom()).append("\n\n");
+
+        if (request.getMethod() == ExpertiseMethod.ONSITE) {
+            vendeurMessage.append("📅 Rendez-vous confirmé :\n");
+            vendeurMessage.append("Date : ").append(formatDateTime(request.getConfirmedDateTime())).append("\n");
+            vendeurMessage.append("Lieu : ").append(request.getLocation() != null
+                    ? request.getLocation() : "Magasin Bazart").append("\n\n");
+
+            vendeurMessage.append("📝 Préparation rendez-vous :\n");
+            vendeurMessage.append("• Présentez-vous 15 minutes à l'avance\n");
+            vendeurMessage.append("• Apportez le produit et les accessoires\n");
+            vendeurMessage.append("• Pensez à la facture d'achat (si disponible)\n\n");
+        } else {
+            vendeurMessage.append("📋 Expertise en ligne\n");
+            vendeurMessage.append("L'expert va maintenant analyser les photos de votre produit.\n");
+            vendeurMessage.append("Délai de traitement : ").append(REPORT_SUBMISSION_DAYS)
+                    .append(" jour(s) maximum\n\n");
+        }
+
+        vendeurMessage.append("💰 Montant débité : ").append(String.format("%.2f DH", price)).append("\n");
+        vendeurMessage.append("Cette somme inclut la commission de la plateforme.\n\n");
+
+        vendeurMessage.append("⏳ Prochaine étape :\n");
+        if (request.getMethod() == ExpertiseMethod.ONSITE) {
+            vendeurMessage.append("1. Rendez-vous d'expertise\n");
+            vendeurMessage.append("2. Rapport d'expertise (après le rendez-vous)\n");
+        } else {
+            vendeurMessage.append("1. Analyse par l'expert\n");
+            vendeurMessage.append("2. Rapport d'expertise (dans les ").append(REPORT_SUBMISSION_DAYS)
+                    .append(" jours)\n");
+        }
+        vendeurMessage.append("3. Décision finale\n\n");
+
+        vendeurMessage.append("📞 Support :\n");
+        vendeurMessage.append("Pour toute question, contactez-nous à support@bazart.com");
+
+        vendeurNotif.put("message", vendeurMessage.toString());
         vendeurNotif.put("productName", request.getProduit().getNom());
-        vendeurNotif.put("dateTime", request.getConfirmedDateTime() != null ? request.getConfirmedDateTime().toString() : null);
-        vendeurNotif.put("expertiseMethod", request.getMethod() == ExpertiseMethod.ONLINE ? "en ligne" : "présentielle");
+        vendeurNotif.put("dateTime", request.getConfirmedDateTime() != null
+                ? formatDateTime(request.getConfirmedDateTime()) : null);
         vendeurNotif.put("amount", price);
+        vendeurNotif.put("notificationType", NOTIF_TYPE_REQUEST_ACCEPTED);
 
         notificationService.processEvent(NotificationType.PRODUCT_EXPERTISE_PLANNED,
                 Set.of(vendeur.getIdclient()), vendeurNotif);
 
-        // Notif expert confirmée
+        // NOTIFICATION AMÉLIORÉE À L'EXPERT
         if (request.getExpert().getClient() != null) {
             Long expertUserId = request.getExpert().getClient().getIdclient();
             Map<String, Object> expertNotif = new HashMap<>();
-            expertNotif.put("productName", request.getProduit().getNom());
-            expertNotif.put("dateTime", request.getConfirmedDateTime() != null ? request.getConfirmedDateTime().toString() : null);
-// Ne mettre la deadline que si elle existe (uniquement pour ONLINE)
-            if (request.getReportSubmissionDeadline() != null) {
-                expertNotif.put("deadline", request.getReportSubmissionDeadline().toString());
+
+            StringBuilder expertMessage = new StringBuilder();
+            expertMessage.append("✅ Demande acceptée\n\n");
+            expertMessage.append("Produit : ").append(request.getProduit().getNom()).append("\n");
+            expertMessage.append("Vendeur : ").append(vendeur.getPrenom()).append(" ")
+                    .append(vendeur.getNom()).append("\n");
+            expertMessage.append("Téléphone : ").append(vendeur.getPhotoprofil() != null
+                    ? vendeur.getPhotoprofil() : "Non communiqué").append("\n");
+            expertMessage.append("Email : ").append(vendeur.getEmail()).append("\n\n");
+
+            if (request.getMethod() == ExpertiseMethod.ONSITE) {
+                expertMessage.append("📅 Rendez-vous confirmé :\n");
+                expertMessage.append("Date : ").append(formatDateTime(request.getConfirmedDateTime())).append("\n");
+                expertMessage.append("Lieu : ").append(request.getLocation() != null
+                        ? request.getLocation() : "Magasin Bazart").append("\n\n");
+
+                expertMessage.append("📋 Actions après rendez-vous :\n");
+                expertMessage.append("1. Effectuer l'expertise\n");
+                expertMessage.append("2. Soumettre le rapport via l'interface\n");
+                expertMessage.append("3. Gagner : ").append(String.format("%.2f DH", price * EXPERT_PAYOUT_RATE)).append("\n\n");
             } else {
-                // Pour ONSITE, indiquer qu'il n'y a pas de deadline fixe
-                expertNotif.put("deadline", "Aucune deadline fixe - Formulaire disponible après le rendez-vous");
-            }            expertNotif.put("message", "Vous avez accepté l'expertise pour le produit \"" +
-                    request.getProduit().getNom() + "\"" +
-                    (request.getConfirmedDateTime() != null ? " le " + request.getConfirmedDateTime() : "") );
-            notificationService.processEvent(NotificationType.GENERIC, Set.of(expertUserId), expertNotif);
+                expertMessage.append("📋 Expertise en ligne\n");
+                expertMessage.append("Analysez les photos du produit et rédigez le rapport.\n\n");
+
+                if (request.getReportSubmissionDeadline() != null) {
+                    expertMessage.append("⏰ Délai de soumission : ")
+                            .append(formatDateTime(request.getReportSubmissionDeadline())).append("\n");
+                }
+                expertMessage.append("💰 Rémunération : ")
+                        .append(String.format("%.2f DH", price * EXPERT_PAYOUT_RATE)).append("\n\n");
+            }
+
+            expertMessage.append("📞 Contact vendeur :\n");
+            expertMessage.append("- Email : ").append(vendeur.getEmail()).append("\n");
+            if (vendeur.getPhotoprofil() != null) {
+                expertMessage.append("- Téléphone : ").append(vendeur.getPhotoprofil()).append("\n");
+            }
+
+            expertMessage.append("\n➡️ Accès au produit :\n");
+            expertMessage.append("Consultez toutes les photos et détails dans votre interface expert.");
+
+            expertNotif.put("message", expertMessage.toString());
+            expertNotif.put("productName", request.getProduit().getNom());
+            expertNotif.put("dateTime", request.getConfirmedDateTime() != null
+                    ? formatDateTime(request.getConfirmedDateTime()) : null);
+            expertNotif.put("deadline", request.getReportSubmissionDeadline() != null
+                    ? formatDateTime(request.getReportSubmissionDeadline()) : "Après rendez-vous");
+            expertNotif.put("notificationType", NOTIF_TYPE_REQUEST_ACCEPTED);
+
+            notificationService.processEvent(NotificationType.MESSAGE, Set.of(expertUserId), expertNotif);
         }
 
         // Mettre à jour état du produit
@@ -511,12 +684,26 @@ public class ExpertiseServiceImpl implements ExpertiseService {
             request.getExcludedExpertClientIds().add(assignedClientId);
         }
 
-        // Notification à l'expert
+        // NOTIFICATION AMÉLIORÉE À L'EXPERT
         if (request.getExpert() != null && request.getExpert().getClient() != null) {
             Map<String, Object> expertNotif = new HashMap<>();
-            expertNotif.put("message", "Vous avez refusé l'expertise pour le produit \"" +
-                    request.getProduit().getNom() + "\".");
-            notificationService.processEvent(NotificationType.GENERIC,
+
+            String expertMessage = "❌ Demande refusée\n\n" +
+                    "Produit : " + request.getProduit().getNom() + "\n" +
+                    "Vendeur : " + request.getVendeur().getPrenom() + " " + request.getVendeur().getNom() + "\n" +
+                    "Méthode : " + (request.getMethod() == ExpertiseMethod.ONSITE ? "Sur site" : "En ligne") + "\n\n" +
+                    "✅ Action enregistrée :\n" +
+                    "• Vous avez été retiré de cette demande\n" +
+                    "• Un nouvel expert va être contacté\n\n" +
+                    "📊 Votre disponibilité :\n" +
+                    "Pour éviter d'être contacté pour des demandes similaires, " +
+                    "mettez à jour votre calendrier dans votre profil expert.";
+
+            expertNotif.put("message", expertMessage);
+            expertNotif.put("notificationType", NOTIF_TYPE_REQUEST_REFUSED);
+            expertNotif.put("productName", request.getProduit().getNom());
+
+            notificationService.processEvent(NotificationType.MESSAGE,
                     Set.of(request.getExpert().getClient().getIdclient()), expertNotif);
         }
 
@@ -527,11 +714,30 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         request.setReportSubmissionDeadline(null);
         expertiseRequestRepository.save(request);
 
-        // Notif vendeur (refus)
+        // NOTIFICATION AMÉLIORÉE AU VENDEUR
         Map<String, Object> vendeurNotif = new HashMap<>();
-        vendeurNotif.put("message", "L'expert a refusé la demande d'expertise pour le produit \"" +
-                request.getProduit().getNom() + "\". Un nouvel expert sera assigné.");
-        notificationService.processEvent(NotificationType.GENERIC,
+
+        String vendeurMessage = "🔄 Nouvel expert en cours d'assignation\n\n" +
+                "Produit : " + request.getProduit().getNom() + "\n" +
+                "Expert précédent : " + (request.getExpert() != null && request.getExpert().getClient() != null
+                ? request.getExpert().getClient().getPrenom() + " " + request.getExpert().getClient().getNom()
+                : "Non spécifié") + "\n\n" +
+                "📋 Statut :\n" +
+                "L'expert assigné n'a pas pu prendre en charge votre demande.\n\n" +
+                "⚡ Système automatique :\n" +
+                "Un nouvel expert est en cours de contact.\n" +
+                "Délai de réponse : " + EXPERT_ACTION_RESPONSE_HOURS + " heure(s)\n\n" +
+                "📊 Statistiques :\n" +
+                "• Experts contactés : " + (request.getExcludedExpertClientIds().size() + 1) + "\n" +
+                "• Délai moyen : 15-30 minutes\n\n" +
+                "⏳ Suivi en temps réel :\n" +
+                "Vous serez notifié dès qu'un expert acceptera.";
+
+        vendeurNotif.put("message", vendeurMessage);
+        vendeurNotif.put("notificationType", NOTIF_TYPE_REQUEST_REFUSED);
+        vendeurNotif.put("productName", request.getProduit().getNom());
+
+        notificationService.processEvent(NotificationType.MESSAGE,
                 Set.of(request.getVendeur().getIdclient()), vendeurNotif);
 
         // Réassignation en excluant tous les experts déjà essayés
@@ -553,12 +759,28 @@ public class ExpertiseServiceImpl implements ExpertiseService {
                 Long expertClientId = req.getExpert().getClient().getIdclient();
                 req.getExcludedExpertClientIds().add(expertClientId);
 
-                // Notifier l'expert qui a dépassé le délai
+                // NOTIFICATION AMÉLIORÉE À L'EXPERT
                 Map<String, Object> expertNotif = new HashMap<>();
-                expertNotif.put("message", "Vous avez dépassé le délai de réponse pour l'expertise du produit \"" +
-                        req.getProduit().getNom() + "\". La demande a été réassignée à un autre expert.");
+
+                String expertMessage = "⏰ Délai de réponse dépassé\n\n" +
+                        "Produit : " + req.getProduit().getNom() + "\n" +
+                        "Vendeur : " + req.getVendeur().getPrenom() + " " + req.getVendeur().getNom() + "\n" +
+                        "Délai initial : " + formatDateTime(req.getExpertResponseDeadline()) + "\n\n" +
+                        "⚠️ Conséquences :\n" +
+                        "• Vous avez été retiré de cette demande\n" +
+                        "• La demande a été réassignée à un autre expert\n" +
+                        "• Cela peut affecter votre taux de réponse\n\n" +
+                        "💡 Pour éviter cela à l'avenir :\n" +
+                        "1. Vérifiez vos notifications régulièrement\n" +
+                        "2. Mettez à jour votre disponibilité\n" +
+                        "3. Configurez les rappels si nécessaire";
+
+                expertNotif.put("message", expertMessage);
+                expertNotif.put("notificationType", NOTIF_TYPE_EXPIRED_DEADLINE);
+                expertNotif.put("productName", req.getProduit().getNom());
+
                 notificationService.processEvent(
-                        NotificationType.GENERIC,
+                        NotificationType.MESSAGE,
                         Set.of(expertClientId),
                         expertNotif
                 );
@@ -570,12 +792,32 @@ public class ExpertiseServiceImpl implements ExpertiseService {
             req.setExpertResponseDeadline(null);
             expertiseRequestRepository.save(req);
 
-            // Notifier le vendeur
+            // NOTIFICATION AMÉLIORÉE AU VENDEUR
             Map<String, Object> vendeurNotif = new HashMap<>();
-            vendeurNotif.put("message", "L'expert n'a pas répondu dans les délais pour le produit \"" +
-                    req.getProduit().getNom() + "\". Réassignation à un nouvel expert en cours.");
+
+            String vendeurMessage = "🔄 Réassignation automatique\n\n" +
+                    "Produit : " + req.getProduit().getNom() + "\n" +
+                    "Expert précédent : " + (req.getExpert() != null && req.getExpert().getClient() != null
+                    ? req.getExpert().getClient().getPrenom() + " " + req.getExpert().getClient().getNom()
+                    : "Non spécifié") + "\n\n" +
+                    "📋 Statut :\n" +
+                    "L'expert assigné n'a pas répondu dans les délais.\n\n" +
+                    "⚡ Système en action :\n" +
+                    "• Recherche d'un nouvel expert\n" +
+                    "• Notification immédiate au nouvel expert\n" +
+                    "• Nouveau délai : " + EXPERT_ACTION_RESPONSE_HOURS + " heure(s)\n\n" +
+                    "📊 Avancement :\n" +
+                    "Experts contactés : " + (req.getExcludedExpertClientIds().size() + 1) + "\n" +
+                    "Temps écoulé : " + formatDuration(req.getCreatedAt(), LocalDateTime.now()) + "\n\n" +
+                    "⏳ Prochaine mise à jour :\n" +
+                    "Dans 15-30 minutes";
+
+            vendeurNotif.put("message", vendeurMessage);
+            vendeurNotif.put("notificationType", NOTIF_TYPE_EXPIRED_DEADLINE);
+            vendeurNotif.put("productName", req.getProduit().getNom());
+
             notificationService.processEvent(
-                    NotificationType.GENERIC,
+                    NotificationType.MESSAGE,
                     Set.of(req.getVendeur().getIdclient()),
                     vendeurNotif
             );
@@ -604,23 +846,56 @@ public class ExpertiseServiceImpl implements ExpertiseService {
                 Long expertClientId = req.getExpert().getClient().getIdclient();
                 req.getExcludedExpertClientIds().add(expertClientId);
 
-                // Notifier l'expert qui n'a pas soumis le rapport
+                // NOTIFICATION AMÉLIORÉE À L'EXPERT
                 Map<String, Object> expertNotif = new HashMap<>();
-                expertNotif.put("message", "Vous avez dépassé le délai de soumission du rapport pour l'expertise du produit \"" +
-                        req.getProduit().getNom() + "\". La demande a été réassignée.");
+
+                String expertMessage = "⏰ Délai de rapport dépassé\n\n" +
+                        "Produit : " + req.getProduit().getNom() + "\n" +
+                        "Vendeur : " + req.getVendeur().getPrenom() + " " + req.getVendeur().getNom() + "\n" +
+                        "Délai initial : " + formatDateTime(req.getReportSubmissionDeadline()) + "\n\n" +
+                        "⚠️ Conséquences :\n" +
+                        "• Vous avez été retiré de cette expertise\n" +
+                        "• La demande a été réassignée\n" +
+                        "• Cela affecte votre réputation d'expert\n\n" +
+                        "💡 Pour éviter cela :\n" +
+                        "1. Planifiez vos expertises\n" +
+                        "2. Utilisez les rappels\n" +
+                        "3. Refusez les demandes si surchargé";
+
+                expertNotif.put("message", expertMessage);
+                expertNotif.put("notificationType", NOTIF_TYPE_REPORT_DEADLINE_EXPIRED);
+                expertNotif.put("productName", req.getProduit().getNom());
+
                 notificationService.processEvent(
-                        NotificationType.GENERIC,
+                        NotificationType.MESSAGE,
                         Set.of(expertClientId),
                         expertNotif
                 );
             }
 
-            // Notifier le vendeur
+            // NOTIFICATION AMÉLIORÉE AU VENDEUR
             Map<String, Object> vendeurNotif = new HashMap<>();
-            vendeurNotif.put("message", "L'expert n'a pas soumis le rapport dans les délais pour le produit \"" +
-                    req.getProduit().getNom() + "\". Réassignation à un autre expert en cours.");
+
+            String vendeurMessage = "🔄 Changement d'expert\n\n" +
+                    "Produit : " + req.getProduit().getNom() + "\n" +
+                    "Expert précédent : " + (req.getExpert() != null && req.getExpert().getClient() != null
+                    ? req.getExpert().getClient().getPrenom() + " " + req.getExpert().getClient().getNom()
+                    : "Non spécifié") + "\n\n" +
+                    "📋 Statut :\n" +
+                    "L'expert n'a pas soumis le rapport dans les délais.\n\n" +
+                    "⚡ Système automatique :\n" +
+                    "• Nouvel expert en cours de contact\n" +
+                    "• Délai additionnel : " + REPORT_SUBMISSION_DAYS + " jour(s)\n" +
+                    "• Pas de frais supplémentaires\n\n" +
+                    "📞 Support :\n" +
+                    "Pour toute question, contactez-nous à support@bazart.com";
+
+            vendeurNotif.put("message", vendeurMessage);
+            vendeurNotif.put("notificationType", NOTIF_TYPE_REPORT_DEADLINE_EXPIRED);
+            vendeurNotif.put("productName", req.getProduit().getNom());
+
             notificationService.processEvent(
-                    NotificationType.GENERIC,
+                    NotificationType.MESSAGE,
                     Set.of(req.getVendeur().getIdclient()),
                     vendeurNotif
             );
@@ -757,10 +1032,27 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         // reassign an expert
         assignExpertAndNotify(req);
 
-        // notify seller
+        // NOTIFICATION AMÉLIORÉE AU VENDEUR
         Map<String, Object> data = new HashMap<>();
-        data.put("message", "Votre produit \"" + produit.getNom() + "\" a été remis en file d'expertise après ajout d'informations.");
-        notificationService.processEvent(NotificationType.GENERIC, Set.of(req.getVendeur().getIdclient()), data);
+
+        String message = "🔄 Expertise relancée\n\n" +
+                "Produit : \"" + produit.getNom() + "\"\n" +
+                "Catégorie : " + (produit.getCategorie() != null ? produit.getCategorie().getNomCategorie() : "Général") + "\n\n" +
+                "✅ Informations supplémentaires enregistrées\n\n" +
+                "📋 Nouveau processus :\n" +
+                "1. Recherche d'un nouvel expert\n" +
+                "2. Acceptation/refus de l'expert\n" +
+                "3. Expertise du produit\n" +
+                "4. Rapport final\n\n" +
+                "⏰ Délai estimé : 24-48 heures\n\n" +
+                "📞 Support :\n" +
+                "Pour toute question, contactez-nous à support@bazart.com";
+
+        data.put("message", message);
+        data.put("notificationType", "REOPEN_AFTER_INFO");
+        data.put("productName", produit.getNom());
+
+        notificationService.processEvent(NotificationType.MESSAGE, Set.of(req.getVendeur().getIdclient()), data);
 
         return toDto(req);
     }

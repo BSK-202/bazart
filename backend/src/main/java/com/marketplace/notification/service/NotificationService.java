@@ -256,9 +256,9 @@ public class NotificationService {
             case MESSAGE:
                 String customMessage = (String) data.getOrDefault("message", "Vous avez un nouveau message.");
                 return customMessage;
-            case GENERIC:
+           // case GENERIC:
             default:
-                return "🔔 Vous avez une nouvelle notification.";
+             return "🔔 Vous avez une nouvelle notification.";
         }
     }
 

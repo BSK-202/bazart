@@ -113,123 +113,146 @@ public class ExpertiseReportServiceImpl implements ExpertiseReportService {
         // Project report to product visibility + state
         applyReportToProduct(request, saved);
 
+// Dans la méthode createReportAndGeneratePDF, remplacez la section des notifications :
+
 // ========== NOTIFICATIONS SELON LA RECOMMANDATION ==========
 
         String productName = request.getProduit().getNom();
         Long vendeurId = request.getVendeur().getIdclient();
+        String expertFullName = expert.getClient().getPrenom() + " " + expert.getClient().getNom();
 
+// Récupérer les valeurs du rapport
+        ProductCondition condition = report.getProductCondition();
+        AuthenticityLevel authenticity = report.getAuthenticityLevel();
+        Double minPrice = report.getEstimatedMinPrice();
+        Double maxPrice = report.getEstimatedMaxPrice();
+        Double startPrice = report.getRecommendedStartPrice();
+        String publicComments = report.getCommentsPublic();
+
+// Construire le message de base
+        StringBuilder vendeurMessage = new StringBuilder();
+        vendeurMessage.append("Produit : \"").append(productName).append("\"\n");
+        vendeurMessage.append("Expert : ").append(expertFullName).append("\n\n");
+
+// Ajouter les détails de l'expertise
+        vendeurMessage.append("📊 Résultats de l'expertise :\n");
+        vendeurMessage.append("• État : ").append(condition != null ? condition.name() : "Non spécifié").append("\n");
+        vendeurMessage.append("• Authenticité : ").append(authenticity != null ? authenticity.name() : "Non spécifié").append("\n");
+
+        if (minPrice != null && maxPrice != null) {
+            vendeurMessage.append("• Estimation : ").append(String.format("%.2f - %.2f DH", minPrice, maxPrice)).append("\n");
+        }
+
+        if (startPrice != null) {
+            vendeurMessage.append("• Prix de départ recommandé : ").append(String.format("%.2f DH", startPrice)).append("\n");
+        }
+
+        vendeurMessage.append("\n");
+
+// Gérer les différents cas selon la recommandation
         switch (saved.getRecommendation()) {
-
             case AUTHORISE_AUCTION -> {
-                // Notification au vendeur - Expertise validée ✅
-                Map<String, Object> vendeurNotif = new HashMap<>();
-                vendeurNotif.put("message",
-                        "✅ Expertise validée - Produit approuvé !\n\n" +
-                                "Produit : \"" + productName + "\"\n" +
-                                "Expert : " + expert.getClient().getPrenom() + " " + expert.getClient().getNom() + "\n\n" +
-                                "🎉 Félicitations ! Votre produit a été expertisé et validé.\n\n" +
-                                "📊 Résultats de l'expertise :\n" +
-                                "• État : " + report.getProductCondition() + "\n" +
-                                "• Authenticité : " + report.getAuthenticityLevel() + "\n" +
-                                (estimatedMinPrice != null && estimatedMaxPrice != null ?
-                                        "• Estimation : " + String.format("%.2f - %.2f DH", estimatedMinPrice, estimatedMaxPrice) + "\n" : "") +
-                                (recommendedStartPrice != null ?
-                                        "• Prix de départ recommandé : " + String.format("%.2f DH", recommendedStartPrice) + "\n" : "") +
-                                "\n" +
-                                "✨ Votre produit peut maintenant être mis aux enchères !\n" +
-                                "📄 Le rapport d'expertise complet est disponible dans votre espace vendeur.\n\n" +
-                                "Prochaine étape : Configurez et lancez votre enchère."
-                );
-                notificationService.processEvent(NotificationType.MESSAGE, Set.of(vendeurId), vendeurNotif);
+                vendeurMessage.insert(0, "✅ Expertise validée - Produit approuvé !\n\n");
+                vendeurMessage.append("✨ Votre produit peut maintenant être mis aux enchères !\n");
+                vendeurMessage.append("📄 Le rapport d'expertise complet est disponible dans votre espace vendeur.\n\n");
+                vendeurMessage.append("Prochaine étape : Configurez et lancez votre enchère.");
+
+                if (publicComments != null && !publicComments.trim().isEmpty()) {
+                    vendeurMessage.append("\n\n📝 Commentaire de l'expert :\n").append(publicComments);
+                }
             }
 
             case REFUSE -> {
-                // Notification au vendeur - Expertise refusée ❌
-                Map<String, Object> vendeurNotif = new HashMap<>();
-                vendeurNotif.put("message",
-                        "❌ Expertise - Produit non approuvé\n\n" +
-                                "Produit : \"" + productName + "\"\n" +
-                                "Expert : " + expert.getClient().getPrenom() + " " + expert.getClient().getNom() + "\n\n" +
-                                "Malheureusement, l'expert n'a pas pu valider votre produit pour la mise aux enchères.\n\n" +
-                                "📊 Résultats de l'expertise :\n" +
-                                "• État : " + report.getProductCondition() + "\n" +
-                                "• Authenticité : " + report.getAuthenticityLevel() + "\n\n" +
-                                "📝 Motif du refus :\n" +
-                                (commentsPublic != null && !commentsPublic.trim().isEmpty()
-                                        ? commentsPublic
-                                        : "Consultez le rapport d'expertise pour plus de détails.") + "\n\n" +
-                                "💡 Que faire maintenant ?\n" +
-                                "• Consultez le rapport d'expertise complet dans votre espace\n" +
-                                "• Vous pouvez contacter le support pour plus d'informations\n" +
-                                "• Si possible, apportez des améliorations et resoumettez votre produit"
-                );
-                notificationService.processEvent(NotificationType.MESSAGE, Set.of(vendeurId), vendeurNotif);
+                vendeurMessage.insert(0, "❌ Expertise - Produit non approuvé\n\n");
+                vendeurMessage.append("Malheureusement, l'expert n'a pas pu valider votre produit pour la mise aux enchères.\n\n");
+
+                if (publicComments != null && !publicComments.trim().isEmpty()) {
+                    vendeurMessage.append("📝 Motif du refus :\n").append(publicComments).append("\n\n");
+                } else {
+                    vendeurMessage.append("📝 Motif du refus : Consultez le rapport d'expertise pour plus de détails.\n\n");
+                }
+
+                vendeurMessage.append("💡 Que faire maintenant ?\n");
+                vendeurMessage.append("• Consultez le rapport d'expertise complet dans votre espace\n");
+                vendeurMessage.append("• Vous pouvez contacter le support pour plus d'informations\n");
+                vendeurMessage.append("• Si possible, apportez des améliorations et resoumettez votre produit");
             }
 
             case REQUEST_MORE_INFO -> {
-                // Notification au vendeur - Informations complémentaires demandées ℹ️
-                Map<String, Object> vendeurNotif = new HashMap<>();
-                vendeurNotif.put("message",
-                        "ℹ️ Informations complémentaires requises\n\n" +
-                                "Produit : \"" + productName + "\"\n" +
-                                "Expert : " + expert.getClient().getPrenom() + " " + expert.getClient().getNom() + "\n\n" +
-                                "L'expert a besoin d'informations supplémentaires pour finaliser son expertise.\n\n" +
-                                "📊 Analyse actuelle :\n" +
-                                "• État : " + report.getProductCondition() + "\n" +
-                                "• Authenticité : " + report.getAuthenticityLevel() + "\n\n" +
-                                "📝 Informations demandées :\n" +
-                                (commentsPublic != null && !commentsPublic.trim().isEmpty()
-                                        ? commentsPublic
-                                        : "Consultez le rapport d'expertise pour connaître les détails demandés.") + "\n\n" +
-                                "📄 Le rapport d'expertise complet est disponible dans votre espace vendeur.\n\n" +
-                                "⚡ Action requise :\n" +
-                                "Veuillez fournir les informations demandées dès que possible.\n" +
-                                "Une fois les informations ajoutées, l'expertise pourra être finalisée."
-                );
-                notificationService.processEvent(NotificationType.MESSAGE, Set.of(vendeurId), vendeurNotif);
+                vendeurMessage.insert(0, "ℹ️ Informations complémentaires requises\n\n");
+                vendeurMessage.append("L'expert a besoin d'informations supplémentaires pour finaliser son expertise.\n\n");
+
+                if (publicComments != null && !publicComments.trim().isEmpty()) {
+                    vendeurMessage.append("📝 Informations demandées :\n").append(publicComments).append("\n\n");
+                } else {
+                    vendeurMessage.append("📝 Informations demandées : Consultez le rapport d'expertise pour connaître les détails demandés.\n\n");
+                }
+
+                vendeurMessage.append("📄 Le rapport d'expertise complet est disponible dans votre espace vendeur.\n\n");
+                vendeurMessage.append("⚡ Action requise :\n");
+                vendeurMessage.append("Veuillez fournir les informations demandées dès que possible.\n");
+                vendeurMessage.append("Une fois les informations ajoutées, l'expertise pourra être finalisée.");
+            }
+
+            default -> {
+                // Cas par défaut pour gérer toute nouvelle valeur d'énumération
+                vendeurMessage.insert(0, "📋 Rapport d'expertise disponible\n\n");
+                vendeurMessage.append("Un rapport d'expertise a été établi pour votre produit.\n");
+                vendeurMessage.append("Consultez le rapport complet dans votre espace vendeur pour plus de détails.");
             }
         }
 
-        // ========== NOTIFICATION À L'EXPERT - CONFIRMATION ==========
+// Envoyer la notification au vendeur
+        Map<String, Object> vendeurNotif = new HashMap<>();
+        vendeurNotif.put("message", vendeurMessage.toString());
+        vendeurNotif.put("productId", request.getProduit().getIdproduit());
+        vendeurNotif.put("expertiseRequestId", expertiseRequestId);
+        notificationService.processEvent(NotificationType.MESSAGE, Set.of(vendeurId), vendeurNotif);
+
+// ========== NOTIFICATION À L'EXPERT - CONFIRMATION ==========
         if (expert.getClient() != null) {
             Long expertUserId = expert.getClient().getIdclient();
-            Map<String, Object> expertNotif = new HashMap<>();
+            StringBuilder expertMessage = new StringBuilder();
 
-            String expertMessage = "✅ Rapport d'expertise soumis avec succès\n\n" +
-                    "Produit : \"" + productName + "\"\n" +
-                    "Votre décision : ";
+            expertMessage.append("✅ Rapport d'expertise soumis avec succès\n\n");
+            expertMessage.append("Produit : \"").append(productName).append("\"\n");
 
             switch (saved.getRecommendation()) {
                 case AUTHORISE_AUCTION ->
-                        expertMessage += "Produit validé pour mise aux enchères\n\n" +
-                                "Le vendeur a été notifié que son produit est approuvé.";
+                        expertMessage.append("Votre décision : Produit validé pour mise aux enchères\n\n")
+                                .append("Le vendeur a été notifié que son produit est approuvé.");
                 case REFUSE ->
-                        expertMessage += "Produit non approuvé\n\n" +
-                                "Le vendeur a été informé du refus avec vos commentaires.";
+                        expertMessage.append("Votre décision : Produit non approuvé\n\n")
+                                .append("Le vendeur a été informé du refus avec vos commentaires.");
                 case REQUEST_MORE_INFO ->
-                        expertMessage += "Informations complémentaires demandées\n\n" +
-                                "Le vendeur a été notifié et devra fournir les informations manquantes.";
+                        expertMessage.append("Votre décision : Informations complémentaires demandées\n\n")
+                                .append("Le vendeur a été notifié et devra fournir les informations manquantes.");
+                default ->
+                        expertMessage.append("Votre décision : Enregistrée\n\n")
+                                .append("Le vendeur a été notifié.");
             }
 
-            expertMessage += "\n\n💰 Rémunération : " +
-                    String.format("DH") +
-                    "\nLe montant a été crédité sur votre portefeuille.";
+            // Calculer et afficher la rémunération
+            double totalPrice = request.getPrice() != null
+                    ? request.getPrice()
+                    : (request.getMethod() == ExpertiseMethod.ONLINE ? ONLINE_PRICE : ONSITE_PRICE);
+            double expertShare = totalPrice * EXPERT_PAYOUT_RATE;
 
-            expertNotif.put("message", expertMessage);
+            expertMessage.append("\n\n💰 Rémunération : ")
+                    .append(String.format("%.2f DH", expertShare))
+                    .append("\nLe montant a été crédité sur votre portefeuille.");
+
+            Map<String, Object> expertNotif = new HashMap<>();
+            expertNotif.put("message", expertMessage.toString());
+            expertNotif.put("expertiseRequestId", expertiseRequestId);
+            expertNotif.put("payoutAmount", expertShare);
             notificationService.processEvent(NotificationType.MESSAGE, Set.of(expertUserId), expertNotif);
-        }
 
-        // ========== CRÉDIT EXPERT ==========
-        double totalPrice = request.getPrice() != null
-                ? request.getPrice()
-                : (request.getMethod() == ExpertiseMethod.ONLINE ? ONLINE_PRICE : ONSITE_PRICE);
-        double expertShare = totalPrice * EXPERT_PAYOUT_RATE;
-
-        if (expert.getClient() != null) {
+            // ========== CRÉDIT EXPERT ==========
             String desc = "Rémunération expertise du produit \"" + request.getProduit().getNom() + "\"";
             walletservice.rechargeWallet(expert.getClient(), expertShare);
 
-            // Notification de crédit wallet (optionnelle, peut être gérée par WalletService)
+            // Notification de crédit wallet
             Map<String, Object> walletNotif = new HashMap<>();
             walletNotif.put("amount", expertShare);
             walletNotif.put("message",
