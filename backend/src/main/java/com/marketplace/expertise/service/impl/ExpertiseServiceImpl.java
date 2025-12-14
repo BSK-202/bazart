@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 @Service
@@ -211,41 +212,105 @@ public class ExpertiseServiceImpl implements ExpertiseService {
                 Set.of(request.getVendeur().getIdclient()), vendeurNotif);
     }
 
-    // Gestion quand aucun expert n'est disponible
     private void handleNoExpertsAvailable(ExpertiseRequest request, Produit produit) {
         request.setStatus(ExpertiseStatus.NO_EXPERTS_AVAILABLE);
+        request.setExpert(null); // Réinitialiser l'expert assigné
         expertiseRequestRepository.save(request);
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("message", "Aucun expert n'est disponible pour le produit \"" + produit.getNom() +
-                "\". La demande sera réessayée automatiquement.");
-        notificationService.processEvent(NotificationType.GENERIC,
-                Set.of(request.getVendeur().getIdclient()), data);
-
-        // Mettre à jour l'état du produit
+        // Mettre à jour l'état du produit avec un état plus explicite
         produit.setEtat_expertise("attente_expert_disponible");
         produitRepository.save(produit);
+
+        // Notification DÉTAILLÉE au vendeur
+        Map<String, Object> vendeurData = new HashMap<>();
+        vendeurData.put("productName", produit.getNom());
+        vendeurData.put("productId", produit.getIdproduit());
+        vendeurData.put("status", "NO_EXPERTS_AVAILABLE");
+        vendeurData.put("message",
+                "⚠️ Aucun expert disponible actuellement\n\n" +
+                        "Produit : \"" + produit.getNom() + "\"\n" +
+                        "Catégorie : " + (produit.getCategorie() != null ? produit.getCategorie().getNomCategorie() : "Non spécifiée") + "\n\n" +
+                        "📋 Détails :\n" +
+                        "• Méthode d'expertise : " + request.getMethod() + "\n" +
+                        "• Statut : En attente d'expert disponible\n" +
+                        "• Créneau : " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + "\n\n" +
+                        "⚡ Système automatique :\n" +
+                        "Le système va réessayer automatiquement d'assigner un expert toutes les heures.\n\n" +
+                        "📞 Support :\n" +
+                        "Si l'attente persiste plus de 24h, contactez notre support pour obtenir de l'aide."
+        );
+
+        notificationService.processEvent(
+                NotificationType.MESSAGE,
+                Set.of(request.getVendeur().getIdclient()),
+                vendeurData
+        );
+
+        // Notification aux administrateurs
+        Map<String, Object> adminData = new HashMap<>();
+        adminData.put("productName", produit.getNom());
+        adminData.put("productId", produit.getIdproduit());
+        adminData.put("vendeurName", request.getVendeur().getPrenom() + " " + request.getVendeur().getNom());
+        adminData.put("category", produit.getCategorie() != null ? produit.getCategorie().getNomCategorie() : "N/A");
+        adminData.put("domain", produit.getCategorie() != null && produit.getCategorie().getDomaine() != null
+                ? produit.getCategorie().getDomaine().getNomDomaine() : "N/A");
+        adminData.put("message",
+                "🚨 Alerte : Aucun expert disponible\n\n" +
+                        "Produit : " + produit.getNom() + " (ID: " + produit.getIdproduit() + ")\n" +
+                        "Vendeur : " + request.getVendeur().getPrenom() + " " + request.getVendeur().getNom() + "\n" +
+                        "Catégorie : " + (produit.getCategorie() != null ? produit.getCategorie().getNomCategorie() : "N/A") + "\n" +
+                        "Domaine : " + (produit.getCategorie() != null && produit.getCategorie().getDomaine() != null
+                        ? produit.getCategorie().getDomaine().getNomDomaine() : "N/A") + "\n\n" +
+                        "Action requise :\n" +
+                        "1. Vérifier la disponibilité des experts dans ce domaine\n" +
+                        "2. Contacter un expert manuellement si nécessaire\n" +
+                        "3. Informer le vendeur des délais supplémentaires"
+        );
+
+        // Vous devriez avoir une méthode pour récupérer les IDs des administrateurs
+        // notificationService.processEvent(NotificationType.ADMIN_ALERT, adminUserIds, adminData);
     }
 
     // Gestion quand tous les experts ont été essayés
     private void handleAllExpertsTried(ExpertiseRequest request, Produit produit) {
         request.setStatus(ExpertiseStatus.ALL_EXPERTS_TRIED);
+        request.setExpert(null);
+        request.setExpertResponseDeadline(null); // Supprimer toute deadline
         expertiseRequestRepository.save(request);
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("message", "Tous les experts disponibles ont été contactés pour le produit \"" +
-                produit.getNom() + "\". Aucun n'a répondu. Contactez le support.");
-        notificationService.processEvent(NotificationType.GENERIC,
-                Set.of(request.getVendeur().getIdclient()), data);
-
-        // Mettre à jour l'état du produit
         produit.setEtat_expertise("tous_experts_contactes");
         produitRepository.save(produit);
 
-        // TODO: Notifier les administrateurs
-        // notificationService.notifyAdmins(...);
-    }
+        // Notification UNIQUE et CLAIRE au vendeur
+        Map<String, Object> vendeurData = new HashMap<>();
+        vendeurData.put("productName", produit.getNom());
+        vendeurData.put("productId", produit.getIdproduit());
+        vendeurData.put("status", "ALL_EXPERTS_TRIED");
+        vendeurData.put("message",
+                "🚨 Situation exceptionnelle - Processus d'expertise en pause\n\n" +
+                        "Produit : \"" + produit.getNom() + "\"\n" +
+                        "Catégorie : " + (produit.getCategorie() != null ? produit.getCategorie().getNomCategorie() : "Non spécifiée") + "\n\n" +
+                        "📊 État actuel :\n" +
+                        "Tous les experts disponibles (" + request.getExcludedExpertClientIds().size() + ") ont été contactés mais aucun n'a pu accepter.\n\n" +
+                        "⏰ Historique :\n" +
+                        "• Première tentative : " + request.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + "\n" +
+                        "• Dernière tentative : " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + "\n\n" +
+                        "⏸️ Système en pause :\n" +
+                        "Le système a temporairement arrêté les tentatives automatiques pour éviter les notifications répétitives.\n\n" +
+                        "🔄 Prochaine tentative automatique :\n" +
+                        "Dans 24 heures (le " + LocalDateTime.now().plusHours(24).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + ")\n\n" +
+                        "📞 Action immédiate (optionnelle) :\n" +
+                        "Si vous souhaitez accélérer le processus, contactez notre support client.\n" +
+                        "Email : support@bazart.com\n" +
+                        "Téléphone : +XXX XXX XXX"
+        );
 
+        notificationService.processEvent(
+                NotificationType.MESSAGE,
+                Set.of(request.getVendeur().getIdclient()),
+                vendeurData
+        );
+    }
     // ==== 2) MÉTHODE POUR RÉESSAYER LES DEMANDES BLOQUÉES ====
     @Override
     public void retryBlockedRequests() {
@@ -258,29 +323,63 @@ public class ExpertiseServiceImpl implements ExpertiseService {
                 .findByStatusIn(blockedStatuses);
 
         for (ExpertiseRequest req : blockedRequests) {
-            // Pour ALL_EXPERTS_TRIED, on réinitialise les exclusions après un certain temps
+            // CAS 1: ALL_EXPERTS_TRIED - Réinitialisation après 24h seulement
             if (req.getStatus() == ExpertiseStatus.ALL_EXPERTS_TRIED) {
                 // Réinitialiser les exclusions après 24h
                 LocalDateTime createdAt = req.getCreatedAt() != null ? req.getCreatedAt() : LocalDateTime.now();
+
+                // Vérifier si 24h se sont écoulées
                 if (LocalDateTime.now().isAfter(createdAt.plusHours(24))) {
                     req.getExcludedExpertClientIds().clear();
+                    req.setStatus(ExpertiseStatus.CREATED);
+                    expertiseRequestRepository.save(req);
+
+                    // Notifier le vendeur UNE SEULE FOIS de la réinitialisation
+                    Map<String, Object> resetNotif = new HashMap<>();
+                    resetNotif.put("message",
+                            "🔄 Réinitialisation du processus d'expertise\n\n" +
+                                    "Produit : \"" + req.getProduit().getNom() + "\"\n\n" +
+                                    "Après 24 heures d'attente, le système a réinitialisé la recherche d'expert.\n" +
+                                    "Tous les experts sont à nouveau disponibles pour évaluer votre produit.\n\n" +
+                                    "📅 Nouvelle tentative en cours..."
+                    );
+                    notificationService.processEvent(
+                            NotificationType.MESSAGE,
+                            Set.of(req.getVendeur().getIdclient()),
+                            resetNotif
+                    );
+
+                    // Réassigner un expert
+                    assignExpertAndNotify(req, req.getExcludedExpertClientIds());
                 }
+                // Si moins de 24h, NE RIEN FAIRE - éviter les notifications répétitives
+                continue;
             }
 
-            req.setStatus(ExpertiseStatus.CREATED);
-            expertiseRequestRepository.save(req);
+            // CAS 2: NO_EXPERTS_AVAILABLE - Réessayer immédiatement
+            if (req.getStatus() == ExpertiseStatus.NO_EXPERTS_AVAILABLE) {
+                req.setStatus(ExpertiseStatus.CREATED);
+                expertiseRequestRepository.save(req);
 
-            // Notifier le vendeur
-            Map<String, Object> vendeurNotif = new HashMap<>();
-            vendeurNotif.put("message", "Réessai d'assignation d'expert pour votre produit \"" +
-                    req.getProduit().getNom() + "\".");
-            notificationService.processEvent(NotificationType.GENERIC,
-                    Set.of(req.getVendeur().getIdclient()), vendeurNotif);
+                // Notifier le vendeur du réessai (UNIQUEMENT pour NO_EXPERTS_AVAILABLE)
+                Map<String, Object> vendeurNotif = new HashMap<>();
+                vendeurNotif.put("message",
+                        "🔄 Nouvelle tentative d'assignation d'expert\n\n" +
+                                "Produit : \"" + req.getProduit().getNom() + "\"\n\n" +
+                                "Le système relance automatiquement la recherche d'un expert disponible.\n" +
+                                "Vous recevrez une notification dès qu'un expert sera assigné.\n\n" +
+                                "⏳ Statut : En cours de recherche..."
+                );
+                notificationService.processEvent(
+                        NotificationType.MESSAGE,
+                        Set.of(req.getVendeur().getIdclient()),
+                        vendeurNotif
+                );
 
-            assignExpertAndNotify(req, req.getExcludedExpertClientIds());
+                assignExpertAndNotify(req, req.getExcludedExpertClientIds());
+            }
         }
     }
-
     // ==== 3) LISTE DES DEMANDES POUR UN EXPERT ====
     @Override
     @Transactional(readOnly = true)

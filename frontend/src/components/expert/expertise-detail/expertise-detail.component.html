@@ -6,7 +6,9 @@
       <div class="loading-spinner"></div>
       <p>Chargement des détails...</p>
     </div>
-
+    <div *ngIf="isExpired()" class="chip chip-expired">
+      {{ getCurrentStatus() | uppercase }} (EXPIRÉ)
+    </div>
     <!-- Error -->
     <div *ngIf="error && !isLoading" class="state state-error">
       {{ error }}
@@ -121,9 +123,10 @@
           <div class="expired-content">
             <span class="expired-icon">🚨</span>
             <div>
-              <p class="expired-title">RETARD DE RAPPORT</p>
+              <p class="expired-title">RAPPORT EN RETARD</p>
               <p class="expired-message">
-                La date limite est dépassée. Contactez l'administration.
+                La date limite de soumission est dépassée.
+                <br><small>Contactez l'administration pour plus d'informations.</small>
               </p>
             </div>
           </div>

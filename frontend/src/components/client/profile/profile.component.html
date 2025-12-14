@@ -456,7 +456,7 @@
                   <span *ngIf="produit.etat !== 'transaction_annulee'">
                     Publié le {{ formatDate(produit.datepublication) }}
                   </span>
-                                <span *ngIf="produit.etat === 'transaction_annulee'">
+                  <span *ngIf="produit.etat === 'transaction_annulee'">
                     Relancé le {{ formatDate(produit.datepublication) }}
                   </span>
                 </div>
@@ -1011,26 +1011,26 @@
       </div>
 
 
-		<div class="card">
-		  <div class="card-header">
-		    <h3 class="font-serif card-title">Notifications</h3>
-		    <p class="card-description">Gérez vos préférences de notification</p>
-		  </div>
-		  <div class="card-content space-y-4 notif-preferences">
-		    <div>
-		      <label class="flex items-center gap-2">
-		        <input type="checkbox" [(ngModel)]="inAppEnabled" (change)="savePreferences()" />
-		        <span>Activer les notifications in-app <span class="text-muted-foreground">(pop-up en haut)</span></span>
-		      </label>
-		    </div>
-		    <div>
-		      <label class="flex items-center gap-2">
-		        <input type="checkbox" [(ngModel)]="emailEnabled" (change)="savePreferences()" />
-		        <span>Activer les notifications par email</span>
-		      </label>
-		    </div>
-		  </div>
-		</div>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="font-serif card-title">Notifications</h3>
+          <p class="card-description">Gérez vos préférences de notification</p>
+        </div>
+        <div class="card-content space-y-4 notif-preferences">
+          <div>
+            <label class="flex items-center gap-2">
+              <input type="checkbox" [(ngModel)]="inAppEnabled" (change)="savePreferences()" />
+              <span>Activer les notifications in-app <span class="text-muted-foreground">(pop-up en haut)</span></span>
+            </label>
+          </div>
+          <div>
+            <label class="flex items-center gap-2">
+              <input type="checkbox" [(ngModel)]="emailEnabled" (change)="savePreferences()" />
+              <span>Activer les notifications par email</span>
+            </label>
+          </div>
+        </div>
+      </div>
 
       <div class="card">
         <div class="card-header">

@@ -9,7 +9,6 @@ import com.marketplace.catalog.entity.Produit;
 import com.marketplace.catalog.entity.ProduitImage;
 import com.marketplace.catalog.entity.Categorie;
 import com.marketplace.catalog.repository.ProduitRepository;
-import com.marketplace.catalog.service.ImageVerificationService;
 import com.marketplace.notification.entity.NotificationType;
 import com.marketplace.notification.service.NotificationService;
 import com.marketplace.user.entity.Client;
@@ -17,7 +16,6 @@ import com.marketplace.catalog.service.ProduitService;
 import com.marketplace.catalog.service.CategorieService;
 import com.marketplace.user.service.ClientService;
 import com.marketplace.wallet.service.Walletservice;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -453,7 +451,7 @@ public class ProduitController {
 
         try {
             String newState = request.get("etat");
-            System.out.println("Changere,emt etat......"+newState);
+            System.out.println("Changement etat......" + newState);
             String noteAdmin = request.get("noteAdmin");
 
             Produit produit = produitService.getProduitById(id)
@@ -461,20 +459,21 @@ public class ProduitController {
 
             // === PARTIE EXPERTISE / CHANGEMENT D'ÉTAT ===
             if ("accepte".equalsIgnoreCase(newState) && produit.isAExpertise()) {
-
                 // 1) Mettre l'état du produit en attente d'expertise
                 produit.setEtat_expertise("en_attente_expertise");
+                // On garde quand même l'état principal comme "accepte"
+                produit.setEtat("accepte");
                 produit = produitService.saveProduit(produit);
 
                 // 2) Créer la demande d'expertise (slots + assignation expert + deadline 24h)
                 expertiseService.createRequestAfterProductAccepted(produit.getIdproduit());
 
-
-
+            } else {
+                // CAS NORMAL : changement d'état sans expertise OU autre état que "accepte"
+                produit.setEtat(newState);
+                produit = produitService.saveProduit(produit);
             }
-            // Cas normal : juste changement d'état sans expertise
-            produit.setEtat("accepte");
-            produit = produitService.saveProduit(produit);
+
             Produit updatedProduit = produit;
 
             // === NOTIFICATION LOGIC STARTS HERE ===
@@ -492,7 +491,7 @@ public class ProduitController {
                 notifType = NotificationType.PRODUCT_ACCEPTED;
             } else if ("refuse".equalsIgnoreCase(newState) || "Refusé".equalsIgnoreCase(newState)) {
                 notifType = NotificationType.PRODUCT_REFUSED;
-            }else if ("vendu".equalsIgnoreCase(newState)) {
+            } else if ("vendu".equalsIgnoreCase(newState)) {
                 notifType = NotificationType.TRANSACTION_ACCEPTED;
 
                 // Ajouter des informations spécifiques pour la notification de transaction
@@ -504,8 +503,7 @@ public class ProduitController {
                 if (produit.getPrixFin() != null) {
                     notifData.put("amount", produit.getPrixFin());
                 }
-            }
-            else if ("transaction_annulee".equalsIgnoreCase(newState)) {
+            } else if ("transaction_annulee".equalsIgnoreCase(newState)) {
                 notifType = NotificationType.TRANSACTION_ANNULEE;
 
                 // Ajouter des informations spécifiques pour la notification de transaction
@@ -517,8 +515,7 @@ public class ProduitController {
                 if (produit.getPrixFin() != null) {
                     notifData.put("amount", produit.getPrixFin());
                 }
-            }
-            else {
+            } else {
                 notifType = NotificationType.GENERIC;
             }
 
@@ -552,7 +549,15 @@ public class ProduitController {
             }
             // === NOTIFICATION LOGIC ENDS HERE ===
 
-            String msgEtat = "accepte".equalsIgnoreCase(newState) ? "accepté" : newState;
+            String msgEtat;
+            switch (newState.toLowerCase()) {
+                case "accepte" -> msgEtat = "accepté";
+                case "refuse" -> msgEtat = "refusé";
+                case "vendu" -> msgEtat = "marqué comme vendu";
+                case "transaction_annulee" -> msgEtat = "marqué comme transaction annulée";
+                default -> msgEtat = newState;
+            }
+
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Produit " + msgEtat + " avec succès"
@@ -567,7 +572,6 @@ public class ProduitController {
             ));
         }
     }
-
     // ENDPOINT POUR RÉCUPÉRER LES PRODUITS DU CLIENT CONNECTÉ
     @GetMapping("/vendeur/{vendeurId}")
     public List<ProduitDTO> getProduitsByVendeur(@PathVariable Long vendeurId) {
@@ -909,6 +913,7 @@ public class ProduitController {
             }
 
             // Mettre à jour l'état
+
             produit.setEtat("enchere_termine");
             Produit updatedProduit = produitService.saveProduit(produit);
 

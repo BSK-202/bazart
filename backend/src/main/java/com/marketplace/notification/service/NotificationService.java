@@ -169,28 +169,7 @@ public class NotificationService {
             }
 
             // ============ EXPERTISE - NOTIFICATIONS EXPERT ============
-            case MESSAGE: {
-                // Utilisé pour les notifications personnalisées des experts
-                return getStringOrDefault(data, "message", "Vous avez un nouveau message.");
-            }
 
-            case GENERIC: {
-                // Notifications génériques
-                return getStringOrDefault(data, "message", "Vous avez une nouvelle notification.");
-            }
-
-            // ============ ENCHÈRES ============
-            case AUCTION_START: {
-                String productName = getStringOrDefault(data, "productName", "Produit");
-                String startPrice = data.get("startPrice") != null
-                        ? String.format("%.2f DH", data.get("startPrice"))
-                        : "";
-
-                return "🔨 Nouvelle enchère disponible !\n\n" +
-                        "Produit : \"" + productName + "\"\n" +
-                        (startPrice.isEmpty() ? "" : "Prix de départ : " + startPrice + "\n") +
-                        "Cliquez pour participer à l'enchère !";
-            }
             case AUCTION_START:
                 String auctionProduct = (String) data.getOrDefault("productName", "Produit");
                 return "Une nouvelle enchère commence pour \"" + auctionProduct + "\".";
