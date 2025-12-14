@@ -51,7 +51,6 @@ export class HeaderAdmin implements OnInit, OnDestroy {
   }
 
   private checkAuthState() {
-    // VÉRIFIER D'ABORD LES TOKENS ADMIN
     const adminToken = localStorage.getItem('adminToken');
     const adminData = localStorage.getItem('adminData');
 
@@ -59,14 +58,23 @@ export class HeaderAdmin implements OnInit, OnDestroy {
       try {
         const parsedAdmin = JSON.parse(adminData);
 
-        this.user = {
-          name: 'Administrateur', // Nom fixe pour admin
-          email: parsedAdmin.email || 'admin@bazart.ma'
-        };
+        // ✅ Vérifiez que l'ID est bien présent
+        if (parsedAdmin.id) {
+          this.user = {
+            name: 'Administrateur',
+            email: parsedAdmin.email || 'admin@bazart.ma'
+          };
+          this.adminUserId = parsedAdmin.id;
+          this.isAuthenticated = true;
+          console.log("✅ Admin authentifié, ID:", this.adminUserId);
 
-		this.adminUserId = parsedAdmin.id ?? null;
-        this.isAuthenticated = true;
-        console.log("✅ Admin authentifié via adminToken");
+          // ✅ Stockez aussi l'ID séparément pour plus de fiabilité
+          // @ts-ignore
+          localStorage.setItem('adminUserId', this.adminUserId.toString());
+        } else {
+          console.error("❌ ID admin manquant dans adminData");
+          this.adminUserId = null;
+        }
         return;
       } catch (e) {
         console.error('Erreur parsing admin data:', e);

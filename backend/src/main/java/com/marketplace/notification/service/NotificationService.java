@@ -169,9 +169,18 @@ public class NotificationService {
                         (amountStr.isEmpty() ? " !" : " pour " + amountStr + " !") +
                         "\nLe gagnant "+ winnerName +" va vous contacter pour la livraison.";
             }
-            case ADMIN_ALERT:
-                String adminMessage = (String) data.getOrDefault("adminMessage", "Message de l'administrateur.");
-                return "Message de l'administrateur : " + adminMessage;
+            case ADMIN_ALERT: {
+                // CORRECTION : Utiliser "message" comme clé principale
+                String adminMessage = (String) data.getOrDefault("message", "Message de l'administrateur.");
+                String productName = (String) data.getOrDefault("productName", "");
+
+                if (!productName.isEmpty()) {
+                    return "🆕 Nouveau produit en attente : \"" + productName + "\".\n" +
+                            adminMessage;
+                } else {
+                    return adminMessage;
+                }
+            }
             case ACCOUNT_UPDATED:
                 return "Votre profil ou paramètres ont été mis à jour avec succès.";
             case PAYMENT_RECEIVED:
@@ -185,27 +194,68 @@ public class NotificationService {
             case TRANSACTION_ACCEPTED: {
                 String productName = (String) data.getOrDefault("productName", "Produit");
                 String buyerName = (String) data.getOrDefault("buyerName", "un acheteur");
+                String sellerName = (String) data.getOrDefault("sellerName", "le vendeur");
                 Object amount = data.getOrDefault("amount", null);
                 String amountStr = amount != null ? String.format("%.2f DH", amount) : "";
+                String state = (String) data.getOrDefault("state", ""); // Nouveau champ pour différencier
 
-                return "✅ Transaction acceptée !\n" +
-                        "Votre produit \"" + productName + "\" a été accepté par le gagnant " +
-                        buyerName + ".\n" +
-                        (amountStr.isEmpty() ? "" : "Vous avez été remboursé de " + amountStr + ".\n") +
-                        "La transaction est maintenant complète.";
+                if ("VENDOR_ACCEPTED".equals(state)) {
+                    // Notification pour acheteur quand vendeur accepte
+                    return "✅ Le vendeur " + sellerName + " a accepté votre offre !\n" +
+                            "Produit: \"" + productName + "\"\n" +
+                            (amountStr.isEmpty() ? "" : "Montant: " + amountStr + "\n") +
+                            "Veuillez attendre la confirmation d'achat par l'administrateur.";
+                } else if ("SOLD".equals(state)) {
+                    // Notification pour acheteur quand admin valide l'achat
+                    return "✅ Achat confirmé par l'administrateur !\n" +
+                            "Votre achat du produit \"" + productName + "\" est maintenant confirmé.\n" +
+                            "Le montant a été transmis au vendeur " + sellerName + ".\n" +
+                            "Veuillez vous rendre à notre magasin dès que possible pour récupérer votre produit.";
+                } else {
+                    // Message par défaut
+                    return "✅ Transaction acceptée !\n" +
+                            "Votre produit \"" + productName + "\" a été accepté par le gagnant " +
+                            buyerName + ".\n" +
+                            (amountStr.isEmpty() ? "" : "Vous avez été remboursé de " + amountStr + ".\n") +
+                            "La transaction est maintenant complète.";
+                }
             }
             case TRANSACTION_ANNULEE: {
                 System.out.println("🎯 ENTRÉE dans case TRANSACTION_ANNULEE");
                 String productName = (String) data.getOrDefault("productName", "Produit");
                 String buyerName = (String) data.getOrDefault("buyerName", "un acheteur");
+                String sellerName = (String) data.getOrDefault("sellerName", "le vendeur");
                 Object amount = data.getOrDefault("amount", null);
                 String amountStr = amount != null ? String.format("%.2f DH", amount) : "";
+                String state = (String) data.getOrDefault("state", ""); // Nouveau champ pour différencier
 
-                return "❌ Transaction annulée !\n" +
-                        "La transaction pour votre produit \"" + productName + "\" avec " +
-                        buyerName + " a été annulée.\n" +
-                        (amountStr.isEmpty() ? "" : "Le montant de " + amountStr + " a été remboursé à ") +buyerName+
-                        "La transaction est maintenant terminée.";
+                if ("VENDOR_REFUSED".equals(state)) {
+                    // Notification pour acheteur quand vendeur refuse
+                    return "❌ Le vendeur " + sellerName + " n'a pas accepté votre offre.\n" +
+                            "Produit: \"" + productName + "\"\n" +
+                            (amountStr.isEmpty() ? "" : "Montant: " + amountStr + "\n") +
+                            "La transaction a été annulée.";
+                } else if ("ADMIN_CANCELLED".equals(state)) {
+                    // Notification pour acheteur quand admin refuse
+                    return "❌ Achat refusé par l'administrateur.\n" +
+                            "L'achat du produit \"" + productName + "\" a été refusé.\n" +
+                            (amountStr.isEmpty() ? "" : "Le montant de " + amountStr + " a été remboursé à votre portefeuille.\n") +
+                            "La transaction est maintenant terminée.";
+                } else {
+                    // Message par défaut
+                    return "❌ Transaction annulée !\n" +
+                            "La transaction pour votre produit \"" + productName + "\" avec " +
+                            buyerName + " a été annulée.\n" +
+                            (amountStr.isEmpty() ? "" : "Le montant de " + amountStr + " a été remboursé.") +
+                            "La transaction est maintenant terminée.";
+                }
+            }
+            case AUCTION_END_NO_WINNER: {
+                String productName = (String) data.getOrDefault("productName", "Produit");
+                return "📢 Enchère terminée sans gagnant !\n" +
+                        "L'enchère pour votre produit \"" + productName + "\" est terminée, " +
+                        "mais aucun participant n'a placé d'offre.\n" +
+                        "Vous pouvez relancer l'enchère depuis votre espace vendeur.";
             }
             case MESSAGE:
                 String customMessage = (String) data.getOrDefault("message", "Vous avez un nouveau message.");

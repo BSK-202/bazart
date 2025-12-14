@@ -5,6 +5,7 @@ import { CommonModule } from "@angular/common"
 import { Subscription } from "rxjs"
 import {Router} from '@angular/router';
 
+import { HttpHeaders } from '@angular/common/http';
 @Component({
   selector: "app-notification",
   templateUrl: "./notification.component.html",
@@ -15,6 +16,8 @@ import {Router} from '@angular/router';
 export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
   @Input() userId: number | null = null
   @Input() inAppEnabled = true
+  @Input() isAdmin: boolean = false; // 🆕 Ajouter cette propriété
+
   notifications: any[] = []
   showToast = false
   toastMessage = ""
@@ -35,52 +38,68 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes["userId"] && changes["userId"].currentValue !== changes["userId"].previousValue) {
-      this.ngOnDestroy()
-      this.tryInitialize()
+      this.ngOnDestroy();
+      this.tryInitialize();
+    }
+    if (changes["isAdmin"]) {
+      this.ngOnDestroy();
+      this.tryInitialize();
     }
   }
+
 
   private tryInitialize() {
     if (this.userId == null) {
-      console.log('❌ UserId est null, impossible d\'initialiser les notifications');
+      console.log('❌ UserId est null');
       return;
     }
 
-    console.log('🔄 Initialisation des notifications pour user:', this.userId);
+    console.log('🔄 Initialisation pour user:', this.userId, 'admin:', this.isAdmin);
 
-    // Charger les préférences utilisateur
-    this.http.get<any>(`http://localhost:8080/api/user-notification-preference/${this.userId}`).subscribe({
-      next: (pref) => {
-        console.log('✅ Préférences chargées:', pref);
-        this.inAppEnabled = pref?.inAppEnabled ?? true;
-        this.preferencesLoaded = true;
+    // 🆕 URLs DIFFÉRENTES POUR ADMIN/CLIENT
+    const baseUrl = this.isAdmin
+      ? 'http://localhost:8080/api/admin/notifications'
+      : 'http://localhost:8080/api/notifications';
 
-        // Charger les notifications existantes
-        this.loadExistingNotifications();
+    const notificationsUrl = `${baseUrl}/${this.userId}`;
 
-        // Initialiser WebSocket seulement si inApp est activé
-        if (this.inAppEnabled) {
-          this.initializeWebSocket();
-        }
-      },
-      error: (err) => {
-        console.error('❌ Erreur chargement préférences:', err);
-        // Utiliser les valeurs par défaut et continuer
-        this.inAppEnabled = true;
-        this.preferencesLoaded = true;
+    // Charger les notifications
+    this.loadExistingNotifications(notificationsUrl);
 
-        this.loadExistingNotifications();
-        this.initializeWebSocket();
-      },
-    });
+    // Toujours activer WebSocket pour les admins
+    this.initializeWebSocket();
   }
 
-  private loadExistingNotifications() {
-    if (!this.userId) return;
+  private getHeaders(): HttpHeaders {
+    let headers = new HttpHeaders();
 
-    this.http.get<any[]>(`http://localhost:8080/api/notifications/${this.userId}`).subscribe({
+    if (this.isAdmin) {
+      // Pour admin, utilisez adminToken
+      const adminToken = localStorage.getItem('adminToken');
+      if (adminToken) {
+        headers = headers.set('Authorization', `Bearer ${adminToken}`);
+      }
+    } else {
+      // Pour utilisateur normal, utilisez authToken
+      const authToken = localStorage.getItem('authToken');
+      if (authToken) {
+        headers = headers.set('Authorization', `Bearer ${authToken}`);
+      }
+    }
+
+    return headers;
+  }
+
+
+  private loadExistingNotifications(notificationsUrl: string) {
+    console.log('📡 Chargement depuis:', notificationsUrl);
+
+    // ✅ Utilisez les headers d'authentification
+    this.http.get<any[]>(notificationsUrl, {
+      headers: this.getHeaders()
+    }).subscribe({
       next: (notifications) => {
-        console.log('📋 Notifications existantes chargées:', notifications?.length || 0);
+        console.log('📋 Notifications reçues:', notifications?.length || 0);
         this.notifications = (notifications || []).map((notif) => ({
           ...notif,
           message: notif.message ?? JSON.stringify(notif),
@@ -88,58 +107,80 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
           read: notif.read ?? false,
           id: notif.id ?? Math.random(),
         }));
-
-        console.log('📊 Notifications après traitement:', this.notifications);
+        console.log('📊 Notifications traitées:', this.notifications.length);
       },
       error: (err) => {
         console.error('❌ Erreur chargement notifications:', err);
+        console.error('❌ Status:', err.status);
+        console.error('❌ Message:', err.message);
+
+        // ✅ Ajoutez un fallback pour déboguer
+        if (err.status === 403) {
+          console.warn('⚠️ Accès interdit - Vérifiez le token admin');
+          this.checkAdminToken();
+        }
         this.notifications = [];
       },
     });
   }
 
+  // ✅ Méthode pour vérifier le token admin
+  private checkAdminToken(): void {
+    const adminToken = localStorage.getItem('adminToken');
+    const adminData = localStorage.getItem('adminData');
+
+    console.log('🔍 Vérification token admin:', {
+      hasToken: !!adminToken,
+      hasData: !!adminData,
+      token: adminToken ? 'présent' : 'absent',
+      data: adminData ? JSON.parse(adminData) : 'absent'
+    });
+  }
+
+
   private initializeWebSocket() {
     if (!this.userId) return;
 
-    console.log('🔌 Initialisation WebSocket pour user:', this.userId);
+    console.log('🔌 Initialisation WebSocket pour:', this.userId);
 
-    // Se connecter au WebSocket
     this.notifWebSocketService.connect(this.userId);
 
-    // S'abonner aux nouvelles notifications
     this.wsSub = this.notifWebSocketService.notifications().subscribe({
       next: (notif: any) => {
         console.log('🎯 Nouvelle notification reçue:', notif);
 
-        // Vérifier si la notification existe déjà
-        if (notif.id && this.notifications.some(n => n.id === notif.id)) {
-          console.log('⚠️ Notification déjà présente, ignorée');
+        if (!notif) {
+          console.warn('⚠️ Notification null ignorée');
           return;
         }
 
-        // Ajouter la nouvelle notification
+        const notifId = notif.id ?? Math.random();
+
+        if (this.notifications.some(n => n.id === notifId)) {
+          console.log('⚠️ Notification déjà présente');
+          return;
+        }
+
         const newNotification = {
           ...notif,
           message: notif.message ?? JSON.stringify(notif),
           createdAt: notif.createdAt ? new Date(notif.createdAt) : new Date(),
           read: notif.read ?? false,
-          id: notif.id ?? Math.random(),
+          id: notifId,
         };
 
         this.notifications.unshift(newNotification);
-        console.log('✅ Notification ajoutée:', newNotification);
+        console.log('✅ Notification ajoutée');
 
-        // Afficher le toast si inApp est activé
-        if (this.inAppEnabled) {
-          this.toastMessage = notif.message || 'Nouvelle notification';
-          this.showToast = true;
-          setTimeout(() => {
-            this.showToast = false;
-          }, 5500);
-        }
+        // Afficher toast
+        this.toastMessage = notif.message || 'Nouvelle notification';
+        this.showToast = true;
+        setTimeout(() => {
+          this.showToast = false;
+        }, 5500);
       },
       error: (err) => {
-        console.error('❌ Erreur subscription WebSocket:', err);
+        console.error('❌ Erreur WebSocket:', err);
       },
     });
   }
@@ -173,16 +214,30 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
     if (!notification?.id || notification.read) return;
 
     console.log('📝 Marquer comme lu:', notification.id);
-    this.http.post(`http://localhost:8080/api/notifications/read/${notification.id}`, null).subscribe({
+
+    const baseUrl = this.isAdmin
+      ? 'http://localhost:8080/api/admin/notifications'
+      : 'http://localhost:8080/api/notifications';
+
+    const url = `${baseUrl}/read/${notification.id}`;
+
+    this.http.post(url, null, {
+      headers: this.getHeaders()
+    }).subscribe({
       next: () => {
         notification.read = true;
         console.log('✅ Notification marquée comme lue');
       },
       error: (err) => {
-        console.error('❌ Erreur marquer comme lu:', err);
+        console.error('❌ Erreur:', err);
+        console.error('❌ Status:', err.status);
+        if (err.status === 403) {
+          console.warn('⚠️ Accès interdit pour marquer comme lu');
+        }
       },
     });
   }
+
 
   unreadCount() {
     const count = this.notifications.filter(n => !n.read).length;
@@ -267,6 +322,18 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
 
     // Rediriger vers la page du portefeuille
     this.router.navigate(['/wallet']);
+  }
+
+  goToPublishedProductsForRelance(): void {
+    console.log('🔄 Redirection vers les produits publiés pour relance');
+    this.closeSidebar();
+    this.closeDetailSidebar();
+
+    // Rediriger vers le profil avec l'onglet "published"
+    this.router.navigate(['/profil'], {
+      queryParams: { tab: 'published' },
+      state: { activeTab: 'published' }
+    });
   }
 
 }

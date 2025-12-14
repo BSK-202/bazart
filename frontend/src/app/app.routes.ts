@@ -25,7 +25,7 @@ import {
 } from '../components/client/CategoriesWithoutDomaine/categories-without-domaine.component';
 import { ExpertExpertiseListComponent } from '../components/expert/expertise-list/expert-expertise-list.component';
 import { ExpertiseDetailComponent } from '../components/expert/expertise-detail/expertise-detail.component';
-
+import { ValidationAchatComponent } from '../components/admin/validation-achat/validation-achat.component';
 export const routes: Routes = [
   // ===== PUBLIC CLIENT ROUTES =====
   {
@@ -129,6 +129,10 @@ export const routes: Routes = [
         path: 'experts-actifs',
         component: ExpertsActifsAdminComponent
       },
+      {
+        path: 'validation-achat',
+        component: ValidationAchatComponent
+      }
       // NOUVELLE ROUTE POUR LES ENCHÈRES
 
     ]
