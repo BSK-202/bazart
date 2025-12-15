@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Contrôleur principal pour la gestion des demandes d’expertise
@@ -72,4 +74,38 @@ public class ExpertiseController {
     public ResponseEntity<List<ExpertiseRequestDTO>> getAssignedForExpert(@PathVariable Long expertId) {
         return ResponseEntity.ok(expertiseService.getAssignedRequestsForExpert(expertId));
     }
+
+    @GetMapping("/expert/{expertId}/completed")
+    public ResponseEntity<List<ExpertiseRequestDTO>> getCompletedExpertises(
+            @PathVariable Long expertId) {
+        return ResponseEntity.ok(
+                expertiseService.getExpertisedProductsForExpert(expertId)
+        );
+    }
+    @GetMapping("/expert/{expertId}/in-progress")
+    public ResponseEntity<List<ExpertiseRequestDTO>> getInProgressExpertises(
+            @PathVariable Long expertId) {
+        return ResponseEntity.ok(
+                expertiseService.getInProgressExpertisesForExpert(expertId)
+        );
+    }
+    @GetMapping("/expert/{expertId}/all-classified")
+    public ResponseEntity<Map<String, List<ExpertiseRequestDTO>>> getAllClassifiedForExpert(
+            @PathVariable Long expertId) {
+
+        Map<String, List<ExpertiseRequestDTO>> result = new HashMap<>();
+
+        // Pending
+        result.put("pending", expertiseService.getPendingRequestsForExpert(expertId));
+
+        // In Progress (PLANNED)
+        result.put("inProgress", expertiseService.getInProgressExpertisesForExpert(expertId));
+
+        // Completed
+        result.put("completed", expertiseService.getExpertisedProductsForExpert(expertId));
+
+        return ResponseEntity.ok(result);
+    }
+
+
 }

@@ -1,87 +1,274 @@
-<section class="list-page">
-  <div class="header">
-    <div>
-      <p class="eyebrow">Expert</p>
-      <h2>Articles à expertiser</h2>
-      <p class="muted">Acceptez ou refusez avant l’échéance pour chaque demande.</p>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bazart - Expertises</title>
+  <link rel="stylesheet" href="expert-expertise-list.component.css">
+</head>
+<body>
+
+<main class="main-content">
+  <div class="container">
+    <!-- Page Title -->
+    <div class="page-header">
+      <h1 class="page-title">Mes Expertises</h1>
+      <p class="page-subtitle">Gérez vos demandes d'expertise</p>
     </div>
-  </div>
 
-  <div *ngIf="isLoading" class="state">
-    <div class="loading-spinner"></div>
-    <p>Chargement des demandes d'expertise...</p>
-  </div>
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Chargement des expertises...</p>
+    </div>
 
-  <div *ngIf="errorMessage" class="state state-error">
-    {{ errorMessage }}
-  </div>
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="error-message">
+      <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/>
+      </svg>
+      <span>{{ errorMessage }}</span>
+    </div>
 
-  <div *ngIf="!isLoading && !errorMessage && requests.length === 0" class="state">
-    Aucune demande d'expertise en attente.
-  </div>
+    <!-- Content -->
+    <div *ngIf="!isLoading && !errorMessage">
 
-  <div *ngIf="!isLoading && requests.length > 0">
-    <div class="card-grid">
-      <div class="expert-card" *ngFor="let req of getCurrentPageRequests()">
-        <div class="card-image" (click)="onViewDetails(req)">
-          <img [src]="getImageUrl(req)" alt="Produit" />
+      <!-- SECTION 1: Expertises en attente d'acceptation -->
+      <div *ngIf="pendingRequests.length > 0" class="section-container">
+        <div class="section-header">
+          <h2 class="section-title">📋 En attente d'acceptation</h2>
+          <p class="section-subtitle">{{ pendingRequests.length }} demande(s) à traiter</p>
         </div>
 
-        <div class="card-content">
-          <div class="card-header">
-            <div class="product-title" (click)="onViewDetails(req)">{{ req.produitNom }}</div>
+        <div class="expertise-grid">
+          <article *ngFor="let request of pendingRequests"
+                   class="expertise-card pending-card"
+                   (click)="onViewDetails(request)">
 
-            <div class="badges-row">
-              <span class="badge" [ngClass]="{'badge-online': req.method === 'ONLINE', 'badge-onsite': req.method === 'ONSITE'}">
-                {{ req.method === 'ONLINE' ? 'En ligne' : 'Sur place' }}
-              </span>
+            <div class="card-image">
+              <img [src]="getImageUrl(request)" [alt]="request.produitNom">
+              <span class="status-badge pending">EN ATTENTE</span>
+            </div>
 
-              <div *ngIf="req.expertResponseDeadline && req.status === 'PENDING_EXPERT_DECISION'" class="pill-countdown">
-                {{ countdowns[req.id] || '...' }}
+            <div class="card-content">
+              <h3 class="card-title">{{ request.produitNom }}</h3>
+
+              <div class="card-info">
+                <div class="info-row">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                  </svg>
+                  <span>{{ request.vendeurNom }}</span>
+                </div>
+
+                <div class="info-row">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path *ngIf="request.method === 'ONSITE'" fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"/>
+                    <path *ngIf="request.method === 'ONLINE'" d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/>
+                  </svg>
+                  <span>{{ request.method === 'ONSITE' ? 'Sur place' : 'En ligne' }}</span>
+                </div>
+
+                <div class="info-row price">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"/>
+                  </svg>
+                  <span class="price-amount">{{ request.expertShare | number:'1.2-2' }} DH</span>
+                  <span class="price-label">(votre part)</span>
+                </div>
               </div>
 
-              <span class="status-badge">
-                {{ getStatusText(req.status) }}
-              </span>
-            </div>
-          </div>
+              <!-- Countdown -->
+              <div *ngIf="countdowns[request.id]" class="countdown urgent">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
+                </svg>
+                <span>Répondre avant: <strong>{{ countdowns[request.id] }}</strong></span>
+              </div>
 
-          <div class="meta-info">
-            <div class="meta-row">
-              <span class="vendor">Vendeur : {{ req.vendeurNom }}</span>
-              <span class="price">{{ req.expertShare || req.price * 0.7 | number:'1.0-2' }} DH</span>
-            </div>
-          </div>
+              <!-- Slot Selection for Onsite -->
+              <div *ngIf="request.method === 'ONSITE' && request.slots && request.slots.length > 0"
+                   class="slots-section"
+                   (click)="$event.stopPropagation()">
+                <p class="slots-label">📅 Choisissez un créneau:</p>
+                <div class="slots-grid">
+                  <button *ngFor="let slot of request.slots; let i = index"
+                          class="slot-btn"
+                          [ngClass]="{'selected': selectedSlotIndex[request.id] === i}"
+                          (click)="onChooseSlot(request, i); $event.stopPropagation()">
+                    <span class="slot-date">{{ slot | date:'dd MMM' }}</span>
+                    <span class="slot-time">{{ slot | date:'HH:mm' }}</span>
+                  </button>
+                </div>
+              </div>
 
-          <div *ngIf="req.method === 'ONSITE' && req.slots?.length" class="slot-info">
-            <span class="slot-title">Créneau prévu :</span>
-            <div class="slot-display">
-              {{ req.slots[0] | date:'EEE dd/MM HH:mm':'fr-FR' }}
+              <div class="card-actions" (click)="$event.stopPropagation()">
+                <button class="btn btn-primary"
+                        (click)="confirmOnsiteExpertise(request); $event.stopPropagation()"
+                        [disabled]="isLoading || (request.method === 'ONSITE' && selectedSlotIndex[request.id] === null)">
+                  {{ isLoading ? 'Traitement...' : 'Accepter' }}
+                </button>
+                <button class="btn btn-outline"
+                        (click)="refuseExpertise(request); $event.stopPropagation()">
+                  Refuser
+                </button>
+                <button class="btn btn-text"
+                        (click)="onViewDetails(request); $event.stopPropagation()">
+                  Détails
+                </button>
+              </div>
             </div>
-          </div>
+          </article>
         </div>
       </div>
-    </div>
 
-    <!-- Pagination -->
-    <div *ngIf="totalPages > 1" class="pagination">
-      <button
-        class="pagination-btn"
-        (click)="goToPage(currentPage - 1)"
-        [disabled]="currentPage === 1">
-        ← Précédent
-      </button>
+      <!-- SECTION 2: Expertises en cours / planifiées -->
+      <div *ngIf="inProgressRequests.length > 0" class="section-container">
+        <div class="section-header">
+          <h2 class="section-title">🔄 Expertises en cours</h2>
+          <p class="section-subtitle">{{ inProgressRequests.length }} expertise(s) planifiée(s)</p>
+        </div>
 
-      <span class="page-info">
-        Page {{ currentPage }} sur {{ totalPages }}
-      </span>
+        <div class="expertise-grid">
+          <article *ngFor="let request of inProgressRequests"
+                   class="expertise-card inprogress-card"
+                   (click)="onViewDetails(request)">
 
-      <button
-        class="pagination-btn"
-        (click)="goToPage(currentPage + 1)"
-        [disabled]="currentPage === totalPages">
-        Suivant →
-      </button>
+            <div class="card-image">
+              <img [src]="getImageUrl(request)" [alt]="request.produitNom">
+              <span class="status-badge inprogress">EN COURS</span>
+            </div>
+
+            <div class="card-content">
+              <h3 class="card-title">{{ request.produitNom }}</h3>
+
+              <div class="card-info">
+                <div class="info-row">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                  </svg>
+                  <span>{{ request.vendeurNom }}</span>
+                </div>
+
+                <div class="info-row">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path *ngIf="request.confirmedDateTime" fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"/>
+                    <path *ngIf="!request.confirmedDateTime" d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"/>
+                  </svg>
+                  <span *ngIf="request.confirmedDateTime">
+                    {{ request.confirmedDateTime | date:'dd/MM/yyyy HH:mm' }}
+                  </span>
+                  <span *ngIf="!request.confirmedDateTime">
+                    {{ request.method === 'ONSITE' ? 'Sur place' : 'En ligne' }}
+                  </span>
+                </div>
+
+                <div class="info-row">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z"/>
+                  </svg>
+                  <span *ngIf="request.reportSubmissionDeadline">
+                    Rapport avant: {{ request.reportSubmissionDeadline | date:'dd/MM HH:mm' }}
+                  </span>
+                  <span *ngIf="!request.reportSubmissionDeadline">
+                    Après rendez-vous
+                  </span>
+                </div>
+              </div>
+
+              <div class="card-actions" (click)="$event.stopPropagation()">
+                <button class="btn btn-primary"
+                        (click)="submitReport(request); $event.stopPropagation()">
+                  📄 Soumettre rapport
+                </button>
+                <button class="btn btn-outline"
+                        (click)="onViewDetails(request); $event.stopPropagation()">
+                  Détails
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <!-- SECTION 3: Expertises terminées -->
+      <div *ngIf="completedRequests.length > 0" class="section-container">
+        <div class="section-header">
+          <h2 class="section-title">✅ Expertises terminées</h2>
+          <p class="section-subtitle">{{ completedRequests.length }} expertise(s) finalisée(s)</p>
+        </div>
+
+        <div class="expertise-grid">
+          <article *ngFor="let request of completedRequests"
+                   class="expertise-card completed-card"
+                   (click)="onViewDetails(request)">
+
+            <div class="card-image">
+              <img [src]="getImageUrl(request)" [alt]="request.produitNom">
+              <span class="status-badge completed">TERMINÉE</span>
+            </div>
+
+            <div class="card-content">
+              <h3 class="card-title">{{ request.produitNom }}</h3>
+
+              <div class="card-info">
+                <div class="info-row">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                  </svg>
+                  <span>{{ request.vendeurNom }}</span>
+                </div>
+
+                <div class="info-row">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"/>
+                  </svg>
+                  <span *ngIf="request.confirmedDateTime">
+                    {{ request.confirmedDateTime | date:'dd/MM/yyyy' }}
+                  </span>
+                  <span *ngIf="!request.confirmedDateTime">
+                    Expertise en ligne
+                  </span>
+                </div>
+
+                <div class="info-row price">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z"/>
+                  </svg>
+                  <span class="price-amount">{{ request.expertShare | number:'1.2-2' }} DH</span>
+                  <span class="price-label">(perçus)</span>
+                </div>
+              </div>
+
+              <div class="card-actions" (click)="$event.stopPropagation()">
+                <button class="btn btn-outline"
+                        (click)="downloadReport(request); $event.stopPropagation()">
+                  📥 Télécharger rapport
+                </button>
+                <button class="btn btn-text"
+                        (click)="onViewDetails(request); $event.stopPropagation()">
+                  Détails
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <!-- Message si aucune expertise -->
+      <div *ngIf="pendingRequests.length === 0 && inProgressRequests.length === 0 && completedRequests.length === 0"
+           class="no-results">
+        <svg width="64" height="64" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z"/>
+        </svg>
+        <h3>Aucune expertise</h3>
+        <p>Vous n'avez aucune demande d'expertise pour le moment.</p>
+      </div>
     </div>
   </div>
-</section>
+</main>
+
+</body>
+</html>

@@ -4,6 +4,7 @@ import com.marketplace.expertise.entity.ExpertiseMethod;
 import com.marketplace.expertise.entity.ExpertiseStatus;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -35,4 +36,9 @@ public class ExpertiseRequestDTO {
     private String location;
     private String expertResponseDeadline;
     private String reportSubmissionDeadline;
+
+    // Informations additionnelles
+    private String sellerName;
+    private String expertiseLocation;
+    private LocalDateTime appointmentDate;
 }

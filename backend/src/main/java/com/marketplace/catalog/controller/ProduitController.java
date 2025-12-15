@@ -452,7 +452,6 @@ public class ProduitController {
                 produit = produitService.saveProduit(produit);
             }
 
-            Produit updatedProduit = produit;
             String oldState = produit.getEtat();
             produit.setEtat(newState);
             Produit updatedProduit = produitService.saveProduit(produit);
@@ -552,7 +551,6 @@ public class ProduitController {
             } else {
                 // === LOGIQUE EXISTANTE POUR LES AUTRES ÉTATS ===
                 if ("accepte".equalsIgnoreCase(newState) && produit.isAExpertise()) {
-                    produit.setEtat("en_attente_expertise");
                     produit = produitService.saveProduit(produit);
                     expertiseService.createRequestAfterProductAccepted(produit.getIdproduit());
                 }
@@ -567,38 +565,38 @@ public class ProduitController {
                 Set<Long> recipients = Set.of(updatedProduit.getVendeur().getIdclient());
 
             // 1) Notif principale en fonction de l'état demandé par l'admin
-            NotificationType notifType;
-            if ("accepte".equalsIgnoreCase(newState) || "Accepté".equalsIgnoreCase(newState)) {
-                notifType = NotificationType.PRODUCT_ACCEPTED;
-            } else if ("refuse".equalsIgnoreCase(newState) || "Refusé".equalsIgnoreCase(newState)) {
-                notifType = NotificationType.PRODUCT_REFUSED;
-            } else if ("vendu".equalsIgnoreCase(newState)) {
-                notifType = NotificationType.TRANSACTION_ACCEPTED;
-
-                // Ajouter des informations spécifiques pour la notification de transaction
-                if (produit.getAcheteur() != null) {
-                    String buyerName = produit.getAcheteur().getPrenom() + " " + produit.getAcheteur().getNom();
-                    notifData.put("buyerName", buyerName);
-                }
-
-                if (produit.getPrixFin() != null) {
-                    notifData.put("amount", produit.getPrixFin());
-                }
-            } else if ("transaction_annulee".equalsIgnoreCase(newState)) {
-                notifType = NotificationType.TRANSACTION_ANNULEE;
-
-                // Ajouter des informations spécifiques pour la notification de transaction
-                if (produit.getAcheteur() != null) {
-                    String buyerName = produit.getAcheteur().getPrenom() + " " + produit.getAcheteur().getNom();
-                    notifData.put("buyerName", buyerName);
-                }
-
-                if (produit.getPrixFin() != null) {
-                    notifData.put("amount", produit.getPrixFin());
-                }
-            } else {
-                notifType = NotificationType.GENERIC;
-            }
+//            NotificationType notifType;
+//            if ("accepte".equalsIgnoreCase(newState) || "Accepté".equalsIgnoreCase(newState)) {
+//                notifType = NotificationType.PRODUCT_ACCEPTED;
+//            } else if ("refuse".equalsIgnoreCase(newState) || "Refusé".equalsIgnoreCase(newState)) {
+//                notifType = NotificationType.PRODUCT_REFUSED;
+//            } else if ("vendu".equalsIgnoreCase(newState)) {
+//                notifType = NotificationType.TRANSACTION_ACCEPTED;
+//
+//                // Ajouter des informations spécifiques pour la notification de transaction
+//                if (produit.getAcheteur() != null) {
+//                    String buyerName = produit.getAcheteur().getPrenom() + " " + produit.getAcheteur().getNom();
+//                    notifData.put("buyerName", buyerName);
+//                }
+//
+//                if (produit.getPrixFin() != null) {
+//                    notifData.put("amount", produit.getPrixFin());
+//                }
+//            } else if ("transaction_annulee".equalsIgnoreCase(newState)) {
+//                notifType = NotificationType.TRANSACTION_ANNULEE;
+//
+//                // Ajouter des informations spécifiques pour la notification de transaction
+//                if (produit.getAcheteur() != null) {
+//                    String buyerName = produit.getAcheteur().getPrenom() + " " + produit.getAcheteur().getNom();
+//                    notifData.put("buyerName", buyerName);
+//                }
+//
+//                if (produit.getPrixFin() != null) {
+//                    notifData.put("amount", produit.getPrixFin());
+//                }
+//            } else {
+//                notifType = NotificationType.GENERIC;
+//            }
                 NotificationType notifType;
                 if ("accepte".equalsIgnoreCase(newState) || "Accepté".equalsIgnoreCase(newState)) {
                     notifType = NotificationType.PRODUCT_ACCEPTED;

@@ -1,25 +1,23 @@
-<section class="page">
+<section class="expertise-detail-section">
   <div class="container">
 
     <!-- Loading -->
-    <div *ngIf="isLoading" class="state state-loading">
-      <div class="loading-spinner"></div>
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner"></div>
       <p>Chargement des détails...</p>
     </div>
-    <div *ngIf="isExpired()" class="chip chip-expired">
-      {{ getCurrentStatus() | uppercase }} (EXPIRÉ)
-    </div>
+
     <!-- Error -->
-    <div *ngIf="error && !isLoading" class="state state-error">
+    <div *ngIf="error && !isLoading" class="error-banner">
       {{ error }}
     </div>
 
     <!-- Content -->
-    <div *ngIf="produit && !isLoading" class="grid">
+    <div *ngIf="produit && !isLoading" class="detail-grid">
 
-      <!-- ================= IMAGES ================= -->
-      <div class="gallery">
-        <div class="hero" (click)="openLightbox(selectedImage)">
+      <!-- IMAGES GALLERY -->
+      <div class="gallery-section">
+        <div class="hero-image" (click)="openLightbox(selectedImage)">
           <img
             [src]="produit.images[selectedImage] || 'assets/images/placeholder.jpg'"
             [alt]="produit.nom"
@@ -27,11 +25,12 @@
           />
         </div>
 
-        <div class="thumbs" *ngIf="produit.images && produit.images.length > 1">
+        <div class="thumbnail-grid" *ngIf="produit.images && produit.images.length > 1">
           <button
             *ngFor="let image of produit.images; let index = index"
             (click)="selectImage(index)"
             [class.active]="selectedImage === index"
+            class="thumbnail-btn"
           >
             <img
               [src]="image"
@@ -42,33 +41,33 @@
         </div>
       </div>
 
-      <!-- ================= COLONNE DROITE ================= -->
-      <div class="detail">
+      <!-- DETAIL COLUMN -->
+      <div class="detail-column">
 
-        <!-- ===== Titre Produit ===== -->
+        <!-- Title Block -->
         <div class="title-block">
-          <div>
-            <p class="eyebrow" *ngIf="expertise?.method === 'ONSITE'">Expertise sur place</p>
-            <p class="eyebrow" *ngIf="expertise?.method === 'ONLINE'">Expertise en ligne</p>
+          <div class="title-content">
+            <p class="eyebrow" *ngIf="expertise?.method === 'ONSITE'">📍 Expertise sur place</p>
+            <p class="eyebrow" *ngIf="expertise?.method === 'ONLINE'">💻 Expertise en ligne</p>
 
-            <h1>{{ produit.nom }}</h1>
+            <h1 class="product-title">{{ produit.nom }}</h1>
 
-            <p class="subtitle" *ngIf="produit.description">
+            <p class="product-description" *ngIf="produit.description">
               {{ produit.description }}
             </p>
           </div>
 
-          <div class="chip"
+          <div class="status-chip"
                [class.chip-expired]="expertResponseExpired || reportDeadlineExpired"
                *ngIf="getCurrentStatus()">
-            {{ getCurrentStatus() | uppercase }}
+            {{ getCurrentStatus() }}
             <span *ngIf="expertResponseExpired"> (EXPIRÉ)</span>
             <span *ngIf="reportDeadlineExpired"> (EN RETARD)</span>
           </div>
         </div>
 
-        <!-- ===== Vendeur ===== -->
-        <div class="card seller" *ngIf="vendeur">
+        <!-- Seller Card -->
+        <div class="info-card seller-card" *ngIf="vendeur">
           <p class="card-label">Vendu par</p>
           <div class="seller-row">
 
@@ -95,8 +94,8 @@
           </div>
         </div>
 
-        <!-- ===== Rémunération ===== -->
-        <div class="card compensation" *ngIf="expertise?.expertShare">
+        <!-- Compensation Card -->
+        <div class="info-card compensation-card" *ngIf="expertise?.expertShare">
           <p class="compensation-label">💰 Votre rémunération</p>
           <p class="compensation-value">
             {{ expertise?.expertShare | number:'1.0-2' }}
@@ -104,13 +103,13 @@
           </p>
         </div>
 
-        <!-- ================= MESSAGE EXPIRATION (Réponse Expert) ================= -->
-        <div *ngIf="shouldShowExpiredMessage()" class="card state-expired">
-          <div class="expired-content">
-            <span class="expired-icon">⏰</span>
+        <!-- EXPIRED MESSAGE (Expert Response) -->
+        <div *ngIf="shouldShowExpiredMessage()" class="info-card expired-card">
+          <div class="message-content">
+            <span class="message-icon">⏰</span>
             <div>
-              <p class="expired-title">DÉLAI DÉPASSÉ</p>
-              <p class="expired-message">
+              <p class="message-title">DÉLAI DÉPASSÉ</p>
+              <p class="message-text">
                 Le délai pour accepter ou refuser cette demande est expiré.
                 Elle a été réaffectée à un autre expert.
               </p>
@@ -118,13 +117,13 @@
           </div>
         </div>
 
-        <!-- ================= MESSAGE EXPIRATION RAPPORT ================= -->
-        <div *ngIf="shouldShowReportDeadlineExpired()" class="card deadline-expired">
-          <div class="expired-content">
-            <span class="expired-icon">🚨</span>
+        <!-- EXPIRED REPORT DEADLINE -->
+        <div *ngIf="shouldShowReportDeadlineExpired()" class="info-card deadline-card">
+          <div class="message-content">
+            <span class="message-icon">🚨</span>
             <div>
-              <p class="expired-title">RAPPORT EN RETARD</p>
-              <p class="expired-message">
+              <p class="message-title">RAPPORT EN RETARD</p>
+              <p class="message-text">
                 La date limite de soumission est dépassée.
                 <br><small>Contactez l'administration pour plus d'informations.</small>
               </p>
@@ -132,28 +131,28 @@
           </div>
         </div>
 
-        <!-- ================= SECTION 1 : BOUTONS ACCEPTER / REFUSER ================= -->
-        <div *ngIf="shouldShowAcceptRefuse()" class="action-row">
+        <!-- ACCEPT / REFUSE BUTTONS -->
+        <div *ngIf="shouldShowAcceptRefuse()" class="info-card action-card">
           <div>
             <p class="action-title">Prendre la demande</p>
-            <p class="action-sub">Acceptez pour afficher le formulaire.</p>
+            <p class="action-subtitle">Acceptez pour afficher le formulaire.</p>
 
-            <p class="deadline" *ngIf="expertise?.expertResponseDeadline">
+            <p class="deadline-text" *ngIf="expertise?.expertResponseDeadline">
               À accepter avant :
               <strong>{{ formatCountdown(expertise?.expertResponseDeadline!) }}</strong>
             </p>
           </div>
 
           <div class="action-buttons">
-            <button class="btn primary" (click)="onAcceptRequest()">Accepter</button>
-            <button class="btn ghost" (click)="onRefuseRequest()">Refuser</button>
+            <button class="btn btn-accept" (click)="onAcceptRequest()">Accepter</button>
+            <button class="btn btn-refuse" (click)="onRefuseRequest()">Refuser</button>
           </div>
         </div>
 
-        <!-- ================= SECTION 2 : SLOTS ================= -->
-        <div *ngIf="shouldShowSlots()" class="card slots">
+        <!-- SLOT SELECTION -->
+        <div *ngIf="shouldShowSlots()" class="info-card slots-card">
           <p class="card-label">Sélectionnez un créneau</p>
-          <div class="slot-list">
+          <div class="slots-list">
 
             <button
               *ngFor="let slot of getSlots(); let i = index"
@@ -162,29 +161,29 @@
               [class.selected]="selectedSlotIndex === i + 1"
               [class.expired]="getSlotStatus(slot) === 'expired'"
               [disabled]="getSlotStatus(slot) === 'expired'"
+              class="slot-item"
             >
               {{ slot | date: 'EEEE dd/MM/yyyy HH:mm':'fr-FR' }}
             </button>
 
           </div>
 
-          <p *ngIf="selectedSlotIndex == null" class="hint danger">
+          <p *ngIf="selectedSlotIndex == null" class="hint-danger">
             Veuillez sélectionner un créneau.
           </p>
 
-          <div *ngIf="expertise?.location" class="hint">
-            Lieu : {{ expertise?.location }}
+          <div *ngIf="expertise?.location" class="hint-info">
+            📍 Lieu : {{ expertise?.location }}
           </div>
         </div>
 
-        <!-- ================= SECTION 3 : ATTENTE CRÉNEAU ================= -->
-        <!-- SECTION 3 : ATTENTE CRÉNEAU - MODIFIER LE MESSAGE -->
-        <div *ngIf="shouldShowWaitingSlotMessage()" class="card waiting-slot">
-          <div class="waiting-content">
-            <span class="waiting-icon">⏳</span>
+        <!-- WAITING FOR SLOT -->
+        <div *ngIf="shouldShowWaitingSlotMessage()" class="info-card waiting-card">
+          <div class="message-content">
+            <span class="message-icon">⏳</span>
             <div>
-              <p class="waiting-title">EN ATTENTE DU CRÉNEAU</p>
-              <p class="waiting-message">
+              <p class="message-title">EN ATTENTE DU CRÉNEAU</p>
+              <p class="message-text">
                 Le formulaire de rapport sera disponible après le créneau :
                 <strong>
                   {{ (selectedSlotDate ? selectedSlotDate : (expertise?.confirmedDateTime || '')) | date:'dd/MM/yyyy à HH:mm' }}
@@ -196,25 +195,25 @@
           </div>
         </div>
 
-        <!-- ================= SECTION 4 : COMPTEUR RAPPORT ================= -->
-        <div *ngIf="shouldShowReportCountdown()" class="card countdown">
+        <!-- REPORT COUNTDOWN -->
+        <div *ngIf="shouldShowReportCountdown()" class="info-card countdown-card">
           <div>
             <p class="card-label">Rapport à soumettre avant :</p>
             <p class="countdown-value">{{ reportSubmissionCountdown || '...' }}</p>
           </div>
         </div>
 
-        <!-- ================= SECTION 5 : FORMULAIRE RAPPORT ================= -->
+        <!-- REPORT FORM -->
         <form
           *ngIf="shouldShowReportForm()"
-          class="card form"
+          class="info-card report-form"
           (ngSubmit)="onSubmitReport()"
           enctype="multipart/form-data"
         >
           <div class="form-header">
             <div>
               <p class="card-label">Rapport d'expertise</p>
-              <h3>Rédiger et envoyer</h3>
+              <h3 class="form-title">Rédiger et envoyer</h3>
 
               <p *ngIf="expertise?.method === 'ONSITE'" class="form-subtitle">
                 Créneau effectué le
@@ -229,75 +228,75 @@
           </div>
 
           <div class="form-grid">
-            <label class="field">
-              <span>État du produit *</span>
-              <select [(ngModel)]="reportForm.productCondition" name="productCondition" required>
+            <label class="form-field">
+              <span class="field-label">État du produit *</span>
+              <select [(ngModel)]="reportForm.productCondition" name="productCondition" required class="field-input">
                 <option [ngValue]="''">Sélectionnez...</option>
                 <option *ngFor="let cond of productConditions" [value]="cond">{{ cond }}</option>
               </select>
             </label>
 
-            <label class="field">
-              <span>Authenticité *</span>
-              <select [(ngModel)]="reportForm.authenticityLevel" name="authenticityLevel" required>
+            <label class="form-field">
+              <span class="field-label">Authenticité *</span>
+              <select [(ngModel)]="reportForm.authenticityLevel" name="authenticityLevel" required class="field-input">
                 <option [ngValue]="''">Sélectionnez...</option>
                 <option *ngFor="let auth of authenticityLevels" [value]="auth">{{ auth }}</option>
               </select>
             </label>
 
-            <label class="field">
-              <span>Prix min estimé</span>
-              <input type="number" min="0" [(ngModel)]="reportForm.estimatedMinPrice" name="estimatedMinPrice" />
+            <label class="form-field">
+              <span class="field-label">Prix min estimé</span>
+              <input type="number" min="0" [(ngModel)]="reportForm.estimatedMinPrice" name="estimatedMinPrice" class="field-input" />
             </label>
 
-            <label class="field">
-              <span>Prix max estimé</span>
-              <input type="number" min="0" [(ngModel)]="reportForm.estimatedMaxPrice" name="estimatedMaxPrice" />
+            <label class="form-field">
+              <span class="field-label">Prix max estimé</span>
+              <input type="number" min="0" [(ngModel)]="reportForm.estimatedMaxPrice" name="estimatedMaxPrice" class="field-input" />
             </label>
 
-            <label class="field">
-              <span>Prix de départ recommandé</span>
-              <input type="number" min="0" [(ngModel)]="reportForm.recommendedStartPrice" name="recommendedStartPrice" />
+            <label class="form-field">
+              <span class="field-label">Prix de départ recommandé</span>
+              <input type="number" min="0" [(ngModel)]="reportForm.recommendedStartPrice" name="recommendedStartPrice" class="field-input" />
             </label>
 
-            <label class="field">
-              <span>Recommandation *</span>
-              <select [(ngModel)]="reportForm.recommendation" name="recommendation" required>
+            <label class="form-field">
+              <span class="field-label">Recommandation *</span>
+              <select [(ngModel)]="reportForm.recommendation" name="recommendation" required class="field-input">
                 <option [ngValue]="''">Sélectionnez...</option>
                 <option *ngFor="let rec of recommendations" [value]="rec">{{ rec }}</option>
               </select>
             </label>
           </div>
 
-          <label class="field">
-            <span>Commentaire public</span>
-            <textarea rows="3" [(ngModel)]="reportForm.commentsPublic" name="commentsPublic"></textarea>
+          <label class="form-field full-width">
+            <span class="field-label">Commentaire public</span>
+            <textarea rows="3" [(ngModel)]="reportForm.commentsPublic" name="commentsPublic" class="field-input"></textarea>
           </label>
 
-          <label class="field">
-            <span>Commentaire interne (non visible vendeur)</span>
-            <textarea rows="3" [(ngModel)]="reportForm.commentsInternal" name="commentsInternal"></textarea>
+          <label class="form-field full-width">
+            <span class="field-label">Commentaire interne (non visible vendeur)</span>
+            <textarea rows="3" [(ngModel)]="reportForm.commentsInternal" name="commentsInternal" class="field-input"></textarea>
           </label>
 
-          <label class="field">
-            <span>Document supplémentaire (PDF, image)</span>
-            <input type="file" (change)="onFileSelected($event)" accept=".pdf,.jpg,.jpeg,.png" />
+          <label class="form-field full-width">
+            <span class="field-label">Document supplémentaire (PDF, image)</span>
+            <input type="file" (change)="onFileSelected($event)" accept=".pdf,.jpg,.jpeg,.png" class="field-input file-input" />
           </label>
 
           <div class="form-actions">
-            <button type="submit" class="btn primary">
+            <button type="submit" class="btn btn-submit">
               Envoyer le rapport d'expertise
             </button>
           </div>
         </form>
 
-        <!-- ================= SECTION 7 : STATUT FINAL ================= -->
-        <div *ngIf="isCompleted()" class="card completed">
-          <div class="completed-content">
-            <span class="completed-icon">✅</span>
+        <!-- COMPLETED STATUS -->
+        <div *ngIf="isCompleted()" class="info-card completed-card">
+          <div class="message-content">
+            <span class="message-icon">✅</span>
             <div>
-              <p class="completed-title">EXPERTISE TERMINÉE</p>
-              <p class="completed-message">
+              <p class="message-title">EXPERTISE TERMINÉE</p>
+              <p class="message-text">
                 Rapport envoyé avec succès.
                 <span *ngIf="expertise?.reportExists">
                   Disponible dans votre historique.
@@ -307,12 +306,13 @@
           </div>
         </div>
 
-        <div *ngIf="isCancelled()" class="card cancelled">
-          <div class="cancelled-content">
-            <span class="cancelled-icon">❌</span>
+        <!-- CANCELLED STATUS -->
+        <div *ngIf="isCancelled()" class="info-card cancelled-card">
+          <div class="message-content">
+            <span class="message-icon">❌</span>
             <div>
-              <p class="cancelled-title">EXPERTISE ANNULÉE</p>
-              <p class="cancelled-message">
+              <p class="message-title">EXPERTISE ANNULÉE</p>
+              <p class="message-text">
                 Cette demande a été annulée ou refusée.
               </p>
             </div>
@@ -323,12 +323,12 @@
     </div>
   </div>
 
-  <!-- ================ LIGHTBOX ================ -->
+  <!-- LIGHTBOX -->
   <div class="lightbox" *ngIf="lightboxOpen && produit">
     <div class="lightbox-backdrop" (click)="closeLightbox()"></div>
-    <div class="lightbox-body">
+    <div class="lightbox-content">
       <button class="lightbox-close" (click)="closeLightbox()">×</button>
-      <button class="lightbox-nav prev" (click)="prevLightbox()">‹</button>
+      <button class="lightbox-nav lightbox-prev" (click)="prevLightbox()">‹</button>
 
       <img
         [src]="produit.images[lightboxIndex]"
@@ -336,7 +336,7 @@
         (error)="onImageError($event)"
       />
 
-      <button class="lightbox-nav next" (click)="nextLightbox()">›</button>
+      <button class="lightbox-nav lightbox-next" (click)="nextLightbox()">›</button>
     </div>
   </div>
 

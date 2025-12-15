@@ -5,6 +5,7 @@ import com.marketplace.catalog.entity.ProduitImage;
 import com.marketplace.catalog.repository.ProduitRepository;
 import com.marketplace.expertise.dto.ExpertiseRequestDTO;
 import com.marketplace.expertise.entity.*;
+import com.marketplace.expertise.repository.ExpertiseReportRepository;
 import com.marketplace.expertise.repository.ExpertiseRequestRepository;
 import com.marketplace.expertise.repository.ExpertiseSlotRepository;
 import com.marketplace.expertise.service.ExpertiseService;
@@ -34,6 +35,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
     private final ExpertRepository expertRepository;
     private final Walletservice walletservice;
     private final NotificationService notificationService;
+    private final ExpertiseReportRepository expertiseReportRepository; // AJOUTER CETTE INJECTION
 
     // ---- PARAMS DEADLINES ----
     private static final double ONLINE_PRICE = 50.0;
@@ -1073,4 +1075,59 @@ public class ExpertiseServiceImpl implements ExpertiseService {
             return LocalDateTime.now().isAfter(request.getConfirmedDateTime());
         }
     }
+    @Override
+    @Transactional(readOnly = true)
+    public List<ExpertiseRequestDTO> getExpertisedProductsForExpert(Long clientId) {
+        Expert expert = expertRepository.findByClientId(clientId)
+                .orElseThrow(() -> new IllegalArgumentException("Expert non trouvé"));
+
+        // Récupérer UNIQUEMENT les demandes EXPERTISÉES (avec rapport validé)
+        List<ExpertiseRequest> expertisedRequests = expertiseRequestRepository
+                .findByExpertAndStatus(expert, ExpertiseStatus.EXPERTISED);
+
+        // Vérifier que chaque demande a bien un rapport associé
+        List<ExpertiseRequest> verifiedRequests = expertisedRequests.stream()
+                .filter(req -> {
+                    Optional<ExpertiseReport> report = expertiseReportRepository
+                            .findByExpertiseRequestId(req.getId());
+                    return report.isPresent();
+                })
+                .collect(Collectors.toList());
+
+        // Convertir en DTO et trier par date décroissante
+        return verifiedRequests.stream()
+                .map(this::toDto)
+                .sorted((a, b) -> {
+                    try {
+                        ExpertiseRequest reqA = expertiseRequestRepository.findById(a.getId())
+                                .orElseThrow(() -> new IllegalArgumentException("Demande non trouvée"));
+                        ExpertiseRequest reqB = expertiseRequestRepository.findById(b.getId())
+                                .orElseThrow(() -> new IllegalArgumentException("Demande non trouvée"));
+                        return reqB.getCreatedAt().compareTo(reqA.getCreatedAt());
+                    } catch (Exception e) {
+                        return 0;
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public List<ExpertiseRequestDTO> getInProgressExpertisesForExpert(Long clientId) {
+        Expert expert = expertRepository.findByClientId(clientId)
+                .orElseThrow(() -> new IllegalArgumentException("Expert non trouvé"));
+
+        // Récupérer uniquement les PLANNED qui n'ont pas encore de rapport
+        List<ExpertiseRequest> plannedRequests = expertiseRequestRepository
+                .findByExpertAndStatus(expert, ExpertiseStatus.PLANNED);
+
+        return plannedRequests.stream()
+                .filter(req -> {
+                    Optional<ExpertiseReport> report = expertiseReportRepository
+                            .findByExpertiseRequestId(req.getId());
+                    return report.isEmpty(); // Pas encore de rapport
+                })
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
 }

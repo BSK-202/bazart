@@ -75,6 +75,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/clients/images/**").permitAll()
                         .requestMatchers("/api/experts/*/upload-signatures").permitAll()
                         .requestMatchers("/api/experts/**").permitAll()
+                        .requestMatchers("/api/expertise/**").permitAll()
 
                         .requestMatchers("/api/experts").permitAll()
                         .requestMatchers("/api/produits/*/start-auction").permitAll()

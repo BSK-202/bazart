@@ -22,6 +22,8 @@ public interface ExpertiseService {
     public ExpertiseRequestDTO getRequestDetailById(Long requestId);
 
     ExpertiseRequestDTO reopenAfterSellerInfo(Long requestId);
+    List<ExpertiseRequestDTO> getExpertisedProductsForExpert(Long clientId);
+    public List<ExpertiseRequestDTO> getInProgressExpertisesForExpert(Long clientId) ;
 
     public void retryBlockedRequests();
     public List<ExpertiseRequestDTO> getAssignedRequestsForExpert(Long clientId);
