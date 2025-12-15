@@ -24,7 +24,6 @@ public interface ExpertiseRequestRepository extends JpaRepository<ExpertiseReque
     // --- ADD THIS FOR THE 3-DAY REPORT DEADLINE EXPIRATION ---
     List<ExpertiseRequest> findByStatusAndReportSubmissionDeadlineBefore(ExpertiseStatus status, LocalDateTime now);
     List<ExpertiseRequest> findByStatusIn(List<ExpertiseStatus> statuses);
-    List<ExpertiseRequest> findByExpert(Expert expert);
 
     // Ou plus spécifiquement pour les expertises terminées avec rapport
     @Query("SELECT er FROM ExpertiseRequest er WHERE er.expert = :expert " +
@@ -33,4 +32,11 @@ public interface ExpertiseRequestRepository extends JpaRepository<ExpertiseReque
     List<ExpertiseRequest> findCompletedExpertisesByExpert(
             @Param("expert") Expert expert,
             @Param("status") ExpertiseStatus status);
+    // Ajoutez aussi cette méthode pour les demandes générales
+    @Query("SELECT DISTINCT er FROM ExpertiseRequest er " +
+            "LEFT JOIN FETCH er.slots " +
+            "LEFT JOIN FETCH er.produit p " +
+            "LEFT JOIN FETCH p.images " +
+            "WHERE er.expert = :expert")
+    List<ExpertiseRequest> findByExpert(@Param("expert") Expert expert);
 }

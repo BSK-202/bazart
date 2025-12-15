@@ -3,6 +3,7 @@ package com.marketplace.expertise.service;
 import com.marketplace.expertise.dto.ExpertiseRequestDTO;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ExpertiseService {
 
@@ -20,6 +21,7 @@ public interface ExpertiseService {
     boolean canSubmitReport(Long requestId);  // Ajoutez cette ligne
 
     public ExpertiseRequestDTO getRequestDetailById(Long requestId);
+    public Map<String, List<ExpertiseRequestDTO>> getAllClassifiedForExpert(Long clientId) ;
 
     ExpertiseRequestDTO reopenAfterSellerInfo(Long requestId);
     List<ExpertiseRequestDTO> getExpertisedProductsForExpert(Long clientId);

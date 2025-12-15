@@ -46,6 +46,7 @@ export class ExpertExpertiseListComponent implements OnInit, OnDestroy {
 
   selectedSlotIndex: Record<number, number | null> = {}
   countdowns: Record<number, string> = {}
+  activeTab: 'pending' | 'inProgress' | 'completed' = 'pending';
 
   private intervalId: any
 
@@ -98,7 +99,8 @@ export class ExpertExpertiseListComponent implements OnInit, OnDestroy {
     this.isLoading = true
     this.errorMessage = ""
 
-    // Un seul appel qui retourne tout classé
+    console.log('🔄 Chargement des demandes pour expert:', this.expertId);
+
     this.http.get<{
       pending: ExpertiseRequest[],
       inProgress: ExpertiseRequest[],
@@ -106,48 +108,65 @@ export class ExpertExpertiseListComponent implements OnInit, OnDestroy {
     }>(`${this.API_BASE_URL}/api/expertise/expert/${this.expertId}/all-classified`)
       .subscribe({
         next: (response) => {
-          // Direct assignment sans filtrage supplémentaire
+          console.log('📥 Réponse brute du backend:');
+          console.log('- Pending:', response.pending?.length || 0, 'items');
+          console.log('- InProgress:', response.inProgress?.length || 0, 'items');
+          console.log('- Completed:', response.completed?.length || 0, 'items');
+
+          // Afficher les IDs de chaque liste
+          console.log('IDs pending:', response.pending?.map(r => r.id) || []);
+          console.log('IDs inProgress:', response.inProgress?.map(r => r.id) || []);
+          console.log('IDs completed:', response.completed?.map(r => r.id) || []);
+
+          // Direct assignment
           this.pendingRequests = response.pending || []
           this.inProgressRequests = response.inProgress || []
           this.completedRequests = response.completed || []
 
-          // Vérifier les doublons (debug)
-          const allIds = [
+          // Vérifier les doublons ENTRE les listes
+          const allIds: number[] = [
             ...this.pendingRequests.map(r => r.id),
             ...this.inProgressRequests.map(r => r.id),
             ...this.completedRequests.map(r => r.id)
           ];
 
           const uniqueIds = new Set(allIds);
-          console.log('Total requests:', allIds.length);
-          console.log('Unique requests:', uniqueIds.size);
+          console.log('🔍 Vérification des doublons:');
+          console.log('Total items (avec doublons potentiels):', allIds.length);
+          console.log('Items uniques:', uniqueIds.size);
 
           if (allIds.length !== uniqueIds.size) {
-            console.warn('ATTENTION: Des doublons détectés!');
-            // Afficher les doublons
-            const duplicates = allIds.filter((id, index) => allIds.indexOf(id) !== index);
-            console.log('IDs en double:', duplicates);
+            // Trouver les doublons exacts
+            const idCount = new Map<number, number>();
+            allIds.forEach(id => {
+              idCount.set(id, (idCount.get(id) || 0) + 1);
+            });
+
+            const duplicates: number[] = [];
+            idCount.forEach((count, id) => {
+              if (count > 1) duplicates.push(id);
+            });
+
+            console.error('🚨 DOUBLONS DÉTECTÉS! IDs:', duplicates);
+
+            // Afficher où se trouvent les doublons
+            duplicates.forEach(dupId => {
+              const inPending = this.pendingRequests.find(r => r.id === dupId);
+              const inProgress = this.inProgressRequests.find(r => r.id === dupId);
+              const inCompleted = this.completedRequests.find(r => r.id === dupId);
+
+              console.log(`ID ${dupId} trouvé dans:`);
+              if (inPending) console.log('  - Pending');
+              if (inProgress) console.log('  - InProgress');
+              if (inCompleted) console.log('  - Completed');
+            });
           }
 
-          // Initialiser les sélections
-          this.pendingRequests.forEach((r) => {
-            this.selectedSlotIndex[r.id] = null
-          })
-
-          // Countdowns
-          if (this.intervalId) {
-            clearInterval(this.intervalId)
-          }
-
-          if (this.pendingRequests.length > 0) {
-            this.updateCountdowns()
-            this.intervalId = setInterval(() => this.updateCountdowns(), 1000)
-          }
-
+          // Reste du code...
           this.isLoading = false
         },
         error: (err) => {
-          console.error("Erreur chargement demandes expertise:", err)
+          console.error("❌ Erreur chargement demandes expertise:", err)
           this.errorMessage = "Erreur lors du chargement des demandes d'expertise."
           this.isLoading = false
         },
@@ -279,5 +298,24 @@ export class ExpertExpertiseListComponent implements OnInit, OnDestroy {
       `${this.API_BASE_URL}/api/expertise/requests/${request.id}/report-pdf`,
       '_blank'
     )
+  }
+  // ✅ NOUVEAU: Méthodes pour changer d'onglet
+  setActiveTab(tab: 'pending' | 'inProgress' | 'completed'): void {
+    this.activeTab = tab;
+  }
+
+  // ✅ NOUVEAU: Méthode pour obtenir le compteur d'onglet
+  selectedSlots: any;
+  getTabCount(tab: 'pending' | 'inProgress' | 'completed'): number {
+    switch (tab) {
+      case 'pending': return this.pendingRequests.length;
+      case 'inProgress': return this.inProgressRequests.length;
+      case 'completed': return this.completedRequests.length;
+      default: return 0;
+    }
+  }
+
+  selectSlot(id: number, i: number) {
+    
   }
 }

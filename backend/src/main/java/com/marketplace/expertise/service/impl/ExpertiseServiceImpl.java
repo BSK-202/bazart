@@ -1129,5 +1129,117 @@ public class ExpertiseServiceImpl implements ExpertiseService {
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
+    // Dans ExpertiseServiceImpl.java
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, List<ExpertiseRequestDTO>> getAllClassifiedForExpert(Long clientId) {
+        Expert expert = expertRepository.findByClientId(clientId)
+                .orElseThrow(() -> new IllegalArgumentException("Expert non trouvé"));
 
+        // Log pour voir combien de demandes sont récupérées
+        System.out.println("=== DÉBUT CLASSIFICATION POUR EXPERT " + clientId + " ===");
+
+        // Récupérer toutes les demandes de cet expert en une seule requête
+        List<ExpertiseRequest> allRequests = expertiseRequestRepository.findByExpert(expert);
+        System.out.println("Total des demandes récupérées: " + allRequests.size());
+
+        // Afficher chaque demande avec son statut
+        for (ExpertiseRequest req : allRequests) {
+            System.out.println("ID: " + req.getId() +
+                    " | Statut: " + req.getStatus() +
+                    " | Produit: " + req.getProduit().getNom());
+        }
+
+        Map<String, List<ExpertiseRequestDTO>> result = new HashMap<>();
+
+        // Filtrage logique pour éviter les doublons
+        List<ExpertiseRequestDTO> pending = new ArrayList<>();
+        List<ExpertiseRequestDTO> inProgress = new ArrayList<>();
+        List<ExpertiseRequestDTO> completed = new ArrayList<>();
+
+        for (ExpertiseRequest req : allRequests) {
+            ExpertiseRequestDTO dto = toDto(req);
+
+            // Vérifier la présence d'un rapport
+            Optional<ExpertiseReport> report = expertiseReportRepository
+                    .findByExpertiseRequestId(req.getId());
+
+            boolean hasReport = report.isPresent();
+            System.out.println("Traitement demande ID " + req.getId() +
+                    " | Statut: " + req.getStatus() +
+                    " | Rapport: " + hasReport);
+
+            // Logique de classification UNIQUE
+            if (req.getStatus() == ExpertiseStatus.PENDING_EXPERT_DECISION) {
+                // Seulement les vraies demandes en attente d'acceptation
+                pending.add(dto);
+                System.out.println("  -> Ajouté à PENDING");
+            }
+            else if (req.getStatus() == ExpertiseStatus.PLANNED) {
+                if (hasReport) {
+                    // DEBUG: Ce cas ne devrait pas arriver normalement
+                    System.out.println("  ATTENTION: Statut PLANNED mais rapport existant!");
+                    // Dans ce cas, on pourrait choisir de le mettre en completed
+                    // ou le laisser en inProgress selon votre logique métier
+                    if (req.getStatus() == ExpertiseStatus.PLANNED) {
+                        inProgress.add(dto);
+                        System.out.println("  -> Ajouté à IN_PROGRESS (transition)");
+                    }
+                } else {
+                    // Pas de rapport = en cours
+                    inProgress.add(dto);
+                    System.out.println("  -> Ajouté à IN_PROGRESS");
+                }
+            }
+            else if (req.getStatus() == ExpertiseStatus.EXPERTISED) {
+                if (hasReport) {
+                    completed.add(dto);
+                    System.out.println("  -> Ajouté à COMPLETED");
+                } else {
+                    // État incohérent
+                    System.err.println("État incohérent pour la demande " + req.getId() +
+                            ": statut " + req.getStatus() + " mais pas de rapport");
+                    // Ne pas ajouter à une liste pour éviter les doublons
+                }
+            }
+            // Ignorer les autres statuts
+        }
+
+        result.put("pending", pending);
+        result.put("inProgress", inProgress);
+        result.put("completed", completed);
+
+        // Log pour debug
+        System.out.println("=== RÉSULTATS CLASSIFICATION ===");
+        System.out.println("- En attente: " + pending.size());
+        System.out.println("- En cours: " + inProgress.size());
+        System.out.println("- Terminées: " + completed.size());
+
+        // Vérifier les doublons entre les listes
+        Set<Long> allIds = new HashSet<>();
+        List<Long> duplicateIds = new ArrayList<>();
+
+        checkDuplicates(pending, "pending", allIds, duplicateIds);
+        checkDuplicates(inProgress, "inProgress", allIds, duplicateIds);
+        checkDuplicates(completed, "completed", allIds, duplicateIds);
+
+        if (!duplicateIds.isEmpty()) {
+            System.err.println("DOUBLONS DÉTECTÉS: " + duplicateIds);
+        }
+
+        System.out.println("=== FIN CLASSIFICATION ===");
+
+        return result;
+    }
+
+    // Méthode utilitaire pour vérifier les doublons
+    private void checkDuplicates(List<ExpertiseRequestDTO> list, String listName,
+                                 Set<Long> allIds, List<Long> duplicateIds) {
+        for (ExpertiseRequestDTO dto : list) {
+            if (allIds.contains(dto.getId())) {
+                duplicateIds.add(dto.getId());
+            }
+            allIds.add(dto.getId());
+        }
+    }
 }

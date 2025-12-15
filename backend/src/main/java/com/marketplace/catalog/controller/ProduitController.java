@@ -161,7 +161,7 @@ public class ProduitController {
             if (produitRequest.getVendeurId() == null)
                 throw new IllegalArgumentException("L'ID du vendeur est requis.");
             if (images == null || images.isEmpty())
-                throw new IllegalArgumentException("Aucune image n’a été fournie.");
+                throw new IllegalArgumentException("Aucune image n'a été fournie.");
 
             // --- Vérification catégorie ---
             Categorie categorie = categorieService.getCategorieById(produitRequest.getCategorieId())
@@ -184,8 +184,7 @@ public class ProduitController {
             produit.setVendeur(vendeur);
 
             // 🆕 Méthode d'expertise
-            if (produitRequest.isAExpertise() && produitRequest.getExpertiseMethod() != null)
-            {
+            if (produitRequest.isAExpertise() && produitRequest.getExpertiseMethod() != null) {
                 try {
                     produit.setExpertiseMethod(
                             ExpertiseMethod.valueOf(produitRequest.getExpertiseMethod().toUpperCase())
@@ -211,8 +210,6 @@ public class ProduitController {
 
             // ✅ Vérif/débit du wallet si expertise demandée
             if (produitRequest.isAExpertise()) {
-                double ONLINE_PRICE = 50.0;
-                double ONSITE_PRICE = 100.0;
                 double price = (produitRequest.getExpertiseMethod() != null
                         && produitRequest.getExpertiseMethod().equalsIgnoreCase("ONSITE"))
                         ? ONSITE_PRICE
@@ -231,33 +228,51 @@ public class ProduitController {
                 }
             }
 
-            Produit savedProduit = produitService.saveProduit(produit);
+            // CORRECTION IMPORTANTE : Supprimer la sauvegarde prématurée
+            // Produit savedProduit = produitService.saveProduit(produit); // ENLEVER CETTE LIGNE
+            // Long produitId = savedProduit.getIdproduit(); // ENLEVER CETTE LIGNE
+
+            // --- Création dossier d'upload ---
+            // On va d'abord créer la liste d'images sans sauvegarder le produit
+            List<ProduitImage> produitImages = new ArrayList<>();
+
+            // Pour le moment, on ne sauvegarde pas encore le produit
+            // On va d'abord préparer toutes les images
+
+            // CORRECTION : Sauvegarder le produit UNE SEULE FOIS après avoir tout préparé
+            // Mais on a besoin de l'ID pour créer le dossier...
+
+            // Solution alternative : sauvegarder d'abord le produit (une seule fois)
+            // pour obtenir l'ID, puis ajouter les images
+            Produit savedProduit = produitService.saveProduit(produit); // SAUVEGARDE UNIQUE
             Long produitId = savedProduit.getIdproduit();
             System.out.println("🎉 Produit créé avec ID: " + produitId);
 
-            // --- Création dossier d’upload ---
+            // --- Création dossier d'upload ---
             Path produitFolderPath = Paths.get(UPLOAD_DIR + produitId);
             Files.createDirectories(produitFolderPath);
 
-            List<ProduitImage> produitImages = new ArrayList<>();
             int imageIndex = 1;
             for (MultipartFile file : images) {
                 String fileExtension = getFileExtension(file.getOriginalFilename());
                 String fileName = "image_" + imageIndex + fileExtension;
                 Path imagePath = produitFolderPath.resolve(fileName);
-                savedProduit.setImages(produitImages);
-                Produit finalProduit = produitService.saveProduit(savedProduit);
 
+                // Écrire l'image sur le disque
                 Files.write(imagePath, file.getBytes());
+
+                // Créer l'objet ProduitImage
                 ProduitImage produitImage = new ProduitImage();
                 produitImage.setUrl(fileName);
                 produitImage.setProduit(savedProduit);
                 produitImages.add(produitImage);
+
                 imageIndex++;
             }
 
+            // CORRECTION : Assigner la liste d'images au produit et sauvegarder UNE FOIS
             savedProduit.setImages(produitImages);
-            Produit finalProduit = produitService.saveProduit(savedProduit);
+            Produit finalProduit = produitService.saveProduit(savedProduit); // SAUVEGARDE FINALE
 
             System.out.println("✅ Produit final créé avec " + produitImages.size() + " images.");
 
@@ -280,7 +295,6 @@ public class ProduitController {
 
             Map<String, Object> adminNotifData = new HashMap<>();
             adminNotifData.put("productName", finalProduit.getNom());
-            // CORRECTION ICI : Utiliser "message" au lieu de "adminMessage"
             adminNotifData.put("message", "Un nouveau produit est en attente de validation.");
             adminNotifData.put("vendeurName", vendeur.getPrenom() + " " + vendeur.getNom());
 
@@ -288,7 +302,7 @@ public class ProduitController {
                 notificationService.processEvent(
                         NotificationType.ADMIN_ALERT,
                         adminIds,
-                        adminNotifData  // Envoi des données
+                        adminNotifData
                 );
             }
 
@@ -300,7 +314,6 @@ public class ProduitController {
             return ResponseEntity.status(500).body("Erreur: " + e.getMessage());
         }
     }
-
     private String getFileExtension(String fileName) {
         if (fileName == null || fileName.lastIndexOf(".") == -1) {
             return ".jpg";
@@ -550,10 +563,7 @@ public class ProduitController {
 
             } else {
                 // === LOGIQUE EXISTANTE POUR LES AUTRES ÉTATS ===
-                if ("accepte".equalsIgnoreCase(newState) && produit.isAExpertise()) {
-                    produit = produitService.saveProduit(produit);
-                    expertiseService.createRequestAfterProductAccepted(produit.getIdproduit());
-                }
+
 
                 // === NOTIFICATION LOGIC STARTS HERE ===
                 Map<String, Object> notifData = new HashMap<>();

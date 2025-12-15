@@ -89,19 +89,20 @@ public class ExpertiseController {
                 expertiseService.getInProgressExpertisesForExpert(expertId)
         );
     }
+    // Dans ExpertiseController.java
     @GetMapping("/expert/{expertId}/all-classified")
     public ResponseEntity<Map<String, List<ExpertiseRequestDTO>>> getAllClassifiedForExpert(
             @PathVariable Long expertId) {
 
         Map<String, List<ExpertiseRequestDTO>> result = new HashMap<>();
 
-        // Pending
+        // Pending = uniquement PENDING_EXPERT_DECISION
         result.put("pending", expertiseService.getPendingRequestsForExpert(expertId));
 
-        // In Progress (PLANNED)
+        // In Progress = PLANNED sans rapport
         result.put("inProgress", expertiseService.getInProgressExpertisesForExpert(expertId));
 
-        // Completed
+        // Completed = EXPERTISED avec rapport
         result.put("completed", expertiseService.getExpertisedProductsForExpert(expertId));
 
         return ResponseEntity.ok(result);
