@@ -47,8 +47,8 @@
         <!-- Title Block -->
         <div class="title-block">
           <div class="title-content">
-            <p class="eyebrow" *ngIf="expertise?.method === 'ONSITE'">📍 Expertise sur place</p>
-            <p class="eyebrow" *ngIf="expertise?.method === 'ONLINE'">💻 Expertise en ligne</p>
+            <p class="eyebrow" *ngIf="expertise?.method === 'ONSITE'"> Expertise sur place</p>
+            <p class="eyebrow" *ngIf="expertise?.method === 'ONLINE'"> Expertise en ligne</p>
 
             <h1 class="product-title">{{ produit.nom }}</h1>
 
@@ -96,7 +96,7 @@
 
         <!-- Compensation Card -->
         <div class="info-card compensation-card" *ngIf="expertise?.expertShare">
-          <p class="compensation-label">💰 Votre rémunération</p>
+          <p class="compensation-label"> Votre rémunération</p>
           <p class="compensation-value">
             {{ expertise?.expertShare | number:'1.0-2' }}
             <span class="currency">DH</span>
@@ -106,7 +106,7 @@
         <!-- EXPIRED MESSAGE (Expert Response) -->
         <div *ngIf="shouldShowExpiredMessage()" class="info-card expired-card">
           <div class="message-content">
-            <span class="message-icon">⏰</span>
+            <span class="message-icon"></span>
             <div>
               <p class="message-title">DÉLAI DÉPASSÉ</p>
               <p class="message-text">
@@ -203,7 +203,7 @@
           </div>
         </div>
 
-        <!-- REPORT FORM -->
+        <!-- ========== FORMULAIRE DE RAPPORT AMÉLIORÉ ========== -->
         <form
           *ngIf="shouldShowReportForm()"
           class="info-card report-form"
@@ -227,65 +227,318 @@
             </div>
           </div>
 
-          <div class="form-grid">
-            <label class="form-field">
-              <span class="field-label">État du produit *</span>
-              <select [(ngModel)]="reportForm.productCondition" name="productCondition" required class="field-input">
-                <option [ngValue]="''">Sélectionnez...</option>
-                <option *ngFor="let cond of productConditions" [value]="cond">{{ cond }}</option>
-              </select>
-            </label>
+          <!-- INFORMATIONS GÉNÉRALES (Lecture seule) -->
+          <div class="form-section info-section">
+            <h4 class="section-title"> Informations Générales</h4>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Produit</span>
+                <span class="info-value">{{ produit.nom }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Catégorie</span>
+                <span class="info-value">{{ produit.categorieNom || 'Non spécifiée' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Vendeur</span>
+                <span class="info-value">{{ vendeur?.prenom }} {{ vendeur?.nom }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Type d'expertise</span>
+                <span class="info-value">{{ expertise?.method === 'ONLINE' ? 'En ligne' : 'Sur place' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Date d'expertise</span>
+                <span class="info-value">{{ expertise?.confirmedDateTime | date:'dd/MM/yyyy à HH:mm' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation entre sections -->
+          <div class="form-navigation">
+            <button
+              type="button"
+              class="nav-btn"
+              [class.active]="currentSection === 'authenticity'"
+              (click)="goToSection('authenticity')"
+            >
+               Authenticité
+            </button>
+            <button
+              type="button"
+              class="nav-btn"
+              [class.active]="currentSection === 'condition'"
+              (click)="goToSection('condition')"
+            >
+               État
+            </button>
+            <button
+              type="button"
+              class="nav-btn"
+              [class.active]="currentSection === 'description'"
+              (click)="goToSection('description')"
+            >
+               Description
+            </button>
+            <button
+              type="button"
+              class="nav-btn"
+              [class.active]="currentSection === 'estimation'"
+              (click)="goToSection('estimation')"
+            >
+               Estimation
+            </button>
+            <button
+              type="button"
+              class="nav-btn"
+              [class.active]="currentSection === 'recommendations'"
+              (click)="goToSection('recommendations')"
+            >
+               Décision
+            </button>
+          </div>
+
+          <!-- SECTION 1: AUTHENTICITÉ -->
+          <div class="form-section" *ngIf="currentSection === 'authenticity'">
+            <h4 class="section-title"> Authenticité du Produit</h4>
 
             <label class="form-field">
-              <span class="field-label">Authenticité *</span>
+              <span class="field-label">Niveau d'authenticité *</span>
               <select [(ngModel)]="reportForm.authenticityLevel" name="authenticityLevel" required class="field-input">
                 <option [ngValue]="''">Sélectionnez...</option>
-                <option *ngFor="let auth of authenticityLevels" [value]="auth">{{ auth }}</option>
+                <option *ngFor="let auth of authenticityLevels" [value]="auth">
+                  {{ getAuthenticityLabel(auth) }}
+                </option>
               </select>
             </label>
 
             <label class="form-field">
-              <span class="field-label">Prix min estimé</span>
-              <input type="number" min="0" [(ngModel)]="reportForm.estimatedMinPrice" name="estimatedMinPrice" class="field-input" />
+              <span class="field-label">Niveau de confiance (0-100%)</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                [(ngModel)]="reportForm.authenticityConfidence"
+                name="authenticityConfidence"
+                class="field-input"
+                placeholder="Ex: 95"
+              />
+              <small class="field-hint">Votre degré de certitude concernant l'authenticité</small>
+            </label>
+
+            <label class="form-field full-width">
+              <span class="field-label">Éléments de preuve d'authenticité</span>
+              <textarea
+                rows="4"
+                [(ngModel)]="reportForm.authenticityProof"
+                name="authenticityProof"
+                class="field-input"
+                placeholder="Ex: Numéro de série vérifié, hologrammes présents, matériaux authentiques, certificat d'origine, etc."
+              ></textarea>
+              <small class="field-hint">Décrivez les éléments qui prouvent l'authenticité (ou son absence)</small>
+            </label>
+          </div>
+
+          <!-- SECTION 2: ÉTAT DU PRODUIT -->
+          <div class="form-section" *ngIf="currentSection === 'condition'">
+            <h4 class="section-title"> État du Produit</h4>
+
+            <div class="form-grid">
+              <label class="form-field">
+                <span class="field-label">État général *</span>
+                <select [(ngModel)]="reportForm.productCondition" name="productCondition" required class="field-input">
+                  <option [ngValue]="''">Sélectionnez...</option>
+                  <option *ngFor="let cond of productConditions" [value]="cond">
+                    {{ getConditionLabel(cond) }}
+                  </option>
+                </select>
+              </label>
+
+              <label class="form-field">
+                <span class="field-label">Note globale (/10)</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  [(ngModel)]="reportForm.conditionScore"
+                  name="conditionScore"
+                  class="field-input"
+                  placeholder="Ex: 8"
+                />
+              </label>
+            </div>
+
+            <label class="form-field full-width">
+              <span class="field-label">Aspect visuel</span>
+              <textarea
+                rows="3"
+                [(ngModel)]="reportForm.visualCondition"
+                name="visualCondition"
+                class="field-input"
+                placeholder="Décrivez l'aspect visuel: rayures, bosses, usure, décolorations, propreté, etc."
+              ></textarea>
+              <small class="field-hint">État extérieur et esthétique du produit</small>
+            </label>
+
+            <label class="form-field full-width">
+              <span class="field-label">Aspect fonctionnel</span>
+              <textarea
+                rows="3"
+                [(ngModel)]="reportForm.functionalCondition"
+                name="functionalCondition"
+                class="field-input"
+                placeholder="Décrivez les fonctionnalités: tests effectués, performances, dysfonctionnements, accessoires, etc."
+              ></textarea>
+              <small class="field-hint">Fonctionnement et performance du produit</small>
             </label>
 
             <label class="form-field">
-              <span class="field-label">Prix max estimé</span>
-              <input type="number" min="0" [(ngModel)]="reportForm.estimatedMaxPrice" name="estimatedMaxPrice" class="field-input" />
+              <span class="field-label">Correspond à la description du vendeur ?</span>
+              <select [(ngModel)]="reportForm.conformityDescription" name="conformityDescription" class="field-input">
+                <option [ngValue]="null">Sélectionnez...</option>
+                <option [ngValue]="true">Oui, conforme</option>
+                <option [ngValue]="false">Non, écarts constatés</option>
+              </select>
+            </label>
+          </div>
+
+          <!-- SECTION 3: DESCRIPTION DÉTAILLÉE -->
+          <div class="form-section" *ngIf="currentSection === 'description'">
+            <h4 class="section-title"> Description Détaillée</h4>
+
+            <label class="form-field full-width">
+              <span class="field-label">Description complète de l'expertise</span>
+              <textarea
+                rows="5"
+                [(ngModel)]="reportForm.detailedDescription"
+                name="detailedDescription"
+                class="field-input"
+                placeholder="Décrivez en détail votre analyse complète du produit..."
+              ></textarea>
+              <small class="field-hint">Synthèse générale de votre expertise</small>
             </label>
 
-            <label class="form-field">
-              <span class="field-label">Prix de départ recommandé</span>
-              <input type="number" min="0" [(ngModel)]="reportForm.recommendedStartPrice" name="recommendedStartPrice" class="field-input" />
+
+
+
+
+            <label class="form-field full-width">
+              <span class="field-label">Tests effectués</span>
+              <textarea
+                rows="3"
+                [(ngModel)]="reportForm.testsPerformed"
+                name="testsPerformed"
+                class="field-input"
+                placeholder="Listez les tests réalisés: allumage, charge, connectivité, etc."
+              ></textarea>
             </label>
+          </div>
+
+          <!-- SECTION 4: ESTIMATION DE VALEUR -->
+          <div class="form-section" *ngIf="currentSection === 'estimation'">
+            <h4 class="section-title"> Estimation de Valeur</h4>
+
+            <div class="form-grid">
+
+              <label class="form-field">
+                <span class="field-label">Prix de départ recommandé (DH)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [(ngModel)]="reportForm.recommendedStartPrice"
+                  name="recommendedStartPrice"
+                  class="field-input"
+                  placeholder="Ex: 600"
+                />
+              </label>
+            </div>
+
+            <label class="form-field full-width">
+              <span class="field-label">Justification de l'estimation</span>
+              <textarea
+                rows="4"
+                [(ngModel)]="reportForm.priceJustification"
+                name="priceJustification"
+                class="field-input"
+                placeholder="Expliquez comment vous êtes arrivé à cette estimation: état du marché, rareté, état constaté, demande actuelle, etc."
+              ></textarea>
+              <small class="field-hint">Justifiez votre estimation de prix</small>
+            </label>
+          </div>
+
+          <!-- SECTION 5: RECOMMANDATIONS -->
+          <div class="form-section" *ngIf="currentSection === 'recommendations'">
+            <h4 class="section-title"> Décision Finale</h4>
 
             <label class="form-field">
               <span class="field-label">Recommandation *</span>
               <select [(ngModel)]="reportForm.recommendation" name="recommendation" required class="field-input">
                 <option [ngValue]="''">Sélectionnez...</option>
-                <option *ngFor="let rec of recommendations" [value]="rec">{{ rec }}</option>
+                <option *ngFor="let rec of recommendations" [value]="rec">
+                  {{ getRecommendationLabel(rec) }}
+                </option>
               </select>
             </label>
+
+            <label class="form-field full-width">
+              <span class="field-label">Recommandations pour la vente</span>
+              <textarea
+                rows="3"
+                [(ngModel)]="reportForm.saleRecommendations"
+                name="saleRecommendations"
+                class="field-input"
+                placeholder="Conseils pour optimiser la vente: modifications de description, prix suggéré, points à mentionner..."
+              ></textarea>
+            </label>
+
+            <label class="form-field full-width">
+              <span class="field-label">Points de vigilance pour l'acheteur</span>
+              <textarea
+                rows="3"
+                [(ngModel)]="reportForm.buyerWarnings"
+                name="buyerWarnings"
+                class="field-input"
+                placeholder="Points importants que l'acheteur doit connaître avant l'achat..."
+              ></textarea>
+            </label>
+
+
+
+
+
+
           </div>
 
-          <label class="form-field full-width">
-            <span class="field-label">Commentaire public</span>
-            <textarea rows="3" [(ngModel)]="reportForm.commentsPublic" name="commentsPublic" class="field-input"></textarea>
-          </label>
-
-          <label class="form-field full-width">
-            <span class="field-label">Commentaire interne (non visible vendeur)</span>
-            <textarea rows="3" [(ngModel)]="reportForm.commentsInternal" name="commentsInternal" class="field-input"></textarea>
-          </label>
-
-          <label class="form-field full-width">
-            <span class="field-label">Document supplémentaire (PDF, image)</span>
-            <input type="file" (change)="onFileSelected($event)" accept=".pdf,.jpg,.jpeg,.png" class="field-input file-input" />
-          </label>
-
           <div class="form-actions">
-            <button type="submit" class="btn btn-submit">
-              Envoyer le rapport d'expertise
+            <button
+              type="button"
+              class="btn btn-secondary"
+              *ngIf="currentSection !== 'authenticity'"
+              (click)="goToSection(currentSection === 'condition' ? 'authenticity' :
+                                    currentSection === 'description' ? 'condition' :
+                                    currentSection === 'estimation' ? 'description' : 'estimation')"
+            >
+              ← Précédent
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-primary"
+              *ngIf="currentSection !== 'recommendations'"
+              (click)="goToSection(currentSection === 'authenticity' ? 'condition' :
+                                    currentSection === 'condition' ? 'description' :
+                                    currentSection === 'description' ? 'estimation' : 'recommendations')"
+            >
+              Suivant →
+            </button>
+
+            <button
+              type="submit"
+              class="btn btn-submit"
+              *ngIf="currentSection === 'recommendations'"
+            >
+              📤 Envoyer le rapport
             </button>
           </div>
         </form>
