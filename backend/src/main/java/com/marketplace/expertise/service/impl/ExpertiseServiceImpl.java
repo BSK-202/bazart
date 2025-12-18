@@ -83,7 +83,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         Client vendeur = produit.getVendeur();
 
         // Deadline pour accepter/refuser la demande
-        request.setExpertResponseDeadline(LocalDateTime.now().plusMinutes(EXPERT_ACTION_RESPONSE_HOURS));
+        request.setExpertResponseDeadline(LocalDateTime.now().plusDays(EXPERT_ACTION_RESPONSE_HOURS));
 
         // Location précisée si sur place
         if (request.getMethod() == ExpertiseMethod.ONSITE) {
@@ -532,7 +532,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         } else {
             // Online : deadline rapport à partir de l'acceptation
             request.setConfirmedDateTime(null);
-            request.setReportSubmissionDeadline(LocalDateTime.now().plusMinutes(REPORT_SUBMISSION_DAYS));
+            request.setReportSubmissionDeadline(LocalDateTime.now().plusDays(REPORT_SUBMISSION_DAYS));
         }
 
         request.setStatus(ExpertiseStatus.PLANNED);

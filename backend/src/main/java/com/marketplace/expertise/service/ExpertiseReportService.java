@@ -9,15 +9,29 @@ public interface ExpertiseReportService {
     ExpertiseReport createReportAndGeneratePDF(
             Long expertiseRequestId,
             Long expertId,
-            String productCondition,
+            // AUTHENTICITÉ
             String authenticityLevel,
-            Double estimatedMinPrice,
-            Double estimatedMaxPrice,
+            Integer authenticityConfidence,
+            String authenticityProof,
+            // ÉTAT DU PRODUIT
+            String productCondition,
+            Integer conditionScore,
+            String visualCondition,
+            String functionalCondition,
+            Boolean conformityDescription,
+            // DESCRIPTION DÉTAILLÉE
+            String detailedDescription,
+            String testsPerformed,
+            // ESTIMATION
             Double recommendedStartPrice,
+            String priceJustification,
+            // RECOMMANDATIONS
             String recommendation,
-            String commentsPublic,
-            String commentsInternal,
+            String saleRecommendations,
+            String buyerWarnings,
+            // DOCUMENT
             MultipartFile uploadedDocument
     );
+
     Optional<ExpertiseReport> findByExpertiseRequestId(Long requestId);
 }
