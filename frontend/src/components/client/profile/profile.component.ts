@@ -61,7 +61,7 @@ interface Categorie {
   imports: [CommonModule, FormsModule],
   standalone: true,
 })
-class UserProfileComponent implements OnInit {
+export default class UserProfileComponent implements OnInit {
   activeTab: string = 'bids';
   user: User | null = null;
   userProfileImage: string = '';
@@ -393,60 +393,59 @@ class UserProfileComponent implements OnInit {
     });
   }
 
-  private loadUserProducts(userId: number) {
-    const url = `${this.API_BASE_URL}/api/produits/vendeur/${userId}`;
+  private loadUserProducts(userId: number): Promise<void> {
+    return new Promise((resolve) => {
+      const url = `${this.API_BASE_URL}/api/produits/vendeur/${userId}`;
 
-    console.log('🔄 Chargement des produits du vendeur:', url);
+      console.log('🔄 Chargement des produits du vendeur:', url);
 
-    this.http.get<Produit[]>(url).subscribe({
-      next: (produits) => {
-        console.log('✅ Produits du vendeur reçus:', produits);
+      this.http.get<Produit[]>(url).subscribe({
+        next: (produits) => {
+          console.log('✅ Produits du vendeur reçus:', produits);
 
-        // ✅ CORRECTION : Charger tous les compteurs de likes en une seule fois
-        this.loadAllLikesForVendeur(userId).then(likesMap => {
-          // Associer les compteurs de likes aux produits
-          const produitsAvecLikes = produits.map(produit => {
-            const likeCount = likesMap.get(produit.id) || 0;
-            return {
-              ...produit,
-              nombreInteractions: likeCount
-            };
-          });
+          this.loadAllLikesForVendeur(userId).then(likesMap => {
+            const produitsAvecLikes = produits.map(produit => {
+              const likeCount = likesMap.get(produit.id) || 0;
+              return {
+                ...produit,
+                nombreInteractions: likeCount
+              };
+            });
 
-          // Maintenant filtrer les produits avec les compteurs de likes
-          this.produitsEncheres = produitsAvecLikes
-            .filter(p => p.etat === 'en enchére' || p.etat === 'en_enchere' || p.etat === 'relance')
-            .map(p => this.ajouterImagePrincipale(p));
+            this.produitsEncheres = produitsAvecLikes
+              .filter(p => p.etat === 'en enchére' || p.etat === 'en_enchere' || p.etat === 'relance')
+              .map(p => this.ajouterImagePrincipale(p));
 
-          this.produitsVendus = produitsAvecLikes
-            .filter(p => p.etat === 'vendu' || p.etat === 'enchere_termine' || p.etat === 'vendeur_accepte_vente')
-            .map(p => this.ajouterImagePrincipale(p));
+            this.produitsVendus = produitsAvecLikes
+              .filter(p => p.etat === 'vendu' || p.etat === 'enchere_termine' || p.etat === 'vendeur_accepte_vente')
+              .map(p => this.ajouterImagePrincipale(p));
 
-        this.produitsPublies = produitsAvecLikes
-          .filter((p) => ["accepter", "accepte", "expertise_validee", "transaction_annulee","enchere_termine_sans_gagnant","vendeur_refuse_vente"].includes(p.etat))
-          .map((p) => this.ajouterImagePrincipale(p))
+            this.produitsPublies = produitsAvecLikes
+              .filter((p) => ["accepter", "accepte", "expertise_validee", "transaction_annulee","enchere_termine_sans_gagnant","vendeur_refuse_vente"].includes(p.etat))
+              .map((p) => this.ajouterImagePrincipale(p))
 
             this.produitsEnAttente = produitsAvecLikes
-          .filter(p => p.etat === 'en_attente')
-          .map(p => this.ajouterImagePrincipale(p));
+              .filter(p => p.etat === 'en_attente')
+              .map(p => this.ajouterImagePrincipale(p));
 
-        console.log('📊 Produits triés avec likes:');
-        console.log('   - En enchère:', this.produitsEncheres.length);
-        console.log('   - Vendus:', this.produitsVendus.length);
-        console.log('   - Publiés:', this.produitsPublies.length);
-        console.log('   - En attente:', this.produitsEnAttente.length);
+            console.log('📊 Produits triés avec likes:');
+            console.log('   - En enchère:', this.produitsEncheres.length);
+            console.log('   - Vendus:', this.produitsVendus.length);
+            console.log('   - Publiés:', this.produitsPublies.length);
+            console.log('   - En attente:', this.produitsEnAttente.length);
 
-          // Mettre à jour les statistiques
-          this.updateUserStats();
-        });
+            this.updateUserStats();
+            resolve(); // Résoudre la promesse une fois le chargement terminé
+          });
 
-        // Charger les favoris et les produits gagnés
-        this.loadProduitsFavoris(userId);
-        this.loadProduitsGagnes(userId); // ← AJOUTER CETTE LIGNE
-      },
-      error: (error) => {
-        console.error('❌ Erreur lors du chargement des produits:', error);
-      }
+          this.loadProduitsFavoris(userId);
+          this.loadProduitsGagnes(userId);
+        },
+        error: (error) => {
+          console.error('❌ Erreur lors du chargement des produits:', error);
+          resolve(); // Résoudre même en cas d'erreur
+        }
+      });
     });
   }
 
@@ -758,7 +757,6 @@ class UserProfileComponent implements OnInit {
     console.log('🚀 Démarrage de l\'enchère après paiement pour le produit:', this.selectedProduct.id);
     console.log(`📅 Durée configurée: ${this.durationDays} jours`);
 
-    // ✅ ENVOYER SEULEMENT LA DURÉE (le prix est calculé côté backend si besoin)
     const requestBody = {
       dureeEnchereJours: this.durationDays
     };
@@ -773,12 +771,21 @@ class UserProfileComponent implements OnInit {
         this.selectedProduct = null;
         this.selectedProductForDuration = null;
 
-        // Recharger les données pour mettre à jour l'affichage
-        if (this.user?.id) {
-          this.loadUserProducts(this.user.id);
-        }
-
+        // Afficher un message de succès
         alert(`L'enchère a été démarrée avec succès pour ${this.durationDays} jours! Paiement de ${this.formatCurrency(this.calculatedPrice)} effectué.`);
+
+        // ✅ NOUVEAU : Recharger les données et rediriger vers l'onglet "Mes Enchères"
+        if (this.user?.id) {
+          this.loadUserProducts(this.user.id).then(() => {
+            // Rediriger vers l'onglet "Mes Enchères"
+            this.setActiveTab('bids');
+
+            // Optionnel : faire défiler vers le haut de la section
+            setTimeout(() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 100);
+          });
+        }
       },
       error: (error) => {
         console.error('❌ Erreur lors du démarrage de l\'enchère:', error);
@@ -1458,6 +1465,8 @@ class UserProfileComponent implements OnInit {
   }
 
 // CORRECTION 4: Modifier rejectSale() de la même manière
+  // Dans profile.component.ts, modifiez la méthode rejectSale()
+
   rejectSale(): void {
     if (!this.selectedProductForValidation) return;
 
@@ -1476,11 +1485,15 @@ class UserProfileComponent implements OnInit {
 
         // Recharger les produits
         if (this.user?.id) {
-          this.loadUserProducts(this.user.id);
+          this.loadUserProducts(this.user.id).then(() => {
+            // ✅ NOUVEAU: Rediriger vers l'onglet des produits publiés
+            this.setActiveTab('published');
+
+          });
         }
 
         this.closeSaleValidationModal();
-        alert('❌ Vente refusée. Le produit sera peut-être remis en enchère.');
+        alert('❌ Vente refusée. Le produit a été déplacé dans vos produits publiés où vous pouvez le relancer en enchère.');
       })
       .catch((error) => {
         console.error('❌ Erreur lors du refus de la vente:', error);
@@ -1674,7 +1687,7 @@ class UserProfileComponent implements OnInit {
         return 'Transaction annulée';
       case 'accepter':
       case 'accepte':
-        return 'Accepté';
+        return 'Publié';
       case 'expertise_validee':
         return 'Expertisé';
       case 'enchere_termine_sans_gagnant' : // ← AJOUTER CE CAS
@@ -1734,9 +1747,4 @@ class UserProfileComponent implements OnInit {
     });
   }
 
-
-
-
 }
-
-export default UserProfileComponent

@@ -1,5 +1,6 @@
 package com.marketplace.notification.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.marketplace.notification.entity.Notification;
 import com.marketplace.notification.entity.NotificationType;
 import com.marketplace.notification.entity.UserNotificationPreference;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +57,10 @@ public class NotificationService {
 
             // Récupérer les préférences de l'utilisateur
             UserNotificationPreference pref = preferenceService.getOrDefault(userId);
+            Map<String, Object> wsData = new HashMap<>(data);
+            wsData.put("type", type.toString());
+            wsData.put("message", rendered);
+            wsData.put("productId", data.get("productId")); // S'assurer que productId est inclus
 
             // Canal In-App
             if (pref.isInAppEnabled()) {
@@ -219,13 +225,30 @@ public class NotificationService {
                 // CORRECTION : Utiliser "message" comme clé principale
                 String adminMessage = (String) data.getOrDefault("message", "Message de l'administrateur.");
                 String productName = (String) data.getOrDefault("productName", "");
+                String alertType = (String) data.getOrDefault("alertType", "PUBLICATION"); // Nouveau: "PUBLICATION" ou "ACHAT"
 
-                if (!productName.isEmpty()) {
-                    return "🆕 Nouveau produit en attente : \"" + productName + "\".\n" +
-                            adminMessage;
+                StringBuilder msg = new StringBuilder();
+
+                if ("ACHAT".equals(alertType)) {
+                    msg.append("🛒 Validation d'achat requise\n");
+                    if (!productName.isEmpty()) {
+                        msg.append("Produit: \"").append(productName).append("\"\n");
+                    }
+                    msg.append(adminMessage);
                 } else {
-                    return adminMessage;
+                    // Par défaut: PUBLICATION
+                    msg.append("🆕 Nouveau produit en attente");
+                    if (!productName.isEmpty()) {
+                        msg.append(": \"").append(productName).append("\"");
+                    }
+                    msg.append("\n").append(adminMessage);
                 }
+
+                System.out.println("📌 Notification ADMIN_ALERT créée avec alertType: " + alertType);
+
+                // 🔥 AJOUTER L'alertType AU MESSAGE POUR QU'IL SOIT ACCESSIBLE
+                msg.append("\n\n[ALERT_TYPE:").append(alertType).append("]");
+                return msg.toString();
             }
             case ACCOUNT_UPDATED:
                 return "Votre profil ou paramètres ont été mis à jour avec succès.";

@@ -293,10 +293,14 @@ public class ProduitController {
                     .map(Admin::getId)
                     .collect(Collectors.toSet());
 
+// Dans la méthode createProduit, cherchez cette partie :
             Map<String, Object> adminNotifData = new HashMap<>();
             adminNotifData.put("productName", finalProduit.getNom());
             adminNotifData.put("message", "Un nouveau produit est en attente de validation.");
             adminNotifData.put("vendeurName", vendeur.getPrenom() + " " + vendeur.getNom());
+
+// AJOUTEZ CETTE LIGNE :
+            adminNotifData.put("alertType", "PUBLICATION"); // 🆕 Type d'alerte
 
             if (!adminIds.isEmpty()) {
                 notificationService.processEvent(
@@ -524,6 +528,9 @@ public class ProduitController {
                                     "• Vendeur: " + vendeurNom + "\n" +
                                     "• Montant: " + montant);
 
+                    // 🆕 AJOUTEZ CETTE LIGNE :
+                    adminNotifData.put("alertType", "ACHAT"); // Type d'alerte pour validation d'achat
+
                     notificationService.processEvent(
                             NotificationType.ADMIN_ALERT,
                             adminIds,
@@ -573,40 +580,6 @@ public class ProduitController {
                 }
 
                 Set<Long> recipients = Set.of(updatedProduit.getVendeur().getIdclient());
-
-            // 1) Notif principale en fonction de l'état demandé par l'admin
-//            NotificationType notifType;
-//            if ("accepte".equalsIgnoreCase(newState) || "Accepté".equalsIgnoreCase(newState)) {
-//                notifType = NotificationType.PRODUCT_ACCEPTED;
-//            } else if ("refuse".equalsIgnoreCase(newState) || "Refusé".equalsIgnoreCase(newState)) {
-//                notifType = NotificationType.PRODUCT_REFUSED;
-//            } else if ("vendu".equalsIgnoreCase(newState)) {
-//                notifType = NotificationType.TRANSACTION_ACCEPTED;
-//
-//                // Ajouter des informations spécifiques pour la notification de transaction
-//                if (produit.getAcheteur() != null) {
-//                    String buyerName = produit.getAcheteur().getPrenom() + " " + produit.getAcheteur().getNom();
-//                    notifData.put("buyerName", buyerName);
-//                }
-//
-//                if (produit.getPrixFin() != null) {
-//                    notifData.put("amount", produit.getPrixFin());
-//                }
-//            } else if ("transaction_annulee".equalsIgnoreCase(newState)) {
-//                notifType = NotificationType.TRANSACTION_ANNULEE;
-//
-//                // Ajouter des informations spécifiques pour la notification de transaction
-//                if (produit.getAcheteur() != null) {
-//                    String buyerName = produit.getAcheteur().getPrenom() + " " + produit.getAcheteur().getNom();
-//                    notifData.put("buyerName", buyerName);
-//                }
-//
-//                if (produit.getPrixFin() != null) {
-//                    notifData.put("amount", produit.getPrixFin());
-//                }
-//            } else {
-//                notifType = NotificationType.GENERIC;
-//            }
                 NotificationType notifType;
                 if ("accepte".equalsIgnoreCase(newState) || "Accepté".equalsIgnoreCase(newState)) {
                     notifType = NotificationType.PRODUCT_ACCEPTED;
@@ -622,17 +595,7 @@ public class ProduitController {
                         notifData.put("amount", produit.getPrixFin());
                     }
                     notifData.put("state", "SOLD"); // Ajouter un champ pour différencier
-                } else if ("transaction_annulee".equalsIgnoreCase(newState)) {
-                    notifType = NotificationType.TRANSACTION_ANNULEE;
-                    if (produit.getAcheteur() != null) {
-                        String buyerName = produit.getAcheteur().getPrenom() + " " + produit.getAcheteur().getNom();
-                        notifData.put("buyerName", buyerName);
-                    }
-                    if (produit.getPrixFin() != null) {
-                        notifData.put("amount", produit.getPrixFin());
-                    }
-                    notifData.put("state", "ADMIN_CANCELLED"); // Ajouter un champ pour différencier
-                } else {
+                }  else {
                     notifType = NotificationType.GENERIC;
                 }
 
@@ -672,7 +635,6 @@ public class ProduitController {
                 case "accepte" -> msgEtat = "accepté";
                 case "refuse" -> msgEtat = "refusé";
                 case "vendu" -> msgEtat = "marqué comme vendu";
-                case "transaction_annulee" -> msgEtat = "marqué comme transaction annulée";
                 default -> msgEtat = newState;
             }
 
@@ -721,7 +683,7 @@ public class ProduitController {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Produit non trouvé"));
 
             // Vérifier que le produit est dans un état qui permet de démarrer une enchère
-            if (!"accepte".equals(produit.getEtat()) && !"transaction_annulee".equals(produit.getEtat())) {
+            if (!"accepte".equals(produit.getEtat()) &&  !"enchere_termine_sans_gagnant".equals(produit.getEtat()) && !"vendeur_refuse_vente".equals(produit.getEtat())) {
                 return ResponseEntity.badRequest().body("Le produit doit être accepté ou la dernier transction est annulée pour démarrer une enchère. État actuel: " + produit.getEtat());
             }
 
@@ -740,7 +702,7 @@ public class ProduitController {
             {
                 produit.setEtat("en_enchere");
             }
-            else  if ("transaction_annulee".equals(produit.getEtat())){
+            else  if ("enchere_termine_sans_gagnant".equals(produit.getEtat()) || "vendeur_refuse_vente".equals(produit.getEtat())){
                 produit.setEtat("relance");
                 long id=produit.getIdproduit();
                 // Récupérer et supprimer toutes les enchères associées à ce produit
@@ -1352,74 +1314,4 @@ public class ProduitController {
         }
     }
 
-    @PutMapping("/{id}/refuser-vente")
-    public ResponseEntity<?> refuserVente(@PathVariable Long id, @RequestBody Map<String, String> request) {
-        try {
-            Produit produit = produitService.getProduitById(id)
-                    .orElseThrow(() -> new RuntimeException("Produit non trouvé"));
-
-            String raison = request.get("raison");
-
-            // Vérifier que l'état est correct
-            if (!"vendeur_accepte_vente".equals(produit.getEtat())) {
-                return ResponseEntity.badRequest().body("Le produit n'est pas dans l'état 'vendeur_accepte_vente'");
-            }
-
-            // Mettre à jour l'état
-            produit.setEtat("transaction_annulee");
-            Produit updatedProduit = produitService.saveProduit(produit);
-
-            // === RECHARGER LE PORTEFEUILLE DE L'ACHETEUR ===
-            if (updatedProduit.getAcheteur() != null && updatedProduit.getPrixFin() != null) {
-                walletservice.rechargeWallet(
-                        updatedProduit.getAcheteur(),
-                        updatedProduit.getPrixFin()
-                );
-            }
-
-            // === NOTIFICATION POUR L'ACHETEUR ===
-            if (produit.getAcheteur() != null) {
-                Map<String, Object> acheteurNotifData = new HashMap<>();
-                acheteurNotifData.put("productName", produit.getNom());
-                acheteurNotifData.put("sellerName", produit.getVendeur().getPrenom() + " " + produit.getVendeur().getNom());
-
-                if (produit.getPrixFin() != null) {
-                    acheteurNotifData.put("amount", produit.getPrixFin());
-                }
-                acheteurNotifData.put("state", "ADMIN_CANCELLED"); // Indiquer que c'est l'admin qui refuse
-
-                notificationService.processEvent(
-                        NotificationType.TRANSACTION_ANNULEE,
-                        Set.of(produit.getAcheteur().getIdclient()),
-                        acheteurNotifData
-                );
-            }
-
-            // === NOTIFICATION POUR LE VENDEUR ===
-            Map<String, Object> vendeurNotifData = new HashMap<>();
-            vendeurNotifData.put("productName", produit.getNom());
-            vendeurNotifData.put("message", "La vente de votre produit a été refusée par l'administrateur." +
-                    (raison != null ? " Raison: " + raison : ""));
-
-            notificationService.processEvent(
-                    NotificationType.MESSAGE, // Utiliser MESSAGE pour le vendeur
-                    Set.of(produit.getVendeur().getIdclient()),
-                    vendeurNotifData
-            );
-
-            System.out.println("❌ Vente refusée pour le produit: " + produit.getNom());
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "Vente refusée avec succès"
-            ));
-
-        } catch (Exception e) {
-            System.err.println("❌ Erreur refus vente: " + e.getMessage());
-            return ResponseEntity.status(500).body(Map.of(
-                    "success", false,
-                    "message", "Erreur lors du refus"
-            ));
-        }
-    }
 }
