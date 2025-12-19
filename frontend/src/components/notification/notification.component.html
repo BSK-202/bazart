@@ -167,6 +167,31 @@
             Relancer l'enchère
           </button>
 
+          <button
+            *ngIf="selectedNotification.type === 'NEW_BID'"
+            class="action-btn accepted-action"
+            (click)="goToProductDetails(selectedNotification.productId)">
+            <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+              voir détails
+          </button>
+
+          <!-- Modifier cette section dans notification.component.html -->
+          <button
+            *ngIf="selectedNotification.type === 'ADMIN_ALERT'"
+            class="action-btn accepted-action"
+            (click)="goToAdminAlertAction()">
+            <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>
+            {{ getAdminAlertButtonText() }}
+          </span>
+          </button>
+
         </div>
 
       </div>

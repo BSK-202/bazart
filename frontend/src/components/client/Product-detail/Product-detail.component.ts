@@ -6,7 +6,7 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { AuthService } from '../../../services/auth.service';
 import { Enchere, EnchereService } from '../../../services/enchere.service';
 import {FundsReservationService} from '../../../services/funds-reservation.service';
-
+import { InteractionService } from '../../../services/interaction.service';
 // Services
 
 interface Bid {
@@ -82,6 +82,10 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   historiqueEncheres: Enchere[] = [];
   isLoadingEncheres: boolean = false;
 
+  isFavori: boolean = false;
+  nombreFavoris: number = 0;
+  favorisLoading: boolean = false;
+
   private readonly API_BASE_URL = 'http://localhost:8080';
 
   constructor(
@@ -90,7 +94,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     private http: HttpClient,
     private authService: AuthService,
     private enchereService: EnchereService,
-    private fundsReservationService: FundsReservationService
+    private fundsReservationService: FundsReservationService,
+    private interactionService: InteractionService
     // Nouveau service
   ) {}
 
@@ -101,6 +106,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     if (this.produitId) {
       this.loadProduitDetails();
       this.loadDonneesEnchere();
+      this.checkFavoris();
     } else {
       this.error = 'ID produit non valide';
       this.isLoading = false;
@@ -234,6 +240,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
         }
 
         this.isLoading = false;
+        this.checkFavoris();
       },
       error: (err) => {
         console.error('❌ Erreur chargement produit:', err);
@@ -653,12 +660,79 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
       });
   }
 
-  handleAddToFavorites(): void {
+  async handleAddToFavorites(): Promise<void> {
     if (!this.isAuthenticated) {
-      this.router.navigate(['/connexion']);
+      this.router.navigate(['/connexion'], {
+        queryParams: {
+          returnUrl: this.router.url,
+          message: 'Veuillez vous connecter pour ajouter aux favoris'
+        }
+      });
       return;
     }
-    alert('Ajouté aux favoris!');
+
+    this.favorisLoading = true;
+    const produitIdNum = parseInt(this.produitId);
+
+    try {
+      // Utilisez toggleLike pour ajouter/retirer des favoris
+      this.interactionService.toggleLike(produitIdNum).subscribe({
+        next: (response: any) => {
+          // Adaptez selon la réponse de votre backend
+          this.isFavori = response.liked || response.isFavori || false;
+          this.favorisLoading = false;
+
+          // Recharger le nombre de likes/favoris
+          this.interactionService.getLikeCount(produitIdNum).subscribe({
+            next: (count) => {
+              this.nombreFavoris = count;
+            }
+          });
+
+          this.checkFavoris();
+          // Animation visuelle
+          this.triggerFavorisAnimation();
+
+          const message = this.isFavori
+            ? '✅ Ajouté aux favoris!'
+            : '❌ Retiré des favoris';
+          console.log(message);
+
+          // Afficher un message à l'utilisateur (optionnel)
+          if (response.message) {
+            console.log(response.message);
+          }
+        },
+        error: (err) => {
+          console.error('❌ Erreur lors de l\'ajout aux favoris:', err);
+          this.favorisLoading = false;
+
+          if (err.status === 401) {
+            this.router.navigate(['/connexion'], {
+              queryParams: {
+                returnUrl: this.router.url,
+                message: 'Session expirée, veuillez vous reconnecter'
+              }
+            });
+          } else {
+            alert('Erreur lors de l\'ajout aux favoris: ' + (err.error?.message || 'Erreur serveur'));
+          }
+        }
+      });
+    } catch (error) {
+      console.error('❌ Erreur inattendue:', error);
+      this.favorisLoading = false;
+    }
+  }
+
+  private triggerFavorisAnimation(): void {
+    const heartIcon = document.querySelector('.favoris-heart');
+    if (heartIcon) {
+      heartIcon.classList.add('heart-animate');
+      setTimeout(() => {
+        heartIcon.classList.remove('heart-animate');
+      }, 600);
+    }
   }
 
   onBidAmountChange(event: Event): void {
@@ -923,4 +997,38 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
     return true;
   }
+
+  // Méthode pour vérifier les favoris (likes)
+  private checkFavoris(): void {
+    if (!this.isAuthenticated || !this.produitId) {
+      this.isFavori = false;
+      return;
+    }
+
+    const produitIdNum = parseInt(this.produitId);
+
+    // Utilisez la méthode checkLike du InteractionService
+    this.interactionService.checkLike(produitIdNum).subscribe({
+      next: (isLiked) => {
+        this.isFavori = isLiked;
+        console.log('❤️ Produit liké/favori:', this.isFavori);
+      },
+      error: (err) => {
+        console.error('❌ Erreur vérification like/favori:', err);
+        this.isFavori = false;
+      }
+    });
+
+    // Utilisez la méthode getLikeCount pour obtenir le nombre de likes/favoris
+    this.interactionService.getLikeCount(produitIdNum).subscribe({
+      next: (count) => {
+        this.nombreFavoris = count;
+        console.log('📊 Nombre de likes/favoris:', this.nombreFavoris);
+      },
+      error: (err) => {
+        console.error('❌ Erreur chargement nombre de likes:', err);
+      }
+    });
+  }
+
 }

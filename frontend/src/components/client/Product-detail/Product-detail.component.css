@@ -595,4 +595,426 @@ th {
   height: 1rem !important;
 }
 
+/* CORRECTION du chevauchement - Styles spécifiques */
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.md\:flex-row {
+  flex-direction: row;
+}
+
+/* Conteneur du formulaire d'enchère amélioré */
+.bid-form-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  .bid-form-container {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+/* Zone de saisie améliorée */
+.bid-input-group {
+  flex: 1;
+  min-width: 0; /* Important pour éviter le débordement */
+}
+
+.bid-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: white;
+  box-sizing: border-box;
+  height: 48px;
+  color: #1f2937;
+}
+
+.bid-input:focus {
+  outline: none;
+  border-color: #2b2c2e;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.bid-input::placeholder {
+  color: #9ca3af;
+  font-weight: normal;
+}
+
+/* Icône DH positionnée */
+.bid-currency {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Bouton enchérir amélioré */
+.bid-button {
+  padding: 0 1.5rem;
+  background: linear-gradient(135deg, #3c3d40, #121417);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  white-space: nowrap;
+}
+
+.bid-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #373839, #16181b);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.bid-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.bid-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #2f3337, #26282b);
+}
+
+/* Validation error */
+.validation-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  margin-left: 0.5rem;
+  font-weight: 500;
+}
+
+/* Boutons secondaires (favoris + partage) */
+.secondary-buttons {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+/* Pour les écrans larges, aligner avec le formulaire */
+@media (min-width: 768px) {
+  .secondary-buttons {
+    width: calc(100% - 120px - 0.75rem); /* Largeur totale - bouton enchérir - gap */
+    margin-left: calc(120px + 0.75rem);
+  }
+}
+
+/* Ajustement de l'espacement général */
+.space-y-3 > * + * {
+  margin-top: 0.75rem;
+}
+
+.flex {
+  gap: 0.75rem;
+}
+
+/* Message d'information pour le vendeur/en tête */
+.info-message {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* ====================== */
+/* BOUTON FAVORIS - PLEINE LARGEUR */
+/* ====================== */
+
+.favoris-button-fullwidth {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  margin: 0;
+  display: block;
+}
+
+.favoris-button-fullwidth:hover:not(:disabled) {
+  border-color: #635a5a;
+  background: linear-gradient(to right, #fff5f5, #fef2f2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(252, 165, 165, 0.15);
+}
+
+.favoris-button-fullwidth.favoris-active {
+  border-color: #2e2727;
+  background: linear-gradient(to right, #fef2f2, #fee2e2);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+}
+
+.favoris-button-fullwidth:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f9fafb;
+}
+
+/* Contenu du bouton */
+.favoris-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Icône cœur */
+.heart-container {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heart-icon {
+  width: 24px;
+  height: 24px;
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.heart-empty {
+  fill: none;
+  stroke: #9ca3af;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.heart-filled {
+  fill: #191717;
+  stroke: #272525;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: heartBeatFull 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Informations texte */
+.favoris-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.favoris-title {
+  display: block;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #374151;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.favoris-button-fullwidth.favoris-active .favoris-title {
+  color: #151515;
+}
+
+.favoris-subtitle {
+  display: block;
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.favoris-button-fullwidth.favoris-active .favoris-subtitle {
+  color: #1c1c1c;
+}
+
+/* Indicateur checkmark */
+.favoris-indicator {
+  width: 24px;
+  height: 24px;
+  background: #090909;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: checkmarkSlide 0.3s ease-out;
+}
+
+.favoris-indicator svg {
+  width: 14px;
+  height: 14px;
+  color: white;
+}
+
+/* Animation de chargement */
+.loading-dots {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 4px;
+}
+
+.loading-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #222121;
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* ====================== */
+/* ANIMATIONS */
+/* ====================== */
+
+@keyframes heartBeatFull {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes checkmarkSlide {
+  0% {
+    transform: translateX(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes dotPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+/* ====================== */
+/* RESPONSIVE */
+/* ====================== */
+
+@media (max-width: 768px) {
+  .favoris-button-fullwidth {
+    padding: 0.875rem 1.25rem;
+  }
+
+  .heart-container {
+    width: 36px;
+    height: 36px;
+  }
+
+  .heart-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .favoris-title {
+    font-size: 0.95rem;
+  }
+
+  .favoris-subtitle {
+    font-size: 0.8rem;
+  }
+}
+
+/* ====================== */
+/* ÉTAT ACTIF AVEC EFFET DE PULSATION */
+/* ====================== */
+
+.favoris-button-fullwidth.favoris-active:hover:not(:disabled) {
+  border-color: #171515;
+  background: linear-gradient(to right, #b1a6a6, #5a4f4f);
+  box-shadow: 0 10px 25px rgba(106, 67, 67, 0.15);
+}
+
+/* Effet de pulsation subtil pour l'état actif */
+@keyframes gentlePulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba(115, 67, 67, 0.2);
+  }
+}
+
+.favoris-button-fullwidth.favoris-active {
+  animation: gentlePulse 2s infinite;
+}
+
+/* ====================== */
+/* POUR L'UTILISATEUR NON CONNECTÉ */
+/* ====================== */
+
+/* Si vous avez besoin d'un bouton pour utilisateur non connecté */
+.favoris-disabled-message {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.favoris-disabled-message a {
+  color: #3b82f6;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.favoris-disabled-message a:hover {
+  text-decoration: underline;
+}
 

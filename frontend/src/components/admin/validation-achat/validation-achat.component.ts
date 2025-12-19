@@ -172,38 +172,6 @@ export class ValidationAchatComponent implements OnInit {
       });
   }
 
-  refuserVente(produit: ProduitAValider) {
-    const raison = prompt(`Pourquoi refusez-vous la vente du produit "${produit.nom}" ?`);
-
-    if (raison === null) {
-      return; // Annulé
-    }
-
-    this.successMessage = '';
-    this.errorMessage = '';
-
-    this.http.put(`${this.API_BASE_URL}/produits/${produit.id}/refuser-vente`, {
-      raison: raison
-    })
-      .subscribe({
-        next: (response: any) => {
-          if (response.success) {
-            this.successMessage = `Vente refusée pour "${produit.nom}"`;
-
-            // Recharger la liste
-            setTimeout(() => {
-              this.loadProduitsAValider();
-            }, 2000);
-          } else {
-            this.errorMessage = response.message || 'Erreur lors du refus';
-          }
-        },
-        error: (error) => {
-          console.error('Erreur refus:', error);
-          this.errorMessage = 'Erreur serveur lors du refus';
-        }
-      });
-  }
 
   clearFilters() {
     this.searchTerm = '';
