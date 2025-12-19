@@ -24,7 +24,7 @@ public class ExpertiseScheduler {
     }
 
     // Exécuter toutes les heures (3600000 ms)
-    @Scheduled(fixedDelay = 45000)
+    @Scheduled(fixedDelay = 3600000)
     public void retryBlockedRequests() {
         try {
             expertiseService.retryBlockedRequests();

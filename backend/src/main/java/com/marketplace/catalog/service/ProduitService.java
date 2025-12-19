@@ -27,7 +27,5 @@ public interface ProduitService {
     // Dans ProduitService.java
     Set<Long> getUsersWhoInteractedWithProduct(Long produitId);
     List<Produit> getProduitsGagnesByAcheteurId(Long acheteurId);
-
-
     List<Produit> getProduitsByVendeurId(Long vendeurId);
 }

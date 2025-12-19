@@ -163,7 +163,7 @@ public class ProduitController {
             if (images == null || images.isEmpty())
                 throw new IllegalArgumentException("Aucune image n'a été fournie.");
 
-            // --- Vérification catégorie ---
+            // --- Vérification catégorie ---s
             Categorie categorie = categorieService.getCategorieById(produitRequest.getCategorieId())
                     .orElseThrow(() -> new RuntimeException("Catégorie non trouvée avec ID: " + produitRequest.getCategorieId()));
 
@@ -459,9 +459,11 @@ public class ProduitController {
                 // On garde quand même l'état principal comme "accepte"
                 produit.setEtat("accepte");
                 produit = produitService.saveProduit(produit);
-
+                System.out.printf("Appel : createRequestAfterProductAccepted");
                 // 2) Créer la demande d'expertise (slots + assignation expert + deadline 24h)
                 expertiseService.createRequestAfterProductAccepted(produit.getIdproduit());
+                System.out.printf("end : createRequestAfterProductAccepted");
+
 
             } else {
                 // CAS NORMAL : changement d'état sans expertise OU autre état que "accepte"

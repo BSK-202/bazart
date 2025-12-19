@@ -56,6 +56,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
     // ==== 1) CRÉATION DE LA DEMANDE APRÈS ACCEPTATION ADMIN ====
     @Override
     public void createRequestAfterProductAccepted(Long produitId) {
+        System.out.println("Entrer createRequestAfterProductAccepted");
         Produit produit = produitRepository.findById(produitId)
                 .orElseThrow(() -> new IllegalArgumentException("Produit non trouvé"));
 
@@ -94,12 +95,19 @@ public class ExpertiseServiceImpl implements ExpertiseService {
 
         // DEADLINE RAPPORT : SEULEMENT POUR ONLINE, PAS POUR ONSITE
         if (request.getMethod() == ExpertiseMethod.ONLINE) {
+            System.out.println(" request.getMethod() == ExpertiseMethod.ONLINE");
+
             request.setReportSubmissionDeadline(LocalDateTime.now().plusMinutes(REPORT_SUBMISSION_DAYS));
         } else {
+            System.out.println(" else : request.getMethod() == ExpertiseMethod.ONLINE");
+
             // ONSITE : pas de deadline fixe, sera disponible après le rendez-vous
             request.setReportSubmissionDeadline(null);
+
         }
+
         ExpertiseRequest savedRequest = expertiseRequestRepository.save(request);
+        System.out.println(" else : request.getMethod() == ExpertiseMethod.ONLINE");
 
         // Enregistrer les slots (si ONSITE)
         List<ExpertiseSlot> slots = new ArrayList<>();
@@ -401,7 +409,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
     @Override
     public void retryBlockedRequests() {
         List<ExpertiseStatus> blockedStatuses = Arrays.asList(
-                ExpertiseStatus.NO_EXPERTS_AVAILABLE,
+                //ExpertiseStatus.NO_EXPERTS_AVAILABLE,
                 ExpertiseStatus.ALL_EXPERTS_TRIED
         );
 
@@ -446,32 +454,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
                 continue;
             }
 
-            // CAS 2: NO_EXPERTS_AVAILABLE - Réessayer immédiatement
-            if (req.getStatus() == ExpertiseStatus.NO_EXPERTS_AVAILABLE) {
-                req.setStatus(ExpertiseStatus.CREATED);
-                expertiseRequestRepository.save(req);
 
-                // Notifier le vendeur du réessai (UNIQUEMENT pour NO_EXPERTS_AVAILABLE)
-                Map<String, Object> vendeurNotif = new HashMap<>();
-
-                StringBuilder message = new StringBuilder();
-                message.append("🔄 Nouvelle tentative d'assignation d'expert\n\n");
-                message.append("Produit : \"").append(req.getProduit().getNom()).append("\"\n\n");
-                message.append("Le système relance automatiquement la recherche d'un expert disponible.\n");
-                message.append("Vous recevrez une notification dès qu'un expert sera assigné.\n\n");
-                message.append("⏳ Statut : En cours de recherche...");
-
-                vendeurNotif.put("message", message.toString());
-                vendeurNotif.put("notificationType", NOTIF_TYPE_NO_EXPERTS);
-
-                notificationService.processEvent(
-                        NotificationType.MESSAGE,
-                        Set.of(req.getVendeur().getIdclient()),
-                        vendeurNotif
-                );
-
-                assignExpertAndNotify(req, req.getExcludedExpertClientIds());
-            }
         }
     }
 
