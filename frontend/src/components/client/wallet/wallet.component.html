@@ -1,5 +1,4 @@
 <div class="wallet-container">
-  <!-- Centrer le titre et ajouter une phrase significative -->
   <div class="page-header">
     <h1 class="page-title">Portefeuille Électronique</h1>
     <p class="page-tagline">Gérez vos finances avec sécurité et transparence</p>
@@ -11,7 +10,6 @@
       <div class="balance-card">
         <div class="balance-header">
           <h3>Solde Actuel</h3>
-
         </div>
         <div class="balance-amount">
           {{ balance | currency:currency:'symbol':'1.2-2' }}
@@ -64,18 +62,19 @@
                 <circle cx="12" cy="12" r="1"></circle>
                 <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.98 2.98l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m2.98-2.98l4.24-4.24M19.78 19.78l-4.24-4.24m-2.98-2.98l-4.24-4.24M23 12h-6m-6 0H5"/>
               </svg>
-              Recharger {{ amountToAdd | currency:currency:'symbol':'1.2-2' }}
+              💳 Payer avec Stripe {{ amountToAdd | currency:currency:'symbol':'1.2-2' }}
             </span>
-            <span *ngIf="isLoading">⏳ Recharge en cours...</span>
+            <span *ngIf="isLoading"> Initialisation...</span>
           </button>
         </div>
       </div>
 
       <!-- Message de statut -->
-      <div *ngIf="message" class="message" [class.error]="message.includes('❌') || message.includes('Erreur')" [class.success]="message.includes('✅')">
+      <div *ngIf="message" class="message"
+           [class.error]="message.includes('') || message.includes('Erreur')"
+           [class.success]="message.includes('')">
         {{ message }}
       </div>
-
 
       <!-- Carte des enchères en tête -->
       <div *ngIf="blockedEncheres.length > 0" class="blocked-amounts-card">
@@ -106,16 +105,16 @@
               </div>
 
               <p class="blocked-reason">
-                👑 Vous êtes en tête de cette enchère
+                 Vous êtes en tête de cette enchère
               </p>
 
               <div class="blocked-meta">
-          <span class="blocked-date">
-            📅 Enchère placée le: {{ formatBlockedDate(enchere.dateEnchere) }}
-          </span>
+                <span class="blocked-date">
+                  Enchère placée le: {{ formatBlockedDate(enchere.dateEnchere) }}
+                </span>
                 <span class="blocked-time" *ngIf="enchere.tempsRestant">
-            ⏱️ {{ enchere.tempsRestant }}
-          </span>
+                   {{ enchere.tempsRestant }}
+                </span>
               </div>
 
               <div class="enchere-actions">
@@ -132,7 +131,7 @@
         </div>
 
         <div class="blocked-footer">
-          <p>💡 Ces montants sont bloqués jusqu'à la fin des enchères. Ils seront libérés si vous êtes dépassé.</p>
+          <p> Ces montants sont bloqués jusqu'à la fin des enchères.</p>
         </div>
       </div>
 
@@ -140,10 +139,7 @@
       <div *ngIf="isLoadingBlocked" class="loading-blocked">
         <p>Chargement de vos enchères en tête...</p>
       </div>
-
     </div>
-
-
 
     <!-- Section droite : Historique -->
     <div class="right-section">
@@ -170,7 +166,6 @@
           </div>
         </div>
 
-        <!-- Conteneur de défilement -->
         <div class="history-scroll-container">
           <div class="history-content">
             <div *ngIf="historyLoading" class="loading-history">
@@ -196,12 +191,11 @@
                 </div>
 
                 <div class="operation-details">
-                  <!-- CONTENU RESTAURÉ DES TRANSACTIONS -->
                   <div class="operation-main">
                     <span class="operation-type">{{ operation.operationType === 'CREDIT' ? 'Rechargement' : 'Débit' }}</span>
                     <span class="operation-amount" [class.positive]="operation.operationType === 'CREDIT'">
-                  {{ operation.operationType === 'CREDIT' ? '+' : '-' }}{{ operation.amount | currency:currency:'symbol':'1.2-2' }}
-                </span>
+                      {{ operation.operationType === 'CREDIT' ? '+' : '-' }}{{ operation.amount | currency:currency:'symbol':'1.2-2' }}
+                    </span>
                   </div>
 
                   <p class="operation-description">
@@ -209,12 +203,12 @@
                   </p>
 
                   <div class="operation-meta">
-                <span class="operation-date">
-                  {{ operation.operationDate | date:'dd/MM/yyyy HH:mm' }}
-                </span>
+                    <span class="operation-date">
+                      {{ operation.operationDate | date:'dd/MM/yyyy HH:mm' }}
+                    </span>
                     <span class="operation-reference">
-                  {{ operation.reference }}
-                </span>
+                      {{ operation.reference }}
+                    </span>
                   </div>
 
                   <div class="balance-change">
@@ -223,7 +217,6 @@
                       → {{ operation.balanceAfter | currency:currency:'symbol':'1.2-2' }}
                     </small>
                   </div>
-                  <!-- FIN DU CONTENU RESTAURÉ -->
                 </div>
               </div>
             </div>
@@ -237,24 +230,17 @@
     </div>
   </div>
 
-  <!-- Modal de confirmation -->
-  <div *ngIf="showConfirmation" class="confirmation-modal">
-    <div class="modal-overlay" (click)="cancelRecharge()"></div>
+  <!--  NOUVEAU : Modal de paiement Stripe -->
+  <div *ngIf="showStripePayment" class="stripe-modal">
+    <div class="modal-overlay" (click)="onStripePaymentCancel()"></div>
     <div class="modal-content">
-      <h3>Confirmation de recharge</h3>
-      <p>Êtes-vous sûr de vouloir recharger votre portefeuille de <strong>{{ pendingAmount | currency:currency:'symbol':'1.2-2' }}</strong> ?</p>
-
-      <div class="balance-preview">
-        <p>Solde actuel: {{ balance | currency:currency:'symbol':'1.2-2' }}</p>
-        <p>Nouveau solde: {{ balance + pendingAmount | currency:currency:'symbol':'1.2-2' }}</p>
-      </div>
-
-      <div class="modal-actions">
-        <button (click)="executeRecharge()" [disabled]="isLoading" class="confirm-btn">
-          {{ isLoading ? 'Recharge en cours...' : 'Oui, recharger' }}
-        </button>
-        <button (click)="cancelRecharge()" [disabled]="isLoading" class="cancel-btn">Annuler</button>
-      </div>
+      <app-stripe-payment
+        [amount]="stripePendingAmount"
+        [clientSecret]="stripeClientSecret"
+        (onSuccess)="onStripePaymentSuccess($event)"
+        (onCancel)="onStripePaymentCancel()"
+        (onError)="onStripePaymentError($event)"
+      ></app-stripe-payment>
     </div>
   </div>
 </div>

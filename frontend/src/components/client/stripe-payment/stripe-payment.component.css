@@ -1,0 +1,103 @@
+.stripe-payment-container {
+  padding: 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.payment-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.payment-header h3 {
+  margin: 0 0 8px 0;
+  color: #1a1a1a;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.payment-header p {
+  margin: 0;
+  color: #666;
+  font-size: 16px;
+}
+
+.payment-header strong {
+  color: #667eea;
+  font-size: 20px;
+}
+
+.loading-payment {
+  padding: 40px 20px;
+  text-align: center;
+  color: #666;
+}
+
+.card-element {
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #f9f9f9;
+  margin-bottom: 16px;
+  min-height: 60px;
+}
+
+.card-element:focus-within {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.card-element.hidden {
+  display: none;
+}
+
+.error-message {
+  padding: 12px 16px;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: 8px;
+  color: #c33;
+  margin-bottom: 16px;
+}
+
+.payment-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.pay-button,
+.cancel-button {
+  flex: 1;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pay-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.pay-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancel-button {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.stripe-badge {
+  text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+  color: #999;
+  font-size: 13px;
+}
