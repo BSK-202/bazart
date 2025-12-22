@@ -94,7 +94,6 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
   private loadExistingNotifications(notificationsUrl: string) {
     console.log('📡 Chargement depuis:', notificationsUrl);
 
-    // ✅ Utilisez les headers d'authentification
     this.http.get<any[]>(notificationsUrl, {
       headers: this.getHeaders()
     }).subscribe({
@@ -102,18 +101,16 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
         console.log('📋 Notifications reçues:', notifications?.length || 0);
 
         this.notifications = (notifications || []).map((notif) => {
-          // Debug: afficher le contenu de chaque notification
           console.log('🔍 Notification brute reçue:', notif);
 
-          // Extraire alertType depuis le message
-          const alertType = this.extractAlertTypeFromMessage(notif.message || '');
-          console.log('🎯 alertType extrait:', alertType);
-
-          // Extraire productId
-          const productId = this.extractProductIdFromMessage(notif.message || '');
+          // Extraire productId de manière robuste
+          const productId = this.extractProductIdFromNotification(notif);
           if (productId) {
-            console.log('🔍 productId extrait du message:', productId);
+            console.log('✅ ProductId trouvé:', productId);
           }
+
+          // Extraire alertType
+          const alertType = this.extractAlertTypeFromMessage(notif.message || '');
 
           const processedNotification = {
             ...notif,
@@ -121,49 +118,47 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
             createdAt: notif.createdAt ? new Date(notif.createdAt) : new Date(),
             read: notif.read ?? false,
             id: notif.id ?? Math.random(),
-            // Extraire productId depuis différentes sources
-            productId: productId || this.extractProductIdFromNotification(notif),
-            type: notif.type, // S'assurer que le type est présent
-            data: notif.data, // Conserver les données brutes
-            alertType: alertType // 🆕 AJOUTER alertType ici
+
+            // 🔥 GARANTIR QUE productId EST DISPONIBLE
+            productId: productId || this.extractProductIdFromFallback(notif),
+
+            type: notif.type,
+            data: notif.data || {},
+            alertType: alertType
           };
 
-          console.log('📝 Notification traitée:', {
+          console.log('📝 Notification traitée (NEW_BID):', {
             type: processedNotification.type,
-            alertType: processedNotification.alertType,
             productId: processedNotification.productId,
-            message: processedNotification.message?.substring(0, 80) + '...'
+            hasProductId: !!processedNotification.productId,
+            messagePreview: processedNotification.message?.substring(0, 50)
           });
 
           return processedNotification;
         });
 
         console.log('📊 Notifications traitées:', this.notifications.length);
-
-        // Debug: afficher toutes les notifications avec leurs alertType
-        this.notifications.forEach((notif, index) => {
-          console.log(`📦 Notification ${index + 1}:`, {
-            type: notif.type,
-            alertType: notif.alertType,
-            message: notif.message?.substring(0, 50),
-            productId: notif.productId,
-            hasData: !!notif.data
-          });
-        });
       },
       error: (err) => {
         console.error('❌ Erreur chargement notifications:', err);
-        console.error('❌ Status:', err.status);
-        console.error('❌ Message:', err.message);
-
-        // ✅ Ajoutez un fallback pour déboguer
-        if (err.status === 403) {
-          console.warn('⚠️ Accès interdit - Vérifiez le token admin');
-          this.checkAdminToken();
-        }
         this.notifications = [];
       },
     });
+  }
+
+// Méthode de fallback pour extraire productId
+  private extractProductIdFromFallback(notif: any): number | null {
+    // Si c'est une notification NEW_BID et qu'on a un message
+    if (notif.type === 'NEW_BID' && notif.message) {
+      // Extraire le nom du produit du message
+      const productNameMatch = notif.message.match(/produit\s+["']([^"']+)["']/i);
+      if (productNameMatch && productNameMatch[1]) {
+        console.log('📦 Nom du produit extrait:', productNameMatch[1]);
+        // Vous pourriez faire un appel API ici pour trouver l'ID par le nom
+        // Pour l'instant, on retourne null et on gérera autrement
+      }
+    }
+    return null;
   }
 
   private extractAlertTypeFromMessage(message: string): string {
@@ -193,54 +188,54 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
     return isAchat ? 'ACHAT' : 'PUBLICATION';
   }
 
-  private extractProductIdFromMessage(message: string): number | null {
-    if (!message) return null;
 
-    // 1. Chercher productId dans un format spécifique si présent
-    // Ex: "productId:123" ou "ID:123"
-    const idPatterns = [
-      /productId[:\s]*(\d+)/i,
-      /produitId[:\s]*(\d+)/i,
-      /ID[:\s]*(\d+)/i
-    ];
 
-    for (const pattern of idPatterns) {
-      const match = message.match(pattern);
+  private extractProductIdFromNotification(notif: any): number | null {
+    console.log('🔍 DEBUG - Extraction productId depuis notification:');
+    console.log('🔍 Notification complète:', JSON.stringify(notif, null, 2));
+    console.log('🔍 Notification type:', notif.type);
+    console.log('🔍 Notification message:', notif.message);
+    console.log('🔍 Notification data:', notif.data);
+
+    // Chercher d'abord dans le message le pattern [productId:xxx]
+    if (notif.message) {
+      console.log('🔍 Analyse du message pour extraction productId');
+      const messagePattern = /\[productId:(\d+)\]/i;
+      const match = notif.message.match(messagePattern);
+
       if (match && match[1]) {
         const id = parseInt(match[1], 10);
-        if (!isNaN(id)) {
-          console.log('🔍 productId extrait via pattern:', id);
+        console.log('✅ ProductId extrait du message via [productId:xxx]:', id);
+        if (!isNaN(id) && id > 0) {
           return id;
+        }
+      }
+
+      // Vérifier si le message contient un autre format
+      console.log('🔍 Message complet:', notif.message);
+    }
+
+    // Vérifier les propriétés directes
+    const directProperties = ['productId', 'produitId', 'idproduit', 'produit', 'id'];
+    for (const prop of directProperties) {
+      if (notif[prop]) {
+        console.log(`✅ ${prop} trouvé directement:`, notif[prop]);
+        return Number(notif[prop]);
+      }
+    }
+
+    // Vérifier dans data
+    if (notif.data) {
+      console.log('🔍 Data disponible:', notif.data);
+      for (const prop of directProperties) {
+        if (notif.data[prop]) {
+          console.log(`✅ ${prop} trouvé dans data:`, notif.data[prop]);
+          return Number(notif.data[prop]);
         }
       }
     }
 
-    // 2. Sinon, chercher le nom du produit
-    const nameMatch = message.match(/Produit:\s*"([^"]+)"/);
-    if (nameMatch && nameMatch[1]) {
-      console.log('🔍 Nom produit trouvé:', nameMatch[1]);
-      // Note: Ici vous pourriez appeler un service pour convertir nom → ID
-      // Pour l'instant, retournez null
-    }
-
-    return null;
-  }
-
-// Ajouter cette méthode pour extraire le productId
-  private extractProductIdFromNotification(notif: any): number | null {
-    // Essayer différentes sources possibles
-    if (notif.productId) return notif.productId;
-    if (notif.data?.productId) return notif.data.productId;
-    if (notif.data?.produitId) return notif.data.produitId;
-
-    // Pour les notifications de type NEW_BID, essayer d'extraire l'ID du message
-    if (notif.type === 'NEW_BID' && notif.message) {
-      const match = notif.message.match(/produit\s*["']?([^"'\s]+)["']?/i);
-      if (match) {
-        console.log('🔍 ProductId extrait du message:', match[1]);
-      }
-    }
-
+    console.log('❌ Aucun productId trouvé');
     return null;
   }
 
@@ -268,6 +263,8 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
     this.wsSub = this.notifWebSocketService.notifications().subscribe({
       next: (notif: any) => {
         console.log('🎯 Nouvelle notification WebSocket reçue:', notif);
+        console.log('🎯 Type de notification:', notif.type);
+        console.log('🎯 Données complètes reçues:', JSON.stringify(notif, null, 2));
 
         if (!notif) {
           console.warn('⚠️ Notification null ignorée');
@@ -285,15 +282,28 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
         const alertType = this.extractAlertTypeFromMessage(notif.message || '');
         console.log('🎯 alertType extrait (WebSocket):', alertType);
 
+        // 🔍 Afficher toutes les propriétés de la notification
+        console.log('🔍 Propriétés de la notification WebSocket:');
+        Object.keys(notif).forEach(key => {
+          console.log(`  ${key}:`, notif[key]);
+        });
+
+        // 🔍 Vérifier spécifiquement productId
+        console.log('🔍 productId dans notification:', notif.productId);
+        console.log('🔍 productId dans notif.data:', notif.data?.productId);
+
         const newNotification = {
           ...notif,
           message: notif.message ?? JSON.stringify(notif),
           createdAt: notif.createdAt ? new Date(notif.createdAt) : new Date(),
           read: notif.read ?? false,
           id: notifId,
+          // 🔥 S'assurer que productId est correctement extrait
           productId: notif.productId || notif.data?.productId,
           alertType: alertType // 🆕 Ajouter alertType
         };
+
+        console.log('✅ Notification ajoutée avec productId:', newNotification.productId);
 
         this.notifications.unshift(newNotification);
         console.log('✅ Notification ajoutée avec alertType:', alertType);
@@ -325,6 +335,13 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
     this.logNotificationDetails(notification);
     // Si l'API envoie alertType, on l'utilise directement
     // Sinon on le détecte à partir du message
+    console.log('📖 Détails de la notification NEW_BID:', {
+      type: notification.type,
+      productId: notification.productId,
+      data: notification.data,
+      message: notification.message
+    });
+
     if (!notification.alertType) {
       notification.alertType = this.detectAlertTypeFromMessageForNotification(notification.message);
     }
@@ -482,58 +499,101 @@ export class NotificationComponent implements OnInit, OnDestroy, OnChanges {
   }
 
 
-  goToProductDetails(productId?: number): void {
-    console.log('🔍 Méthode goToProductDetails appelée');
-    console.log('📌 Paramètre productId:', productId);
-    console.log('📌 selectedNotification AVANT:', this.selectedNotification);
+  goToProductDetails(productId?: number | null): void {
+    console.log('🔍 goToProductDetails appelée avec productId:', productId);
+    console.log('🔍 Notification actuelle:', this.selectedNotification);
 
-    // Sauvegarder l'ID AVANT de fermer
     const currentNotification = this.selectedNotification;
 
     this.closeSidebar();
     this.closeDetailSidebar();
 
-    // Utiliser la notification sauvegardée
     let finalProductId = productId;
 
+    // Si pas de productId direct, essayer plusieurs méthodes d'extraction
     if (!finalProductId && currentNotification) {
-      // Essayer différentes sources depuis la notification sauvegardée
+      console.log('🔄 Tentative d\'extraction productId...');
+
+      // Méthode 1: Propriété directe
       finalProductId = currentNotification.productId ||
-        currentNotification.data?.productId ||
-        currentNotification.data?.produitId;
+        currentNotification.produitId;
 
-      console.log('🔍 ProductId extrait de la notification:', finalProductId);
-      console.log('🔍 Détails de la notification:', {
-        productIdDirect: currentNotification.productId,
-        dataProductId: currentNotification.data?.productId,
-        data: currentNotification.data
-      });
+      // Méthode 2: Extraction du message
+      if (!finalProductId && currentNotification.message) {
+        finalProductId = this.extractProductIdFromMessage(currentNotification.message);
+        console.log('📝 ProductId extrait du message:', finalProductId);
+      }
+
+      // Méthode 3: Recherche dans data
+      if (!finalProductId && currentNotification.data) {
+        finalProductId = currentNotification.data.productId ||
+          currentNotification.data.produitId;
+      }
+
+      console.log('✅ ProductId final déterminé:', finalProductId);
     }
 
-    // Si on a un ID valide, rediriger
-    if (finalProductId && finalProductId > 0) {
-      console.log(`📍 Redirection vers /produit/${finalProductId}`);
-      this.router.navigate([`/produit/${finalProductId}`]);
-    } else {
-      console.error('❌ ID produit non disponible ou invalide:', finalProductId);
-      console.error('❌ Notification complète:', currentNotification);
+    // Validation du productId
+    if (finalProductId && !isNaN(finalProductId) && finalProductId > 0) {
+      console.log(`📍 Redirection valide vers /produit/${finalProductId}`);
 
-      // Fallback vers la liste des enchères
-      console.log('⚠️ Fallback vers la liste des enchères');
-      this.router.navigate(['/encheres']);
+      // Vérifier que l'ID est raisonnable (pas 799 quand on attend 80)
+      if (finalProductId > 1000) {
+        console.warn(`⚠️ ID suspect (${finalProductId}) - Vérifier l'extraction`);
+        // Essayer d'extraire à nouveau du message
+        if (currentNotification?.message) {
+          const correctedId = this.extractProductIdFromMessage(currentNotification.message);
+          if (correctedId && correctedId < 1000) {
+            console.log(`🔄 Correction: utilisation de ${correctedId} au lieu de ${finalProductId}`);
+            finalProductId = correctedId;
+          }
+        }
+      }
+
+      setTimeout(() => {
+        this.router.navigate([`/produit/${finalProductId}`]);
+      }, 100);
+    } else {
+      console.error('❌ ID produit invalide:', finalProductId);
+      console.error('❌ Détails notification:', currentNotification);
+
+      // Fallback: rediriger vers la liste des enchères
+      console.log('⚠️ Redirection fallback vers /encheres');
+      setTimeout(() => {
+        this.router.navigate(['/encheres']);
+      }, 100);
     }
   }
 
-// Modifier la méthode goToDelailProducts pour utiliser la nouvelle méthode générique
-  goToDelailProducts(): void {
-    const productId = this.selectedNotification?.productId;
-    if (productId) {
-      this.goToProductDetails(productId);
-    } else {
-      console.log('⚠️ Aucun ID produit trouvé, utilisation du fallback');
-      this.router.navigate(['/produit']);
+  private extractProductIdFromMessage(message: string): number | null {
+    if (!message) return null;
+
+    console.log('🔍 Extraction productId depuis message:', message.substring(0, 150));
+
+    // Chercher le pattern spécifique [productId:123]
+    const pattern = /\[productId:(\d+)\]/i;
+    const match = message.match(pattern);
+
+    if (match && match[1]) {
+      const id = parseInt(match[1], 10);
+      if (!isNaN(id) && id > 0) {
+        console.log('✅ ProductId extrait via pattern [productId:xxx]:', id);
+        return id;
+      }
     }
+
+    console.log('❌ Aucun productId trouvé dans le message avec pattern [productId:xxx]');
+    return null;
   }
+
+// Méthode pour nettoyer le message (enlever le tag [productId:123])
+  cleanMessage(message: string): string {
+    if (!message) return '';
+    // Supprimer le tag [productId:xxx] du message d'affichage
+    return message.replace(/\s*\[productId:\d+\]\s*/gi, '').trim();
+  }
+
+
 
 // Remplacer la méthode goToAdminAlertAction() par cette version améliorée
   goToAdminAlertAction(): void {

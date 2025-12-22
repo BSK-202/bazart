@@ -49,6 +49,7 @@ public class NotificationService {
                     .recipientId(userId)
                     .type(type)
                     .message(rendered)
+
                     .read(false)
                     .createdAt(LocalDateTime.now())
                     .build();
@@ -60,7 +61,7 @@ public class NotificationService {
             Map<String, Object> wsData = new HashMap<>(data);
             wsData.put("type", type.toString());
             wsData.put("message", rendered);
-            wsData.put("productId", data.get("productId")); // S'assurer que productId est inclus
+             wsData.put("productId", data.get("productId")); // S'assurer que productId est inclus
 
             // Canal In-App
             if (pref.isInAppEnabled()) {
@@ -191,11 +192,40 @@ public class NotificationService {
                         (amountStr.isEmpty() ? "" : "\nMontant gagnant: " + amountStr) + "\n" +
                         "Merci pour votre participation !";
             }
-            case NEW_BID:
+            case NEW_BID: {
                 String bidUser = (String) data.getOrDefault("bidUserName", "Un utilisateur");
                 String bidAmount = String.valueOf(data.getOrDefault("bidAmount", ""));
                 String bidProduct = (String) data.getOrDefault("productName", "Produit");
-                return bidUser + " a placé une nouvelle enchère de " + bidAmount + " DH sur \"" + bidProduct + "\".";
+
+                // 🔥 ASSURER QUE LE PRODUCT ID EST DISPONIBLE
+                Long productId = (Long) data.get("productId");
+                if (productId == null) {
+                    productId = (Long) data.get("produitId");
+                }
+                if (productId == null) {
+                    productId = (Long) data.get("idproduit");
+                }
+
+                System.out.println("🎯 Notification NEW_BID - ProductId trouvé dans data: " + productId);
+
+                // Construire le message avec productId intégré
+                String baseMessage = bidUser + " a placé une nouvelle enchère de " + bidAmount + " DH sur \"" + bidProduct + "\".";
+
+                // Si on a un productId, l'ajouter au message
+                if (productId != null) {
+                    String messageWithId = baseMessage + " [productId:" + productId + "]";
+
+                    // 🔥 AJOUTER LE PRODUCT ID COMME DONNÉE SÉPARÉE POUR WEB SOCKET
+                    data.put("wsProductId", productId);
+                    data.put("extractedProductId", productId);
+
+                    System.out.println("📤 Message NEW_BID avec productId: " + messageWithId);
+                    return messageWithId;
+                }
+
+                System.out.println("⚠️ Aucun productId trouvé pour notification NEW_BID");
+                return baseMessage;
+            }
             case OUTBID:
                 String outbidProduct = (String) data.getOrDefault("productName", "Produit");
                 return "Vous avez été surenchéri sur \"" + outbidProduct + "\".";

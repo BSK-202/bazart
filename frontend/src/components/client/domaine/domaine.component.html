@@ -12,13 +12,21 @@
             Tapis berbères, poteries, bijoux et objets d'art aux enchères.
           </p>
           <div class="hero-buttons">
-            <button class="btn-primary">
+            <button
+              class="btn-primary"
+              routerLink="/encheres">
               Explorer les enchères
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7l7 7-7 7"/>
               </svg>
             </button>
-            <button class="btn-outline">En savoir plus</button>
+
+            <!-- Bouton En savoir plus avec clic vers les cartes -->
+            <button
+              class="btn-outline"
+              (click)="scrollToDomaines()">
+              En savoir plus
+            </button>
           </div>
         </div>
 
@@ -34,7 +42,7 @@
     </div>
   </div>
 
-  <div class="container">
+  <div class="container" id="domaines-section">
     <!-- En-tête principal pour la page domaines -->
     <div class="text-center mb-12">
       <h1 class="section-title">Nos Domaines</h1>

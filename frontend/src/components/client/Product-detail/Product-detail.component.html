@@ -12,7 +12,6 @@
 
     <!-- Contenu principal -->
     <div *ngIf="produit && !isLoading" class="grid lg:grid-cols-2 gap-12">
-
       <!-- Images -->
       <div class="space-y-4">
         <div class="relative aspect-square rounded-2xl overflow-hidden bg-muted">
@@ -35,205 +34,290 @@
             />
           </button>
         </div>
-        <!-- DÉPLACER ICI : Bouton favoris et message d'authentification -->
-        <div *ngIf="isAuthenticated" class="secondary-buttons mt-4 mx-auto">
-          <!-- Bouton favoris - Version largeur complète -->
-          <button
-            (click)="handleAddToFavorites()"
-            [disabled]="!isAuthenticated || favorisLoading"
-            class="favoris-button-fullwidth"
-            [class.favoris-active]="isFavori"
-          >
-            <div class="favoris-content">
-              <div class="heart-container">
-                <svg class="heart-icon" viewBox="0 0 24 24">
-                  <path
-                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                    [class.heart-filled]="isFavori"
-                    [class.heart-empty]="!isFavori"
-                  />
-                </svg>
-                <div *ngIf="favorisLoading" class="loading-dots">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              </div>
 
-              <div class="favoris-info">
-                <span class="favoris-title">
-                  {{ isFavori ? 'Retirer des favoris' : 'Ajouter aux favoris' }}
-                </span>
-                <span *ngIf="nombreFavoris > 0" class="favoris-subtitle">
-                  {{ nombreFavoris }} {{ nombreFavoris === 1 ? 'personne aime' : 'personnes aiment' }}
-                </span>
-              </div>
+        <!-- Historique des enchères - DÉPLACÉ ICI -->
+        <div class="mt-8" *ngIf="produit && (isEnchereActive || isEnchereTerminee)">
+          <div class="flex items-center gap-3 mb-4">
+            <svg class="h-5 w-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+            </svg>
+            <h2 class="font-serif text-xl font-bold">
+              {{ isEnchereTerminee ? 'Résultat des enchères' : 'Historique des enchères' }}
+            </h2>
+            <span *ngIf="isLoadingEncheres" class="loading-spinner text-sm">Chargement...</span>
+          </div>
 
-              <div *ngIf="isFavori" class="favoris-indicator">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                </svg>
-              </div>
-            </div>
-          </button>
-        </div>
+          <!-- Conteneur avec scrollbar conditionnelle -->
+          <div class="bg-card rounded-xl border border-border overflow-hidden"
+               [class.max-h-60]="historiqueEncheres.length > 7"
+               [class.overflow-y-auto]="historiqueEncheres.length > 7"
+               [class.custom-scrollbar]="historiqueEncheres.length > 7">
+            <table class="w-full">
+              <thead class="bg-muted/50 border-b border-border"
+                     [class.sticky]="historiqueEncheres.length > 7"
+                     [class.top-0]="historiqueEncheres.length > 7"
+                     [class.z-10]="historiqueEncheres.length > 7">
+              <tr>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Enchérisseur</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Montant</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Date</th>
+                <th class="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Statut</th>
+              </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+              <!-- Message si pas d'enchères -->
+              <tr *ngIf="historiqueEncheres.length === 0 && !isLoadingEncheres">
+                <td colspan="4" class="py-6 px-4 text-center text-muted-foreground">
+                  {{ isEnchereTerminee ? 'Aucune enchère n\'a été placée' : 'Aucune enchère pour le moment. Soyez le premier à enchérir!' }}
+                </td>
+              </tr>
 
-        <!-- Pour les utilisateurs non connectés -->
-        <div *ngIf="!isAuthenticated" class="secondary-buttons mt-4">
-          <div class="auth-prompt p-4 bg-primary/5 border border-primary/20 rounded-lg w-full">
-            <p class="text-sm text-center text-muted-foreground">
-              <a routerLink="/connexion" class="text-primary hover:underline font-medium">Connectez-vous</a>
-              pour ajouter ce produit à vos favoris
-            </p>
+              <!-- Liste des enchères -->
+              <tr *ngFor="let bid of historiqueEncheres"
+                  [class.bg-green-50]="bid.isLeading && !isEnchereTerminee"
+                  [class.bg-yellow-50]="bid.isLeading && isEnchereTerminee"
+                  [class.border-l-4]="bid.isLeading"
+                  [class.border-l-green-500]="bid.isLeading && !isEnchereTerminee"
+                  [class.border-l-yellow-500]="bid.isLeading && isEnchereTerminee">
+                <td class="py-3 px-4">
+                  <div class="flex items-center gap-3">
+                    <!-- Container pour l'avatar de l'enchérisseur -->
+                    <div class="bidder-avatar-container">
+                      <!-- Image de profil chargée depuis le backend -->
+                      <img
+                        [src]="getBidderProfileImageUrl(bid.encherisseurId)"
+                        [alt]="'Photo de profil de ' + bid.bidder"
+                        class="bidder-profile-image"
+                        (error)="onBidderProfileImageError($event, bid)"
+                        *ngIf="!bid.showDefaultAvatar"
+                      />
+
+                      <!-- Avatar par défaut -->
+                      <div
+                        class="default-bidder-avatar"
+                        [class.hidden]="!bid.showDefaultAvatar">
+                        {{ getInitials(bid.bidder) }}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span class="font-medium block text-sm">{{ bid.bidder }}</span>
+                      <span *ngIf="bid.isLeading && isEnchereTerminee" class="text-xs text-yellow-600 font-semibold">
+                        GAGNANT
+                      </span>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-3 px-4">
+                  <span class="font-semibold text-sm">{{ formatPrice(bid.amount) }}</span>
+                </td>
+                <td class="py-3 px-4 text-muted-foreground text-sm">{{ bid.time }}</td>
+                <td class="py-3 px-4">
+                  <span *ngIf="bid.isLeading && !isEnchereTerminee"
+                        class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
+                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    En tête
+                  </span>
+                  <span *ngIf="bid.isLeading && isEnchereTerminee"
+                        class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">
+                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Gagnant
+                  </span>
+                  <span *ngIf="!bid.isLeading" class="text-xs text-muted-foreground">
+                    Dépassée
+                  </span>
+                </td>
+              </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-
       </div>
 
       <!-- Details -->
       <div class="space-y-6">
-        <div>
-          <h1 class="font-serif text-4xl md:text-5xl font-bold mb-4 text-balance">{{ produit.nom }}</h1>
-          <p class="text-lg text-muted-foreground leading-relaxed mb-4">{{ produit.description }}</p>
-
-          <!-- Badge expertise - AVEC CSS INLINE FORCÉ -->
-          <div *ngIf="produit?.etat === 'expertise_validee'" style="margin-top: 16px; margin-bottom: 16px;">
-      <span style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 9999px; font-size: 12px; font-weight: 700; background: linear-gradient(to right, #10b981, #059669); color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-        <svg style="height: 12px; width: 12px;" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-        </svg>
-        <span style="color: white;">Produit Expertisé</span>
-      </span>
+        <!-- Titre et bouton favoris sur la même ligne -->
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div class="flex-1">
+            <h1 class="font-serif text-4xl md:text-5xl font-bold text-balance mb-2">{{ produit.nom }}</h1>
+            <p class="text-lg text-muted-foreground leading-relaxed">{{ produit.description }}</p>
           </div>
 
-          <!-- Expertise details - CARTE BLEUE STYLÉE -->
-          <div *ngIf="produit?.etat === 'expertise_validee' || produit?.expertisePublicComment || produit?.expertiseAuthenticityLevel || produit?.expertiseProductCondition"
-               style="margin-top: 24px; padding: 24px; border-radius: 16px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2px solid #93c5fd; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05);">
-
-            <!-- Header avec icône -->
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid #bfdbfe;">
-              <div style="flex-shrink: 0; width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);">
-                <svg style="height: 20px; width: 20px; color: white;" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                </svg>
+          <!-- Bouton favoris sur la même ligne -->
+          <div class="flex-shrink-0 mt-2 md:mt-0">
+            <div *ngIf="isAuthenticated">
+              <div class="favoris-inline-button"
+                   [class.favoris-active]="isFavori"
+                   (click)="handleAddToFavorites()">
+                <div class="heart-container-inline">
+                  <svg class="heart-icon-inline" viewBox="0 0 24 24">
+                    <path
+                      d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                      [class.heart-filled]="isFavori"
+                      [class.heart-empty]="!isFavori"
+                    />
+                  </svg>
+                </div>
+                <div class="favoris-text-inline">
+                  <div class="favoris-action">
+                    {{ isFavori ? 'Retirer des favoris' : 'Ajouter aux favoris' }}
+                  </div>
+                  <div class="favoris-count-inline" *ngIf="nombreFavoris > 0">
+                    {{ nombreFavoris }} {{ nombreFavoris === 1 ? 'personne aime' : 'personnes aiment' }}
+                  </div>
+                </div>
               </div>
-              <h3 style="font-family: serif; font-size: 20px; font-weight: 700; color: #1e40af; margin: 0;">
-                Rapport d'Expertise
-              </h3>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-              <!-- Authenticité -->
-              <div *ngIf="produit?.expertiseAuthenticityLevel"
-                   style="display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: white; border-radius: 12px; border: 1px solid #dbeafe; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
-                <div style="flex-shrink: 0; width: 32px; height: 32px; background: #dcfce7; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                  <svg style="height: 18px; width: 18px; color: #16a34a;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                  </svg>
-                </div>
-                <div style="flex: 1;">
-                  <span style="font-weight: 600; color: #1f2937; font-size: 13px; display: block; margin-bottom: 4px;">Authenticité</span>
-                  <span style="color: #059669; font-weight: 500; font-size: 14px;">{{ produit.expertiseAuthenticityLevel }}</span>
-                </div>
-              </div>
-
-              <!-- État du produit -->
-              <div *ngIf="produit?.expertiseProductCondition"
-                   style="display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: white; border-radius: 12px; border: 1px solid #dbeafe; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
-                <div style="flex-shrink: 0; width: 32px; height: 32px; background: #dbeafe; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                  <svg style="height: 18px; width: 18px; color: #2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                  </svg>
-                </div>
-                <div style="flex: 1;">
-                  <span style="font-weight: 600; color: #1f2937; font-size: 13px; display: block; margin-bottom: 4px;">État du Produit</span>
-                  <span style="color: #2563eb; font-weight: 500; font-size: 14px;">{{ produit.expertiseProductCondition }}</span>
-                </div>
-              </div>
-
-              <!-- Commentaire de l'expert -->
-              <div *ngIf="produit?.expertisePublicComment"
-                   style="padding: 16px; background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-radius: 12px; border: 1px solid #e9d5ff;">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                  <div style="flex-shrink: 0; width: 32px; height: 32px; background: #f3e8ff; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                    <svg style="height: 18px; width: 18px; color: #9333ea;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                    </svg>
-                  </div>
-                  <span style="font-weight: 600; color: #1f2937; font-size: 13px;">Commentaire de l'Expert</span>
-                </div>
-                <p style="color: #4b5563; font-size: 13px; line-height: 1.6; padding-left: 42px; font-style: italic; border-left: 3px solid #c084fc; margin: 0;">
-                  "{{ produit.expertisePublicComment }}"
-                </p>
-              </div>
-
-
-
-
-
-
-              <div *ngIf="isCurrentUserSeller() && reportDownloadUrl"
-                   style="margin-top: 20px; padding: 24px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 12px; border: 2px solid #93c5fd;">
-
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                  <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <svg style="height: 20px; width: 20px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                  </div>
-                  <div style="flex: 1; min-width: 0;">
-                    <h4 style="font-weight: 700; color: #1e40af; font-size: 15px; margin: 0; line-height: 1.3;">Rapport d'Expertise Complet</h4>
-                    <p style="font-size: 12px; color: #64748b; margin: 0; margin-top: 2px;">Document PDF confidentiel</p>
-                  </div>
-                </div>
-
-                <a [href]="reportDownloadUrl"
-                   target="_blank"
-                   download
-                   style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4), 0 2px 4px -1px rgba(59, 130, 246, 0.3); transition: all 0.3s ease; border: none; cursor: pointer; width: 100%; box-sizing: border-box;"
-                   onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(59, 130, 246, 0.4), 0 4px 6px -2px rgba(59, 130, 246, 0.3)';"
-                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(59, 130, 246, 0.4), 0 2px 4px -1px rgba(59, 130, 246, 0.3)';">
-                  <svg style="height: 18px; width: 18px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                  </svg>
-                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Télécharger le rapport complet</span>
-                  <svg style="height: 14px; width: 14px; margin-left: auto; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                  </svg>
-                </a>
-
-                <div style="margin-top: 14px; display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: white; border-radius: 8px; border: 1px solid #e0e7ff;">
-                  <svg style="height: 16px; width: 16px; color: #6366f1; flex-shrink: 0; margin-top: 2px;" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                  </svg>
-                  <p style="font-size: 11px; color: #64748b; margin: 0; line-height: 1.5; flex: 1;">
-                    Ce rapport contient des informations détaillées sur l'expertise. Confidentiel - Réservé au vendeur uniquement.
-                  </p>
-                </div>
-              </div>
-
-
-
-
-
-
-
-              <!-- Expertise incomplète -->
-              <div *ngIf="produit?.etat === 'expertise_incomplete'"
-                   style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; border: 2px solid #fbbf24;">
-                <svg style="height: 20px; width: 20px; color: #d97706; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            <!-- Pour les utilisateurs non connectés -->
+            <div *ngIf="!isAuthenticated" class="favoris-inline-button favoris-disabled">
+              <div class="heart-container-inline">
+                <svg class="heart-icon-inline" viewBox="0 0 24 24">
+                  <path
+                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                    class="heart-empty"
+                  />
                 </svg>
-                <span style="color: #92400e; font-size: 12px; font-weight: 700;">
-            Informations complémentaires requises
-          </span>
+              </div>
+              <div class="favoris-text-inline">
+                <div class="favoris-action">
+                  <a routerLink="/connexion" class="text-primary hover:underline">Connectez-vous</a> pour aimer
+                </div>
               </div>
             </div>
           </div>
-
         </div>
 
+        <!-- Badge expertise -->
+        <div *ngIf="produit?.etat === 'expertise_validee'" style="margin-top: 16px; margin-bottom: 16px;">
+          <span style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 9999px; font-size: 12px; font-weight: 700; background: linear-gradient(to right, #10b981, #059669); color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <svg style="height: 12px; width: 12px;" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            <span style="color: white;">Produit Expertisé</span>
+          </span>
+        </div>
 
+        <!-- Expertise details (le reste du code reste inchangé) -->
+        <div *ngIf="produit?.etat === 'expertise_validee' || produit?.expertisePublicComment || produit?.expertiseAuthenticityLevel || produit?.expertiseProductCondition"
+             style="margin-top: 24px; padding: 24px; border-radius: 16px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2px solid #93c5fd; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05);">
+
+          <!-- Header avec icône -->
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid #bfdbfe;">
+            <div style="flex-shrink: 0; width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);">
+              <svg style="height: 20px; width: 20px; color: white;" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+              </svg>
+            </div>
+            <h3 style="font-family: serif; font-size: 20px; font-weight: 700; color: #1e40af; margin: 0;">
+              Rapport d'Expertise
+            </h3>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <!-- Authenticité -->
+            <div *ngIf="produit?.expertiseAuthenticityLevel"
+                 style="display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: white; border-radius: 12px; border: 1px solid #dbeafe; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+              <div style="flex-shrink: 0; width: 32px; height: 32px; background: #dcfce7; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <svg style="height: 18px; width: 18px; color: #16a34a;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+              </div>
+              <div style="flex: 1;">
+                <span style="font-weight: 600; color: #1f2937; font-size: 13px; display: block; margin-bottom: 4px;">Authenticité</span>
+                <span style="color: #059669; font-weight: 500; font-size: 14px;">{{ produit.expertiseAuthenticityLevel }}</span>
+              </div>
+            </div>
+
+            <!-- État du produit -->
+            <div *ngIf="produit?.expertiseProductCondition"
+                 style="display: flex; align-items: flex-start; gap: 12px; padding: 16px; background: white; border-radius: 12px; border: 1px solid #dbeafe; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+              <div style="flex-shrink: 0; width: 32px; height: 32px; background: #dbeafe; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                <svg style="height: 18px; width: 18px; color: #2563eb;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
+                </svg>
+              </div>
+              <div style="flex: 1;">
+                <span style="font-weight: 600; color: #1f2937; font-size: 13px; display: block; margin-bottom: 4px;">État du Produit</span>
+                <span style="color: #2563eb; font-weight: 500; font-size: 14px;">{{ produit.expertiseProductCondition }}</span>
+              </div>
+            </div>
+
+            <!-- Commentaire de l'expert -->
+            <div *ngIf="produit?.expertisePublicComment"
+                 style="padding: 16px; background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border-radius: 12px; border: 1px solid #e9d5ff;">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <div style="flex-shrink: 0; width: 32px; height: 32px; background: #f3e8ff; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                  <svg style="height: 18px; width: 18px; color: #9333ea;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                  </svg>
+                </div>
+                <span style="font-weight: 600; color: #1f2937; font-size: 13px;">Commentaire de l'Expert</span>
+              </div>
+              <p style="color: #4b5563; font-size: 13px; line-height: 1.6; padding-left: 42px; font-style: italic; border-left: 3px solid #c084fc; margin: 0;">
+                "{{ produit.expertisePublicComment }}"
+              </p>
+            </div>
+
+            <!-- Rapport complet pour le vendeur -->
+            <div *ngIf="isCurrentUserSeller() && reportDownloadUrl"
+                 style="margin-top: 20px; padding: 24px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 12px; border: 2px solid #93c5fd;">
+
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #3b82f6, #2563eb); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg style="height: 20px; width: 20px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <h4 style="font-weight: 700; color: #1e40af; font-size: 15px; margin: 0; line-height: 1.3;">Rapport d'Expertise Complet</h4>
+                  <p style="font-size: 12px; color: #64748b; margin: 0; margin-top: 2px;">Document PDF confidentiel</p>
+                </div>
+              </div>
+
+              <a [href]="reportDownloadUrl"
+                 target="_blank"
+                 download
+                 style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.4), 0 2px 4px -1px rgba(59, 130, 246, 0.3); transition: all 0.3s ease; border: none; cursor: pointer; width: 100%; box-sizing: border-box;"
+                 onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(59, 130, 246, 0.4), 0 4px 6px -2px rgba(59, 130, 246, 0.3)';"
+                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(59, 130, 246, 0.4), 0 2px 4px -1px rgba(59, 130, 246, 0.3)';">
+                <svg style="height: 18px; width: 18px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Télécharger le rapport complet</span>
+                <svg style="height: 14px; width: 14px; margin-left: auto; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              </a>
+
+              <div style="margin-top: 14px; display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: white; border-radius: 8px; border: 1px solid #e0e7ff;">
+                <svg style="height: 16px; width: 16px; color: #6366f1; flex-shrink: 0; margin-top: 2px;" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <p style="font-size: 11px; color: #64748b; margin: 0; line-height: 1.5; flex: 1;">
+                  Ce rapport contient des informations détaillées sur l'expertise. Confidentiel - Réservé au vendeur uniquement.
+                </p>
+              </div>
+            </div>
+
+            <!-- Expertise incomplète -->
+            <div *ngIf="produit?.etat === 'expertise_incomplete'"
+                 style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; border: 2px solid #fbbf24;">
+              <svg style="height: 20px; width: 20px; color: #d97706; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              <span style="color: #92400e; font-size: 12px; font-weight: 700;">
+                Informations complémentaires requises
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Le reste du code HTML reste inchangé... -->
         <!-- Vendeur -->
         <div class="p-5 bg-muted rounded-xl border border-border" *ngIf="vendeur">
           <p class="text-sm font-medium text-muted-foreground mb-3">Vendu par</p>
@@ -353,7 +437,6 @@
           <p class="text-sm text-muted-foreground">Ce produit n'est pas encore en enchère</p>
         </div>
 
-
         <!-- Authentification requise - Afficher uniquement si l'enchère est active -->
         <div *ngIf="!isAuthenticated && isEnchereActive && !isEnchereTerminee" class="p-4 bg-primary/5 border border-primary/20 rounded-lg">
           <p class="text-sm text-center">
@@ -364,12 +447,8 @@
           </p>
         </div>
 
-
-
         <!-- Version corrigée du formulaire d'enchère -->
         <div *ngIf="isEnchereActive && !isEnchereTerminee && isAuthenticated && canUserBid()" class="space-y-3">
-
-          <!-- Formulaire d'enchère - Structure corrigée -->
           <div class="bid-form-container">
             <!-- Groupe input -->
             <div class="bid-input-group">
@@ -400,7 +479,6 @@
               <span *ngIf="favorisLoading" class="loading-spinner-small"></span>
             </button>
           </div>
-
         </div>
 
         <div *ngIf="isEnchereActive && !isEnchereTerminee && isAuthenticated && isCurrentUserLeading()" class="p-4 bg-purple-50 border border-purple-200 rounded-lg">
@@ -460,106 +538,9 @@
       </div>
     </div>
 
-    <!-- Historique des enchères - Afficher uniquement si l'enchère est active ou terminée -->
-    <div class="mt-16" *ngIf="produit && !isLoading && (isEnchereActive || isEnchereTerminee)">
-      <div class="flex items-center gap-3 mb-6">
-        <svg class="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-        </svg>
-        <h2 class="font-serif text-3xl font-bold">
-          {{ isEnchereTerminee ? 'Résultat des enchères' : 'Historique des enchères' }}
-        </h2>
-        <span *ngIf="isLoadingEncheres" class="loading-spinner text-sm">Chargement...</span>
-      </div>
-
-      <div class="bg-card rounded-xl border border-border overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-muted/50 border-b border-border">
-            <tr>
-              <th class="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Enchérisseur</th>
-              <th class="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Montant</th>
-              <th class="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Date</th>
-              <th class="text-left py-4 px-6 text-sm font-semibold text-muted-foreground">Statut</th>
-            </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-            <!-- Message si pas d'enchères -->
-            <tr *ngIf="historiqueEncheres.length === 0 && !isLoadingEncheres">
-              <td colspan="4" class="py-8 px-6 text-center text-muted-foreground">
-                {{ isEnchereTerminee ? 'Aucune enchère n\'a été placée' : 'Aucune enchère pour le moment. Soyez le premier à enchérir!' }}
-              </td>
-            </tr>
-
-            <!-- Liste des enchères -->
-            <tr *ngFor="let bid of historiqueEncheres"
-                [class.bg-green-50]="bid.isLeading && !isEnchereTerminee"
-                [class.bg-yellow-50]="bid.isLeading && isEnchereTerminee"
-                [class.border-l-4]="bid.isLeading"
-                [class.border-l-green-500]="bid.isLeading && !isEnchereTerminee"
-                [class.border-l-yellow-500]="bid.isLeading && isEnchereTerminee">
-              <td class="py-4 px-6">
-                <div class="flex items-center gap-3">
-                  <!-- Container pour l'avatar de l'enchérisseur -->
-                  <div class="bidder-avatar-container">
-                    <!-- Image de profil chargée depuis le backend -->
-                    <img
-                      [src]="getBidderProfileImageUrl(bid.encherisseurId)"
-                      [alt]="'Photo de profil de ' + bid.bidder"
-                      class="bidder-profile-image"
-                      (error)="onBidderProfileImageError($event, bid)"
-                      *ngIf="!bid.showDefaultAvatar"
-                    />
-
-                    <!-- Avatar par défaut -->
-                    <div
-                      class="default-bidder-avatar"
-                      [class.hidden]="!bid.showDefaultAvatar">
-                      {{ getInitials(bid.bidder) }}
-                    </div>
-                  </div>
-
-                  <div>
-                    <span class="font-medium block">{{ bid.bidder }}</span>
-                    <span *ngIf="bid.isLeading && isEnchereTerminee" class="text-xs text-yellow-600 font-semibold">
-                      GAGNANT
-                    </span>
-                  </div>
-                </div>
-              </td>
-              <td class="py-4 px-6">
-                <span class="font-semibold text-lg">{{ formatPrice(bid.amount) }}</span>
-              </td>
-              <td class="py-4 px-6 text-muted-foreground">{{ bid.time }}</td>
-              <td class="py-4 px-6">
-                <span *ngIf="bid.isLeading && !isEnchereTerminee"
-                      class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">
-                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                  </svg>
-                  En tête
-                </span>
-                <span *ngIf="bid.isLeading && isEnchereTerminee"
-                      class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">
-                  <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                  </svg>
-                  Gagnant
-                </span>
-                <span *ngIf="!bid.isLeading" class="text-xs text-muted-foreground">
-                  Dépassée
-                </span>
-              </td>
-            </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
+    <!-- Section pour enchère non disponible -->
     <div *ngIf="produit && !isLoading && !isEnchereActive && !isEnchereTerminee" class="mt-16 text-center py-12">
       <div class="bg-muted rounded-xl p-8 max-w-md mx-auto">
-        <!-- Ajouter la classe horloge-inactive ici -->
         <svg class="horloge-inactive mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>

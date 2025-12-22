@@ -1018,3 +1018,207 @@ th {
   text-decoration: underline;
 }
 
+/* Styles pour le bouton favoris en ligne */
+.favoris-inline-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  width: 100%;
+  max-width: 280px;
+}
+
+.favoris-inline-button:hover:not(.favoris-disabled) {
+  border-color: #635a5a;
+  background: linear-gradient(to right, #fff5f5, #fef2f2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(252, 165, 165, 0.15);
+}
+
+.favoris-inline-button.favoris-active {
+  border-color: #2e2727;
+  background: linear-gradient(to right, #fef2f2, #fee2e2);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+}
+
+.favoris-inline-button.favoris-disabled {
+  opacity: 0.8;
+  cursor: default;
+}
+
+.favoris-inline-button.favoris-disabled:hover {
+  border-color: #e5e7eb;
+  background: white;
+  transform: none;
+  box-shadow: none;
+}
+
+.heart-container-inline {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heart-icon-inline {
+  width: 24px;
+  height: 24px;
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.heart-empty {
+  fill: none;
+  stroke: #9ca3af;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.heart-filled {
+  fill: #191717;
+  stroke: #272525;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: heartBeatFull 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.favoris-text-inline {
+  flex: 1;
+  min-width: 0;
+}
+
+.favoris-action {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #374151;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.favoris-inline-button.favoris-active .favoris-action {
+  color: #151515;
+}
+
+.favoris-count-inline {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.favoris-inline-button.favoris-active .favoris-count-inline {
+  color: #1c1c1c;
+}
+
+.favoris-inline-button.favoris-disabled .favoris-action a {
+  color: #3b82f6;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.favoris-inline-button.favoris-disabled .favoris-action a:hover {
+  text-decoration: underline;
+}
+
+/* Animation de cœur */
+@keyframes heartBeatFull {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Styles conditionnels pour le tableau d'historique */
+.max-h-60 {
+  max-height: 15rem; /* 240px - environ 5 lignes */
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+/* Personnalisation de la scrollbar uniquement quand nécessaire */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  heigth:100px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* En-tête fixe quand il y a défilement */
+.sticky {
+  position: sticky;
+}
+
+.top-0 {
+  top: 0;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+/* Responsive pour le bouton favoris */
+@media (max-width: 768px) {
+  .favoris-inline-button {
+    max-width: 100%;
+    padding: 10px 14px;
+  }
+
+  .favoris-action {
+    font-size: 0.9rem;
+  }
+
+  .favoris-count-inline {
+    font-size: 0.8rem;
+  }
+}
+
+/* Ajustement pour l'alignement du titre et du bouton */
+@media (max-width: 768px) {
+  .flex-col.md\:flex-row {
+    flex-direction: column;
+  }
+
+  .md\:items-start {
+    align-items: stretch;
+  }
+
+  .md\:justify-between {
+    justify-content: flex-start;
+  }
+
+  .md\:mt-0 {
+    margin-top: 1rem;
+  }
+}

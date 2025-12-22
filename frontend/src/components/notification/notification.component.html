@@ -45,7 +45,7 @@
         (click)="openNotificationDetail(notif)"
       >
         <div class="notif-item-content">
-          <div class="notif-message">{{ notif.message }}</div>
+          <div class="notif-message">{{ cleanMessage(notif.message) }}</div>
           <div class="notif-time">{{ notif.createdAt | date:'short' }}</div>
         </div>
         <div class="notif-indicator" *ngIf="!notif.read"></div>
@@ -71,7 +71,7 @@
           {{ !selectedNotification.read ? 'Non lue' : 'Lue' }}
         </div>
 
-        <div class="detail-message">{{ selectedNotification.message }}</div>
+        <div class="detail-message">{{ cleanMessage(selectedNotification.message) }}</div>
 
         <div class="detail-meta">
           <div class="meta-item">
