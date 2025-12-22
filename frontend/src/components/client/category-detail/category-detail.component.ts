@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { Router } from '@angular/router';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { forkJoin } from 'rxjs';
+import {forkJoin, Observable} from 'rxjs';
 import { InteractionService } from '../../../services/interaction.service';
 import { CommentaireService } from '../../../services/commentaire.service';
 import { AuthService } from '../../../services/auth.service';
@@ -11,6 +11,7 @@ import { CommentModalComponent } from '../comment-modal/comment-modal.component'
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import { faHeart as faHeartSolid } from '@fortawesome/free-solid-svg-icons';
 import { faHeart as faHeartRegular, faComment } from '@fortawesome/free-regular-svg-icons';
+import {map} from 'rxjs/operators';
 
 interface Produit {
   id: number;
@@ -134,12 +135,12 @@ export class CategoryDetailComponent implements OnInit {
 
     this.http.get<any>(url).subscribe({
       next: (categoryData) => {
-        console.log('✅ Informations catégorie reçues:', categoryData);
+        console.log(' Informations catégorie reçues:', categoryData);
 
         // 🆕 PRIORITÉ à l'image des queryParams, sinon celle de l'API
         const categoryImage = this.categorieImage || categoryData.image;
 
-        console.log('🖼️ Image sélectionnée:', {
+        console.log('🖼 Image sélectionnée:', {
           fromQueryParams: this.categorieImage,
           fromAPI: categoryData.image,
           final: categoryImage
@@ -152,7 +153,7 @@ export class CategoryDetailComponent implements OnInit {
           description: categoryData.description
         };
 
-        console.log('📋 Catégorie actuelle:', this.currentCategory);
+        console.log(' Catégorie actuelle:', this.currentCategory);
       },
       error: (err) => {
         console.error('❌ Erreur chargement info catégorie:', err);
@@ -173,7 +174,7 @@ export class CategoryDetailComponent implements OnInit {
   }
 
   getCategorieImageUrl(imageName: string | undefined): string {
-    console.log('🖼️ Construction URL image catégorie:', imageName);
+    console.log('🖼 Construction URL image catégorie:', imageName);
 
     if (!imageName || imageName.trim() === '') {
       console.log('❌ Nom d\'image vide, utilisation placeholder');
@@ -286,7 +287,7 @@ export class CategoryDetailComponent implements OnInit {
     }
 
     this.isLoading = true;
-    const url = `${this.API_BASE_URL}/api/produits/categorie/${this.categorieId}/acceptes`;
+    const url = `${this.API_BASE_URL}/api/produits/categorie/${this.categorieId}/all`;
 
     this.http.get<Produit[]>(url).subscribe({
       next: (data) => {
@@ -310,7 +311,24 @@ export class CategoryDetailComponent implements OnInit {
       }
     });
   }
+  // Dans votre component TypeScript (category-detail.component.ts)
+  getProduitsValides(): any[] {
+    if (!this.produits || this.produits.length === 0) {
+      return [];
+    }
 
+    // Filtrer les produits dont l'état est différent de "en_attente"
+    return this.produits.filter(produit => produit.etat !== 'en_attente');
+  }
+  getProduitsCountByCategorie(idCategorie: number): Observable<number> {
+    return this.http.get<any[]>(
+      `${this.API_BASE_URL}/api/produits/categorie/${idCategorie}/all`
+    ).pipe(
+      map(produits =>
+        produits.filter(p => p.etat !== 'en_attente').length
+      )
+    );
+  }
   private checkAllLikes(): void {
     if (!this.authService.isLoggedIn()) {
       console.log('👤 Utilisateur non connecté - pas de vérification des likes');
@@ -351,21 +369,14 @@ export class CategoryDetailComponent implements OnInit {
         return 'En enchère';
       case 'vendu':
         return 'Vendu';
+      case 'enchere_termine':
+        return 'Enchère terminé';
+      case 'relance':
+          return 'En enchère';
       default:
-        return etat || 'Publié';
+        return etat || 'Enchère terminé';
     }
   }
 
-  getEtatClass(etat: string): string {
-    switch (etat?.toLowerCase()) {
-      case 'accepte':
-        return 'status-published';
-      case 'en_enchere':
-        return 'status-auction';
-      case 'vendu':
-        return 'status-sold';
-      default:
-        return 'status-published';
-    }
-  }
+
 }

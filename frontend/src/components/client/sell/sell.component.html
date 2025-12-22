@@ -1,17 +1,19 @@
 <main>
+  <!-- Hero Section -->
   <section class="hero-section">
-    <div class="container text-center">
-      <h1 class="hero-title">Vendez Votre Artisanat</h1>
+    <div class="container">
+      <h1 class="hero-title">Vendez Votre Artisanat sur Bazart</h1>
       <p class="hero-subtitle">
-        Mettez vos pièces d'artisanat marocain aux enchères et touchez des collectionneurs du monde entier
+        Valorisez vos pièces uniques auprès de collectionneurs passionnés
       </p>
     </div>
   </section>
 
+  <!-- Benefits Cards -->
   <section class="benefits-section">
     <div class="container">
       <div class="benefits-grid">
-        <div *ngFor="let benefit of benefits" class="benefit-item">
+        <div *ngFor="let benefit of benefits" class="benefit-card">
           <div class="benefit-icon">
             <svg *ngIf="benefit.icon === 'trending-up'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
@@ -28,31 +30,53 @@
         </div>
       </div>
 
-      <div class="form-container">
-        <div class="form-card">
-          <div class="form-header">
-            <h2 class="form-title">Publier un Produit </h2>
-            <p class="form-description">Remplissez les informations sur votre article</p>
+      <!-- Form Card -->
+      <div class="form-card">
+        <!-- Progress Steps -->
+        <div class="steps-header">
+          <div class="step-item" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
+            <div class="step-circle">1</div>
+            <span class="step-text">Informations</span>
           </div>
-          <form (submit)="onSubmit()" class="form">
+          <div class="step-line" [class.active]="currentStep > 1"></div>
+          <div class="step-item" [class.active]="currentStep === 2" [class.completed]="currentStep > 2">
+            <div class="step-circle">2</div>
+            <span class="step-text">Expertise</span>
+          </div>
+          <div class="step-line" [class.active]="currentStep > 2"></div>
+          <div class="step-item" [class.active]="currentStep === 3" [class.completed]="currentStep > 3">
+            <div class="step-circle">3</div>
+            <span class="step-text">Photos</span>
+          </div>
+        </div>
+
+        <!-- Form Content -->
+        <form (submit)="onSubmit()" class="form-content">
+          <!-- Step 1: Basic Information -->
+          <div *ngIf="currentStep === 1" class="step-panel">
+            <h2 class="step-title">Informations de base</h2>
+            <p class="step-subtitle">Remplissez les informations essentielles sur votre article</p>
 
             <div class="form-grid">
-
               <div class="form-group">
-                <label for="title" class="form-label">Titre de l'article *</label>
+                <label for="title" class="form-label">Titre de l'article <span class="required">*</span></label>
                 <input
                   id="title"
                   type="text"
-                  placeholder="Ex: Tapis Berbère Beni Ouarain Authentique"
+                  placeholder="Ex: Tapis Beni Ouarain Authentique 2x3m"
                   [(ngModel)]="formData.title"
                   name="title"
                   class="form-input"
                   required
+                  #titleInput="ngModel"
                 />
+                <div *ngIf="titleInput.invalid && titleInput.touched" class="error-message">
+                  Le titre est requis
+                </div>
               </div>
 
               <div class="form-group">
-                <label for="startingPrice" class="form-label">Prix de départ (DH) *</label>
+                <label for="startingPrice" class="form-label">Prix de départ (DH) <span class="required">*</span></label>
                 <input
                   id="startingPrice"
                   type="number"
@@ -61,225 +85,315 @@
                   name="startingPrice"
                   class="form-input"
                   required
+                  min="0"
+                  #priceInput="ngModel"
                 />
+                <div *ngIf="priceInput.invalid && priceInput.touched" class="error-message">
+                  Le prix est requis
+                </div>
               </div>
 
               <div class="form-group">
-                <label for="domain" class="form-label">Domaine *</label>
+                <label for="domain" class="form-label">Domaine <span class="required">*</span></label>
                 <select
                   id="domain"
                   [(ngModel)]="formData.domain"
                   name="domain"
                   class="form-select"
                   (change)="onDomainChange(formData.domain)"
-                  required>
+                  required
+                  #domainInput="ngModel"
+                >
                   <option [ngValue]="null">Sélectionnez un domaine</option>
                   <option *ngFor="let dom of domaines" [ngValue]="dom.idDomaine">
                     {{ dom.nomDomaine }}
                   </option>
                 </select>
+                <div *ngIf="domainInput.invalid && domainInput.touched" class="error-message">
+                  Le domaine est requis
+                </div>
               </div>
 
               <div class="form-group">
-                <label for="category" class="form-label">Catégorie *</label>
+                <label for="category" class="form-label">Catégorie <span class="required">*</span></label>
                 <select
                   id="category"
                   [(ngModel)]="formData.category"
                   name="category"
                   class="form-select"
-                  required>
+                  required
+                  #categoryInput="ngModel"
+                >
                   <option value="">Sélectionnez une catégorie</option>
                   <option *ngFor="let cat of filteredCategories" [value]="cat.idCategorie">
                     {{ cat.nomCategorie }}
                   </option>
                 </select>
+                <div *ngIf="categoryInput.invalid && categoryInput.touched" class="error-message">
+                  La catégorie est requise
+                </div>
               </div>
 
-              <!-- Choix d'expertise -->
-              <div class="form-group">
-                <label class="form-label">Souhaitez-vous faire expertiser ce produit ?</label>
-                <div class="form-check">
+              <div class="form-group full-width">
+                <label for="description" class="form-label">Description <span class="required">*</span></label>
+                <textarea
+                  id="description"
+                  placeholder="Décrivez votre article : matériaux, dimensions, histoire, état..."
+                  [(ngModel)]="formData.description"
+                  name="description"
+                  class="form-textarea"
+                  required
+                  #descInput="ngModel"
+                ></textarea>
+                <div *ngIf="descInput.invalid && descInput.touched" class="error-message">
+                  La description est requise
+                </div>
+                <small class="form-hint">Plus votre description est détaillée, plus les acheteurs seront intéressés</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Expertise -->
+          <div *ngIf="currentStep === 2" class="step-panel">
+            <h2 class="step-title">Expertise & Authentification</h2>
+            <p class="step-subtitle">Valorisez votre article avec une certification d'authenticité</p>
+
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <div class="checkbox-card">
                   <input
                     type="checkbox"
                     id="isExpertised"
                     [(ngModel)]="formData.isExpertised"
                     name="isExpertised"
                   />
-                  <label for="isExpertised">Oui, je veux une expertise avant mise en enchère</label>
+                  <label for="isExpertised" class="checkbox-label">
+                    <strong>Demander une expertise professionnelle</strong>
+                    <small>Les articles certifiés obtiennent en moyenne 30% de prix plus élevés</small>
+                  </label>
                 </div>
               </div>
 
-              <div class="form-group" *ngIf="formData.isExpertised">
-                <label class="form-label">Type d'expertise *</label>
-                <div class="form-check-group">
-                  <label class="form-check-inline">
+              <div *ngIf="formData.isExpertised" class="form-group full-width">
+                <label class="form-label">Type d'expertise <span class="required">*</span></label>
+                <div class="radio-grid">
+                  <label class="radio-card">
                     <input
                       type="radio"
                       name="expertiseType"
                       [(ngModel)]="formData.expertiseType"
                       value="online"
-                      required
                     />
-                    En ligne
+                    <div class="radio-content">
+                      <strong>Expertise en ligne</strong>
+                      <small>Analyse par visioconférence avec nos experts</small>
+                    </div>
                   </label>
-                  <label class="form-check-inline">
+                  <label class="radio-card">
                     <input
                       type="radio"
                       name="expertiseType"
                       [(ngModel)]="formData.expertiseType"
                       value="onsite"
-                      required
                     />
-                    Sur place (au magasin Bazart)
+                    <div class="radio-content">
+                      <strong>Expertise sur place</strong>
+                      <small>Rendez-vous dans notre showroom à Casablanca</small>
+                    </div>
                   </label>
                 </div>
-                <small class="form-text" *ngIf="formData.expertiseType === 'onsite'">
-                  L'expertise aura lieu dans notre magasin Bazart (adresse fixe).
-                </small>
               </div>
-              <div class="form-group" *ngIf="formData.isExpertised && formData.expertiseType === 'onsite'">
-                <label class="form-label">
-                  Proposez jusqu'à 3 créneaux d'expertise dans les 4 prochains jours
-                </label>
 
-                <div class="slots-grid">
-                  <div class="slot-item">
-                    <label for="slot1">Créneau 1 *</label>
-                    <input
-                      id="slot1"
-                      type="datetime-local"
-                      class="form-input"
-                      [(ngModel)]="formData.expertiseSlot1"
-                      name="expertiseSlot1"
-                      required
-                    />
+              <div *ngIf="formData.isExpertised && formData.expertiseType === 'onsite'" class="form-group full-width">
+                <div class="slots-container">
+                  <label class="form-label">Proposez 3 créneaux pour l'expertise</label>
+                  <div class="slots-grid">
+                    <div class="slot-group">
+                      <label for="slot1">Créneau 1 <span class="required">*</span></label>
+                      <input
+                        id="slot1"
+                        type="datetime-local"
+                        class="form-input"
+                        [(ngModel)]="formData.expertiseSlot1"
+                        name="expertiseSlot1"
+                        required
+                        #slot1Input="ngModel"
+                      />
+                      <div *ngIf="slot1Input.invalid && slot1Input.touched" class="error-message">Requis</div>
+                    </div>
+                    <div class="slot-group">
+                      <label for="slot2">Créneau 2 <span class="required">*</span></label>
+                      <input
+                        id="slot2"
+                        type="datetime-local"
+                        class="form-input"
+                        [(ngModel)]="formData.expertiseSlot2"
+                        name="expertiseSlot2"
+                        required
+                        #slot2Input="ngModel"
+                      />
+                      <div *ngIf="slot2Input.invalid && slot2Input.touched" class="error-message">Requis</div>
+                    </div>
+                    <div class="slot-group">
+                      <label for="slot3">Créneau 3 <span class="required">*</span></label>
+                      <input
+                        id="slot3"
+                        type="datetime-local"
+                        class="form-input"
+                        [(ngModel)]="formData.expertiseSlot3"
+                        name="expertiseSlot3"
+                        required
+                        #slot3Input="ngModel"
+                      />
+                      <div *ngIf="slot3Input.invalid && slot3Input.touched" class="error-message">Requis</div>
+                    </div>
                   </div>
-
-                  <div class="slot-item">
-                    <label for="slot2">Créneau 2 *</label>
-                    <input
-                      id="slot2"
-                      type="datetime-local"
-                      class="form-input"
-                      [(ngModel)]="formData.expertiseSlot2"
-                      name="expertiseSlot2"
-                      required
-                    />
-                  </div>
-
-                  <div class="slot-item">
-                    <label for="slot3">Créneau 3 *</label>
-                    <input
-                      id="slot3"
-                      type="datetime-local"
-                      class="form-input"
-                      [(ngModel)]="formData.expertiseSlot3"
-                      name="expertiseSlot3"
-                      required
-                    />
-                  </div>
+                  <small class="form-hint">Notre expert choisira l'un de ces créneaux</small>
                 </div>
-
-                <small class="form-text">
-                  L'expert choisira un de ces créneaux. Veillez à être disponible à ces dates.
-                </small>
               </div>
 
               <div class="form-group full-width">
-                <label for="description" class="form-label">Description *</label>
-                <textarea
-                  id="description"
-                  placeholder="Décrivez votre article en détail..."
-                  [(ngModel)]="formData.description"
-                  name="description"
-                  class="form-textarea"
-                  required
-                ></textarea>
+                <div class="info-box">
+                  <h4>Avantages de l'expertise</h4>
+                  <ul>
+                    <li>Certification d'authenticité officielle</li>
+                    <li>Augmentation de la confiance des acheteurs</li>
+                    <li>Prix de vente moyen supérieur de 30%</li>
+                    <li>Mise en avant sur la plateforme</li>
+                  </ul>
+                </div>
               </div>
+            </div>
+          </div>
 
+          <!-- Step 3: Photos -->
+          <div *ngIf="currentStep === 3" class="step-panel">
+            <h2 class="step-title">Galerie photos & Finalisation</h2>
+            <p class="step-subtitle">Montrez votre article sous tous ses angles</p>
+
+            <div class="form-grid">
               <div class="form-group full-width">
-                <label class="form-label">Photos *</label>
-
+                <label class="form-label">Photos de l'article <span class="required">*</span></label>
                 <div
-                  class="upload-area"
-                  [class.drag-over]="isDragOver"
+                  class="upload-zone"
+                  [class.drag-active]="isDragOver"
                   (dragover)="onDragOver($event)"
                   (dragleave)="onDragLeave($event)"
                   (drop)="onDrop($event)"
-                  (click)="fileInput.click()">
-
+                  (click)="fileInput.click()"
+                >
                   <input
                     #fileInput
                     type="file"
                     multiple
                     accept="image/*"
                     (change)="onFileSelected($event)"
-                    class="file-input"
                     style="display: none"
                   />
-
                   <div class="upload-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                     </svg>
                   </div>
-                  <p class="upload-text">Cliquez pour télécharger ou glissez-déposez</p>
-                  <p class="upload-note">PNG, JPG jusqu'à 10MB (minimum 3 photos)</p>
-                  <p class="upload-count" *ngIf="formData.images.length > 0">
+                  <p class="upload-title">Glissez-déposez vos photos ici</p>
+                  <p class="upload-subtitle">ou cliquez pour parcourir</p>
+                  <span class="upload-badge" *ngIf="formData.images.length > 0">
                     {{ formData.images.length }} photo(s) sélectionnée(s)
-                  </p>
+                  </span>
                 </div>
 
-                <div class="image-previews" *ngIf="imagePreviews.length > 0">
-                  <div
-                    *ngFor="let preview of imagePreviews; let i = index"
-                    class="image-preview">
-                    <img [src]="preview" [alt]="'Image ' + (i + 1)" />
-                    <button
-                      type="button"
-                      class="remove-image"
-                      (click)="removeImage(i)">
-                      ×
-                    </button>
+                <div class="image-grid" *ngIf="imagePreviews.length > 0">
+                  <div *ngFor="let preview of imagePreviews; let i = index" class="image-item">
+                    <img [src]="preview" [alt]="'Photo ' + (i + 1)" />
+                    <button type="button" class="delete-btn" (click)="removeImage(i)">×</button>
+                  </div>
+                </div>
+
+                <div class="info-box">
+                  <h4>Conseils pour vos photos</h4>
+                  <ul>
+                    <li><strong>Minimum 3 photos</strong>, maximum 10</li>
+                    <li><strong>Angles variés</strong> : face, profil, dos, détails</li>
+                    <li><strong>Bon éclairage</strong> : photos nettes et lumineuses</li>
+                    <li><strong>Arrière-plan neutre</strong> pour mettre en valeur</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="form-group full-width">
+                <div class="summary-box">
+                  <h4>Récapitulatif</h4>
+                  <div class="summary-row">
+                    <span class="summary-label">Titre :</span>
+                    <span class="summary-value">{{ formData.title || '—' }}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="summary-label">Prix de départ :</span>
+                    <span class="summary-value">{{ formData.startingPrice ? formData.startingPrice + ' DH' : '—' }}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="summary-label">Expertise :</span>
+                    <span class="summary-value">{{ formData.isExpertised ? 'Oui' : 'Non' }}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="summary-label">Photos :</span>
+                    <span class="summary-value">{{ formData.images.length }}</span>
                   </div>
                 </div>
               </div>
-            </div> <div class="form-actions">
-            <button type="submit" class="btn-primary">
-              Créer l'Enchère
-            </button>
-            <button type="button" class="btn-secondary" (click)="onPreview()">
-              Aperçu
-            </button>
+            </div>
           </div>
 
-          </form>
-        </div>
+          <!-- Navigation Buttons -->
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" *ngIf="currentStep > 1" (click)="prevStep()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              </svg>
+              Retour
+            </button>
+            <div class="spacer"></div>
+            <button type="button" class="btn btn-outline" (click)="onPreview()">
+              Aperçu
+            </button>
+            <button type="button" class="btn btn-primary" *ngIf="currentStep < 3" (click)="nextStep()">
+              Continuer
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+            <button type="submit" class="btn btn-primary" *ngIf="currentStep === 3">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              Publier
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </section>
 
-  <section class="info-section">
+  <!-- How It Works Section -->
+  <section class="how-it-works">
     <div class="container">
-      <div class="info-content">
-        <h2 class="info-title">Conditions de Vente</h2>
-        <div class="info-text">
-          <p class="info-paragraph">
-            <strong>Commission:</strong> Nous prélevons une commission de 15% sur le
-            prix final de vente. Cette commission couvre les frais de plateforme, de marketing et de support client.
-          </p>
-          <p class="info-paragraph">
-            <strong>Durée des enchères:</strong> Les enchères durent généralement 7
-            jours. Vous pouvez choisir une durée personnalisée entre 3 et 14 jours.
-          </p>
-          <p class="info-paragraph">
-            <strong>Paiement:</strong> Vous recevrez votre paiement sous 5 jours
-            ouvrables après la fin de l'enchère et la confirmation de la réception par l'acheteur.
-          </p>
-          <p class="info-paragraph">
-            <strong>Authentification:</strong> Tous les articles sont vérifiés par nos
-            experts avant publication pour garantir leur authenticité.
-          </p>
+      <h2 class="section-title">Comment ça marche ?</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <h3>Publication simple</h3>
+          <p>Remplissez le formulaire et notre équipe validera votre annonce sous 24h.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Expertise optionnelle</h3>
+          <p>Obtenez une certification d'authenticité qui augmente la confiance des acheteurs.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Commission transparente</h3>
+          <p>15% sur le prix final. Aucun frais caché. Paiement sécurisé garanti.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Protection vendeur</h3>
+          <p>Nous vérifions les acheteurs et garantissons les paiements.</p>
         </div>
       </div>
     </div>

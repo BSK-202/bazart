@@ -27,6 +27,9 @@ interface RegisterResponse {
 export class SignupComponent implements OnInit {
 
   // --- Champs Client ---
+  currentStep = 1;
+  showPassword = false;
+  showConfirmPassword = false;
   nom = '';
   prenom = '';
   email = '';
@@ -147,8 +150,24 @@ export class SignupComponent implements OnInit {
   }
 
   private validateExpertFields(): boolean {
-    if (!this.biography || !this.nombreAnneesExperience || !this.domaineId || this.categoriesIds.length === 0 || this.langues.length === 0) {
-      this.error = 'Veuillez remplir tous les champs requis pour le profil Expert.';
+    if (!this.biography.trim()) {
+      this.error = 'La biographie est requise pour le profil Expert';
+      return false;
+    }
+    if (!this.nombreAnneesExperience || this.nombreAnneesExperience <= 0) {
+      this.error = 'Veuillez spécifier vos années d\'expérience';
+      return false;
+    }
+    if (!this.domaineId) {
+      this.error = 'Veuillez sélectionner un domaine principal';
+      return false;
+    }
+    if (this.categoriesIds.length === 0) {
+      this.error = 'Veuillez sélectionner au moins une catégorie d\'expertise';
+      return false;
+    }
+    if (this.langues.length === 0) {
+      this.error = 'Veuillez sélectionner au moins une langue parlée';
       return false;
     }
     return true;
@@ -234,4 +253,26 @@ export class SignupComponent implements OnInit {
       this.loading = false;
     }
   }
+  // Ajoutez ces méthodes
+  nextStep(): void {
+    if (this.currentStep === 1) {
+      this.currentStep = 2;
+    } else if (this.currentStep === 2) {
+      // Validation basique avant de passer à l'étape 3
+      if (!this.nom || !this.prenom || !this.email || !this.pays || !this.ville) {
+        this.error = 'Veuillez remplir tous les champs obligatoires (*)';
+        return;
+      }
+      this.currentStep = 3;
+    }
+  }
+
+  prevStep(): void {
+    if (this.currentStep > 1) {
+      this.currentStep--;
+    }
+  }
+
+// Modifiez la méthode validateExpertFields pour être plus spécifique
+
 }

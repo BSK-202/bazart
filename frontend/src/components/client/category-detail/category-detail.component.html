@@ -9,9 +9,9 @@
         [routerLink]="['/domaines', domaineSlug]"
         class="breadcrumb-link">
         {{ domaineSlug | titlecase }}
-      </a>      <span class="breadcrumb-separator">/</span>
+      </a>
+      <span class="breadcrumb-separator">/</span>
       <span *ngIf="domaineSlug" class="breadcrumb-separator">/</span>
-
 
       <a
         *ngIf="!domaineSlug"
@@ -23,7 +23,6 @@
       <span *ngIf="!domaineSlug" class="breadcrumb-separator">/</span>
 
       <span class="breadcrumb-current">{{ currentCategory?.nom || (categorieSlug | titlecase) }}</span>
-
     </div>
   </div>
 
@@ -48,7 +47,8 @@
     <div class="products-section">
       <div class="section-header">
         <h2 class="section-title">Enchères Disponibles</h2>
-        <p class="products-count">{{ produits.length }} articles dans cette catégorie</p>
+        <!-- Modifiez ici pour compter uniquement les produits non "en_attente" -->
+        <p class="products-count">{{ getProduitsValides().length }} articles dans cette catégorie</p>
       </div>
 
       <!-- Indicateur de chargement -->
@@ -56,10 +56,10 @@
         <div class="loading-spinner">Chargement des produits...</div>
       </div>
 
-      <!-- Grille des produits -->
+      <!-- Grille des produits - Utilisez getProduitsValides() au lieu de produits -->
       <div *ngIf="!isLoading" class="auctions-grid">
         <div
-          *ngFor="let produit of produits"
+          *ngFor="let produit of getProduitsValides()"
           class="auction-card"
           [attr.data-produit-id]="produit.id"
           (click)="goToProductDetail(produit.id)">
@@ -68,17 +68,17 @@
           <div class="auction-image" style="position: relative;">
             <img [src]="produit.imagePrincipale" [alt]="produit.nom" class="item-image">
 
-            <div class="time-badge">En cours</div>
+            <div class="time-badge">{{getEtatDisplayText(produit.etat)}}</div>
 
             <!-- Badge expertise - POSITIONNÉ EN ABSOLU SUR L'IMAGE -->
             <div *ngIf="produit.etat === 'expertise_validee'"
                  style="position: absolute; top: 12px; left: 12px; z-index: 10;">
-        <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; background: linear-gradient(to right, #10b981, #059669); color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);">
-          <svg style="height: 10px; width: 10px;" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-          </svg>
-          <span style="color: white; font-size: 10px;">Expertisé</span>
-        </span>
+              <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; background: linear-gradient(to right, #10b981, #059669); color: white; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);">
+                <svg style="height: 10px; width: 10px;" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+                <span style="color: white; font-size: 10px;">Expertisé</span>
+              </span>
             </div>
           </div>
 
@@ -106,8 +106,8 @@
         </div>
       </div>
 
-      <!-- Message si aucun produit -->
-      <div *ngIf="!isLoading && produits.length === 0" class="no-products">
+      <!-- Message si aucun produit valide -->
+      <div *ngIf="!isLoading && getProduitsValides().length === 0" class="no-products">
         <p>Aucun produit disponible dans cette catégorie.</p>
       </div>
     </div>

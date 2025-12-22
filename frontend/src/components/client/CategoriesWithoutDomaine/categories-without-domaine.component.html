@@ -44,7 +44,7 @@
         *ngFor="let category of categories"
         class="category-item"
         [routerLink]="['/categories', category.slug, category.idCategorie]"
-        [queryParams]="{image: category.image}">>
+        [queryParams]="{image: category.image}">
 
         <div class="image-container">
           <img

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import {map} from 'rxjs/operators';
 
 interface Categorie {
   idCategorie: number;
@@ -71,25 +72,72 @@ export class AllCategoriesComponent implements OnInit {
             next: (categories) => {
               console.log('📄 Données catégories reçues:', categories);
 
-              this.filteredCategories = categories.map(cat => {
-                const categoryWithSlug = {
-                  idCategorie: cat.idCategorie,
-                  nomCategorie: cat.nomCategorie,
-                  slug: this.createSlug(cat.nomCategorie),
-                  image: this.getCategorieImageUrl(cat.image),
-                  description: cat.description,
-                  count: 0,
-                  domaineSlug: this.domaineSlug
-                };
+              // Créez un tableau pour stocker les catégories avec leurs counts
+              const categoriesWithCounts: CategoryWithSlug[] = [];
 
-                console.log(`🔍 Catégorie: ${cat.nomCategorie}`);
-                console.log(`   Slug: "${categoryWithSlug.slug}"`);
-                console.log(`   ID: ${cat.idCategorie}`);
-                console.log(`   Image: "${categoryWithSlug.image}"`);
+              // Utilisez un compteur pour savoir quand toutes les requêtes sont terminées
+              let loadedCount = 0;
+              const totalCategories = categories.length;
 
-                return categoryWithSlug;
+              if (totalCategories === 0) {
+                this.isLoading = false;
+                return;
+              }
+
+              categories.forEach(cat => {
+                const categorySlug = this.createSlug(cat.nomCategorie);
+
+                // Récupérez le count pour chaque catégorie
+                this.getProduitsCountByCategorie(cat.idCategorie).subscribe({
+                  next: (count) => {
+                    const categoryWithSlug: CategoryWithSlug = {
+                      idCategorie: cat.idCategorie,
+                      nomCategorie: cat.nomCategorie,
+                      slug: categorySlug,
+                      image: this.getCategorieImageUrl(cat.image),
+                      description: cat.description,
+                      count: count, // Stockez directement le nombre
+                      domaineSlug: this.domaineSlug
+                    };
+
+                    categoriesWithCounts.push(categoryWithSlug);
+                    loadedCount++;
+
+                    console.log(`🔍 Catégorie: ${cat.nomCategorie}, Produits: ${count}`);
+
+                    // Quand toutes les catégories sont chargées
+                    if (loadedCount === totalCategories) {
+                      // Triez éventuellement par nombre de produits
+                      categoriesWithCounts.sort((a, b) => b.count - a.count);
+
+                      this.filteredCategories = categoriesWithCounts;
+                      this.isLoading = false;
+                    }
+                  },
+                  error: (error) => {
+                    console.error(`Erreur chargement count pour catégorie ${cat.idCategorie}:`, error);
+
+                    // Ajoutez quand même la catégorie avec count = 0 en cas d'erreur
+                    const categoryWithSlug: CategoryWithSlug = {
+                      idCategorie: cat.idCategorie,
+                      nomCategorie: cat.nomCategorie,
+                      slug: categorySlug,
+                      image: this.getCategorieImageUrl(cat.image),
+                      description: cat.description,
+                      count: 0,
+                      domaineSlug: this.domaineSlug
+                    };
+
+                    categoriesWithCounts.push(categoryWithSlug);
+                    loadedCount++;
+
+                    if (loadedCount === totalCategories) {
+                      this.filteredCategories = categoriesWithCounts;
+                      this.isLoading = false;
+                    }
+                  }
+                });
               });
-              this.isLoading = false;
             },
             error: (error) => {
               console.error('Erreur chargement catégories:', error);
@@ -110,6 +158,15 @@ export class AllCategoriesComponent implements OnInit {
 
   getCategoriesByDomaine(idDomaine: number): Observable<Categorie[]> {
     return this.http.get<Categorie[]>(`${this.API_BASE_URL}/api/categories/domaine/${idDomaine}`);
+  }
+  getProduitsCountByCategorie(idCategorie: number): Observable<number> {
+    return this.http.get<any[]>(
+      `${this.API_BASE_URL}/api/produits/categorie/${idCategorie}/all`
+    ).pipe(
+      map(produits =>
+        produits.filter(p => p.etat !== 'en_attente').length
+      )
+    );
   }
 
   // 🆕 Méthode pour construire l'URL des images de catégorie
