@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
@@ -47,6 +47,7 @@ export class DomaineComponent implements OnInit {
   isLoading = true;
   error = '';
 
+  @ViewChild('domainesSection') domainesSection!: ElementRef;
   // 🆕 URL de base pour les API
   private readonly API_BASE_URL = 'http://localhost:8080';
   private readonly placeholderImage = 'assets/images/placeholder.jpg';
@@ -59,6 +60,24 @@ export class DomaineComponent implements OnInit {
     this.loadDomainesWithCategoriesCount();
   }
 
+  scrollToDomaines() {
+    // Récupérer l'élément par son ID
+    const domainesSection = document.getElementById('domaines-section');
+
+    if (domainesSection) {
+      // Défilement fluide vers l'élément
+      domainesSection.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    } else {
+      // Fallback si l'élément n'est pas trouvé
+      window.scrollTo({
+        top: window.innerHeight,
+        behavior: 'smooth'
+      });
+    }
+  }
   loadDomainesWithCategoriesCount() {
     this.isLoading = true;
     this.error = '';

@@ -103,10 +103,23 @@ public class EnchereService {
             Map<String, Object> notifData = new HashMap<>();
             notifData.put("productName", produit.getNom());
             notifData.put("bidAmount", nouvelleEnchere.getMontant());
-            // Utiliser le nom et prénom réel de l'enchérisseur
             notifData.put("bidUserName", nouveauEncherisseur.getPrenom() + " " + nouveauEncherisseur.getNom());
             notifData.put("message", "Nouvelle enchère sur le produit \"" + produit.getNom() + "\"");
+
+            // 🔥 CORRECTION IMPORTANTE : AJOUTER PRODUCT_ID DE MANIÈRE CLAIRE
             notifData.put("productId", produit.getIdproduit());
+
+            // 🔥 GARANTIR QUE LE PRODUCT ID EST BIEN ENVOYÉ
+            Long productId = produit.getIdproduit();
+            notifData.put("productId", productId);
+            notifData.put("produitId", productId);
+            notifData.put("idproduit", productId);
+
+            System.out.println("🎯 Données de notification préparées:");
+            System.out.println("   - Product ID: " + productId);
+            System.out.println("   - Product Name: " + produit.getNom());
+            System.out.println("   - Montant: " + nouvelleEnchere.getMontant());
+            System.out.println("   - Enchérisseur: " + nouveauEncherisseur.getPrenom() + " " + nouveauEncherisseur.getNom());
 
             // Envoyer les notifications
             notificationService.processEvent(
@@ -117,6 +130,8 @@ public class EnchereService {
 
             System.out.println("📢 Notifications envoyées à " + recipients.size() + " utilisateurs pour la nouvelle enchère");
             System.out.println("👤 Enchérisseur: " + nouveauEncherisseur.getPrenom() + " " + nouveauEncherisseur.getNom());
+            System.out.println("🆔 ProductId envoyé: " + produit.getIdproduit());
+            System.out.println("📦 Données envoyées: " + notifData);
         } else {
             System.out.println("ℹ️ Aucun destinataire à notifier pour cette nouvelle enchère");
         }
