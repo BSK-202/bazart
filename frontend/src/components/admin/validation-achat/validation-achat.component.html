@@ -2,22 +2,19 @@
   <!-- Header -->
   <div class="header-section">
     <h1 class="page-title">
-      <i class="icon-shield"></i>
       Validation d'Achat
     </h1>
     <p class="page-description">
-      Validez ou refusez les ventes acceptées par les vendeurs. Les transactions seront finalisées après votre validation.
+      Validez les ventes acceptées par les vendeurs. Les transactions seront finalisées après votre validation.
     </p>
   </div>
 
   <!-- Messages d'état -->
   <div *ngIf="successMessage" class="alert alert-success">
-    <i class="icon-check"></i>
     {{ successMessage }}
   </div>
 
   <div *ngIf="errorMessage" class="alert alert-error">
-    <i class="icon-alert"></i>
     {{ errorMessage }}
   </div>
 
@@ -26,10 +23,7 @@
     <div class="filters-grid">
       <!-- Recherche -->
       <div class="filter-group">
-        <label for="search">
-          <i class="icon-search"></i>
-          Rechercher
-        </label>
+        <label for="search">Rechercher</label>
         <input
           id="search"
           type="text"
@@ -41,10 +35,7 @@
 
       <!-- Filtre vendeur -->
       <div class="filter-group">
-        <label for="vendeur">
-          <i class="icon-user"></i>
-          Vendeur
-        </label>
+        <label for="vendeur">Vendeur</label>
         <select
           id="vendeur"
           [(ngModel)]="selectedVendeur"
@@ -59,10 +50,7 @@
 
       <!-- Filtre acheteur -->
       <div class="filter-group">
-        <label for="acheteur">
-          <i class="icon-users"></i>
-          Acheteur
-        </label>
+        <label for="acheteur">Acheteur</label>
         <select
           id="acheteur"
           [(ngModel)]="selectedAcheteur"
@@ -78,7 +66,6 @@
       <!-- Bouton réinitialiser -->
       <div class="filter-group">
         <button (click)="clearFilters()" class="btn-clear-filters">
-          <i class="icon-refresh"></i>
           Réinitialiser
         </button>
       </div>
@@ -107,73 +94,65 @@
 
     <!-- Empty state -->
     <div *ngIf="!isLoading && produitsFiltres.length === 0" class="empty-state">
-      <i class="icon-check-circle"></i>
       <h3>Aucune validation en attente</h3>
       <p>Toutes les ventes ont été traitées ou aucun produit n'est en attente de validation.</p>
     </div>
 
     <!-- Liste des produits -->
-    <div *ngIf="!isLoading && produitsFiltres.length > 0" class="produits-grid">
-      <div *ngFor="let produit of produitsFiltres" class="produit-card">
-        <!-- En-tête de la carte -->
-        <div class="card-header">
-          <h3 class="produit-title">{{ produit.nom }}</h3>
-          <span class="produit-date">{{ formatDate(produit.datePublication) }}</span>
-        </div>
-
-        <!-- Contenu de la carte -->
-        <div class="card-content">
-          <!-- Images - CORRIGÉ -->
-          <div class="produit-images" *ngIf="produit.images && produit.images.length > 0">
+    <div *ngIf="!isLoading && produitsFiltres.length > 0" class="produits-list">
+      <div *ngFor="let produit of produitsFiltres" class="produit-card horizontal">
+        <!-- Image Section -->
+        <div class="produit-image-section">
+          <div class="image-container" *ngIf="produit.images && produit.images.length > 0">
             <img
               [src]="getProductImageUrl(produit)"
               [alt]="produit.nom"
-              class="main-image"
+              class="produit-image"
               (error)="onImageError($event)">
             <div class="image-count" *ngIf="produit.images.length > 1">
-              +{{ produit.images.length - 1 }} image(s)
+              +{{ produit.images.length - 1 }}
             </div>
+          </div>
+          <div class="image-placeholder" *ngIf="!produit.images || produit.images.length === 0">
+            Aucune image
+          </div>
+        </div>
+
+        <!-- Content Section -->
+        <div class="produit-content-section">
+          <!-- En-tête -->
+          <div class="produit-header">
+            <h3 class="produit-title">{{ produit.nom }}</h3>
+            <span class="produit-date">{{ formatDate(produit.datePublication) }}</span>
           </div>
 
           <!-- Description -->
           <div class="produit-description">
-            <p>{{ produit.description || 'Pas de description' }}</p>
+            <p>{{ (produit.description || 'Pas de description')}}</p>
           </div>
 
-          <!-- Prix -->
-          <div class="produit-prix">
-            <div class="prix-item">
-              <span class="prix-label">Prix initial:</span>
-              <span class="prix-value">{{ produit.prixDebut }} DH</span>
+          <!-- Informations -->
+          <div class="produit-info-grid">
+            <!-- Prix -->
+            <div class="info-group">
+              <div class="info-label">Prix initial</div>
+              <div class="info-value">{{ produit.prixDebut }} DH</div>
             </div>
-            <div class="prix-item highlight">
-              <span class="prix-label">Prix final:</span>
-              <span class="prix-value">{{ produit.prixFin }} DH</span>
+            <div class="info-group highlight">
+              <div class="info-label">Prix final</div>
+              <div class="info-value">{{ produit.prixFin }} DH</div>
             </div>
-          </div>
 
-          <!-- Informations parties -->
-          <div class="parties-info">
             <!-- Vendeur -->
-            <div class="party-section">
-              <h4><i class="icon-seller"></i> Vendeur</h4>
-              <div class="party-details">
-                <div class="detail-item">
-                  <span class="detail-label">Nom:</span>
-                  <span class="detail-value">{{ produit.vendeurNom }}</span>
-                </div>
-              </div>
+            <div class="info-group">
+              <div class="info-label">Vendeur</div>
+              <div class="info-value">{{ produit.vendeurNom }}</div>
             </div>
 
             <!-- Acheteur -->
-            <div class="party-section">
-              <h4><i class="icon-buyer"></i> Acheteur</h4>
-              <div class="party-details">
-                <div class="detail-item">
-                  <span class="detail-label">Nom:</span>
-                  <span class="detail-value">{{ produit.acheteurNom }}</span>
-                </div>
-              </div>
+            <div class="info-group">
+              <div class="info-label">Acheteur</div>
+              <div class="info-value">{{ produit.acheteurNom }}</div>
             </div>
           </div>
 
@@ -184,12 +163,9 @@
           </div>
         </div>
 
-        <!-- Actions -->
-        <div class="card-actions">
-          <button
-            (click)="validerVente(produit)"
-            class="btn-validate">
-            <i class="icon-check"></i>
+        <!-- Actions Section -->
+        <div class="produit-actions-section">
+          <button (click)="validerVente(produit)" class="btn-validate">
             Valider la vente
           </button>
         </div>
