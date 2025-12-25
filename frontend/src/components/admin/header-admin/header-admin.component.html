@@ -18,9 +18,7 @@
         <a routerLink="/admin/domaines" class="nav-link">Accueil</a>
         <a routerLink="/admin/publications" class="nav-link">
           Publication en-attente
-          <span *ngIf="pendingCount > 0" class="notification-badge">
-      {{ pendingCount }}
-    </span>
+
         </a>
         <a routerLink="/admin/validation-achat" class="nav-link">
           Validation d'achat

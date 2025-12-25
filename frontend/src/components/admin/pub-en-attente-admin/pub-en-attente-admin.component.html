@@ -1,62 +1,175 @@
-<section class="pending-publications-section">
-  <div class="container">
-    <div class="text-center mb-12">
-      <h1 class="section-title">Publications en Attente</h1>
-      <p class="section-description">
-        Gérer les produits en attente de validation
-      </p>
-    </div>
-
-    <!-- Indicateur de chargement -->
-    <div *ngIf="isLoading" class="loading-container">
-      <div class="spinner"></div>
-      <span class="loading-text">Chargement des publications...</span>
-    </div>
-
-    <!-- Message si aucune publication -->
-    <div *ngIf="!isLoading && produits.length === 0" class="empty-state">
-      <p class="empty-text">Aucune publication en attente pour le moment.</p>
-    </div>
-
-    <!-- Grille des produits -->
-    <div *ngIf="!isLoading && produits.length > 0" class="products-grid">
-      <div *ngFor="let produit of produits" class="product-card">
-        <div class="product-image-container">
-          <img
-            [src]="getProductImageUrl(produit)"
-            [alt]="produit.nom"
-            class="product-image"
-            (error)="onImageError($event)"
-          />
-          <div class="product-status">En attente</div>
+<section class="admin-dashboard">
+  <!-- Header avec statistiques -->
+  <div class="admin-header">
+    <div class="container">
+      <div class="header-content">
+        <div class="header-left">
+          <h1 class="admin-title">
+            Publications en Attente
+          </h1>
+          <p class="admin-subtitle">
+            Gérez et validez les produits soumis par les utilisateurs
+          </p>
         </div>
-
-        <div class="product-content">
-          <h3 class="product-name">{{ produit.nom }}</h3>
-
-
-          <div class="product-details">
-            <div class="price-range">
-              <span class="price-label">Prix:</span>
-              <span class="price-value">{{ produit.prixDebut }}DH </span>
-            </div>
-            <div class="category">
-              <span class="category-label">Catégorie:</span>
-              <span class="category-value">{{ produit.categorieNom }}</span>
-            </div>
-            <div class="vendeur">
-              <span class="vendeur-label">Vendeur:</span>
-              <span class="vendeur-value">{{ produit.vendeurNom }}</span>
-            </div>
+        <div class="header-stats">
+          <div class="stat-card">
+            <div class="stat-value">{{ produits.length }}</div>
+            <div class="stat-label">En attente</div>
           </div>
 
-          <div class="product-actions">
-            <button class="btn-view-details" (click)="viewDetails(produit.id)">
-              Voir détails
-            </button>
-          </div>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Contenu principal -->
+  <div class="container">
+    <!-- Barre de contrôle -->
+    <div class="control-bar">
+      <div class="search-box">
+        <input
+          type="text"
+          placeholder="Rechercher un produit..."
+          class="search-input"
+        >
+        <button class="search-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="filter-options">
+        <select class="filter-select">
+          <option value="all">Toutes les catégories</option>
+          <option value="art">Art</option>
+          <option value="collection">Collection</option>
+          <option value="livres">Livres</option>
+        </select>
+        <button class="refresh-btn" (click)="loadPendingProducts()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+          </svg>
+          Actualiser
+        </button>
+      </div>
+    </div>
+
+    <!-- Indicateur de chargement -->
+    <div *ngIf="isLoading" class="loading-overlay">
+      <div class="loading-content">
+        <div class="spinner-container">
+          <div class="spinner"></div>
+        </div>
+        <p class="loading-message">Chargement des publications...</p>
+        <p class="loading-detail">Veuillez patienter</p>
+      </div>
+    </div>
+
+    <!-- Tableau des publications -->
+    <div *ngIf="!isLoading" class="admin-table-container">
+      <div class="table-header">
+        <div class="table-row header-row">
+          <div class="col-img">Image</div>
+          <div class="col-name">Nom du produit</div>
+          <div class="col-price">Prix</div>
+          <div class="col-category">Catégorie</div>
+          <div class="col-vendeur">Vendeur</div>
+          <div class="col-date">Date</div>
+          <div class="col-actions">Actions</div>
+        </div>
+      </div>
+
+      <div class="table-body">
+        <!-- Message si aucune publication -->
+        <div *ngIf="produits.length === 0" class="empty-state">
+          <h3>Aucune publication en attente</h3>
+          <p>Toutes les publications ont été traitées.</p>
+        </div>
+
+        <!-- Liste des produits -->
+        <div *ngFor="let produit of produits" class="table-row data-row">
+          <div class="col-img">
+            <div class="product-thumbnail">
+              <img
+                [src]="getProductImageUrl(produit)"
+                [alt]="produit.nom"
+                (error)="onImageError($event)"
+                class="thumbnail-img"
+              >
+            </div>
+          </div>
+
+          <div class="col-name">
+            <div class="product-info">
+              <h4 class="product-title">{{ produit.nom }}</h4>
+              <p class="product-desc">{{ produit.description | slice:0:80 }}{{ produit.description.length > 80 ? '...' : '' }}</p>
+            </div>
+          </div>
+
+          <div class="col-price">
+            <div class="price-display">
+              <span class="price-value">{{ produit.prixDebut }}</span>
+              <span class="price-currency">DH</span>
+            </div>
+          </div>
+
+          <div class="col-category">
+            <span class="category-badge">{{ produit.categorieNom }}</span>
+          </div>
+
+          <div class="col-vendeur">
+            <div class="vendeur-info">
+              <div class="avatar-placeholder">{{ produit.vendeurNom | slice:0:1 }}</div>
+              <span class="vendeur-name">{{ produit.vendeurNom }}</span>
+            </div>
+          </div>
+
+          <div class="col-date">
+            <div class="date-display">Aujourd'hui</div>
+          </div>
+
+          <div class="col-actions">
+            <div class="action-buttons">
+              <button class="btn-action btn-view" (click)="viewDetails(produit.id)" title="Voir détails">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
+                  <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
+                </svg>
+              </button>
+              <button class="btn-action btn-approve" title="Approuver">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                </svg>
+              </button>
+              <button class="btn-action btn-reject" title="Rejeter">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div *ngIf="produits.length > 0" class="table-footer">
+        <div class="pagination">
+          <button class="pagination-btn" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+            </svg>
+          </button>
+          <span class="pagination-info">1-{{ produits.length }} sur {{ produits.length }}</span>
+          <button class="pagination-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+
   </div>
 </section>

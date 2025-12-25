@@ -97,12 +97,19 @@ export class CategoryDetailAdminComponent implements OnInit {
       next: (categoryData) => {
         console.log('✅ Informations catégorie reçues:', categoryData);
 
+        // 🆕 PRIORITÉ à l'image des queryParams, sinon celle de l'API
         const categoryImage = this.categorieImage || categoryData.image;
+
+        console.log('🖼 Image sélectionnée:', {
+          fromQueryParams: this.categorieImage,
+          fromAPI: categoryData.image,
+          final: categoryImage
+        });
 
         this.currentCategory = {
           id: categoryData.idCategorie,
           nom: categoryData.nomCategorie,
-          image: this.getCategorieImageUrl(categoryImage),
+          image: this.getCategorieImageUrl(categoryImage), // Utilise la méthode mise à jour
           description: categoryData.description
         };
 
@@ -110,28 +117,56 @@ export class CategoryDetailAdminComponent implements OnInit {
       },
       error: (err) => {
         console.error('❌ Erreur chargement info catégorie:', err);
+
+        // Fallback avec l'image des queryParams
+        const fallbackImage = this.categorieImage || '';
+
         this.currentCategory = {
           id: this.categorieId,
           nom: this.categorieSlug.replace(/-/g, ' '),
-          image: this.getCategorieImageUrl(this.categorieImage),
+          image: this.getCategorieImageUrl(fallbackImage), // Utilise la méthode mise à jour
           description: `Catégorie ${this.categorieSlug}`
         };
+
+        console.log('🔄 Catégorie fallback:', this.currentCategory);
       }
     });
   }
-
   getCategorieImageUrl(imageName: string | undefined): string {
+    console.log('🖼 Construction URL image catégorie:', imageName);
+
     if (!imageName || imageName.trim() === '') {
+      console.log('❌ Nom d\'image vide, utilisation placeholder');
       return 'assets/images/placeholder.jpg';
     }
 
-    if (imageName.startsWith('http') || imageName.startsWith('/') || imageName.startsWith('./')) {
-      return imageName;
+    const cleanImageName = imageName.trim();
+
+    // Si c'est déjà une URL complète (http, https, data:)
+    if (cleanImageName.startsWith('http') || cleanImageName.startsWith('data:')) {
+      console.log('✅ Chemin déjà complet');
+      return cleanImageName;
     }
 
-    const cleanImageName = imageName.trim();
-    return `${this.categorieImageBasePath}${cleanImageName}`;
+    // Si c'est un chemin d'API Spring Boot
+    if (cleanImageName.startsWith('/api/')) {
+      const fullUrl = `${this.API_BASE_URL}${cleanImageName}`;
+      console.log(`🔗 Chemin API construit: ${fullUrl}`);
+      return fullUrl;
+    }
+
+    // Si c'est un chemin relatif Angular (assets/)
+    if (cleanImageName.startsWith('assets/') || cleanImageName.startsWith('./')) {
+      console.log('✅ Chemin assets Angular');
+      return cleanImageName;
+    }
+
+    // Construire l'URL via l'endpoint Spring Boot pour les images de catégories
+    const fullUrl = `${this.API_BASE_URL}/api/categories/images/${cleanImageName}`;
+    console.log(`🔗 Chemin catégorie construit: ${fullUrl}`);
+    return fullUrl;
   }
+
 
   // 🆕 MÉTHODE pour construire l'URL complète de l'image produit
   getProduitImageUrl(produitId: number, imageName: string): string {

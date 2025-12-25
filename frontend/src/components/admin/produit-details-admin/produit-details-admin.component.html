@@ -65,18 +65,16 @@
 
           <div class="meta-item" *ngIf="produit.aExpertise">
             <span class="meta-label">Statut expertise:</span>
-            <span class="meta-value">🔍 Produit expertisé</span>
+            <span class="meta-value expert-status">Produit expertisé</span>
           </div>
         </div>
 
         <!-- Actions de modération -->
         <div class="moderation-actions">
           <button class="btn-accept" (click)="openAcceptModal()">
-            <span>✅</span>
             Accepter
           </button>
           <button class="btn-reject" (click)="openRejectModal()">
-            <span>❌</span>
             Refuser
           </button>
         </div>
@@ -98,7 +96,7 @@
         <div class="modal-actions">
           <button class="btn-cancel" (click)="closeModals()">Annuler</button>
           <button class="btn-confirm-accept" (click)="confirmAccept()">
-            ✅ Confirmer l'acceptation
+            Confirmer l'acceptation
           </button>
         </div>
       </div>
@@ -128,7 +126,7 @@
         <div class="modal-actions">
           <button class="btn-cancel" (click)="closeModals()">Annuler</button>
           <button class="btn-confirm-reject" (click)="confirmReject()">
-            ❌ Confirmer le refus
+            Confirmer le refus
           </button>
         </div>
       </div>
