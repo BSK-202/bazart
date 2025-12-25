@@ -104,11 +104,11 @@ public class NotificationService {
                 String adminMessage = getStringOrDefault(data, "adminMessage", "");
 
                 StringBuilder msg = new StringBuilder();
-                msg.append("✅ Félicitations ! Votre produit \"").append(productName)
+                msg.append("Félicitations ! Votre produit \"").append(productName)
                         .append("\" a été accepté par l'administrateur.");
 
                 if (!adminMessage.trim().isEmpty()) {
-                    msg.append("\n\n📝 Note de l'administrateur :\n").append(adminMessage);
+                    msg.append("\n\nNote de l'administrateur :\n").append(adminMessage);
                 }
 
                 return msg.toString();
@@ -119,11 +119,11 @@ public class NotificationService {
                 String adminMessage = getStringOrDefault(data, "adminMessage", "");
 
                 StringBuilder msg = new StringBuilder();
-                msg.append("❌ Votre produit \"").append(productName)
+                msg.append("Votre produit \"").append(productName)
                         .append("\" a été refusé par l'administrateur.");
 
                 if (!adminMessage.trim().isEmpty()) {
-                    msg.append("\n\n📝 Raison du refus :\n").append(adminMessage);
+                    msg.append("\n\nRaison du refus :\n").append(adminMessage);
                 }
 
                 msg.append("\n\nVous pouvez modifier votre produit et le resoumettre.");
@@ -140,8 +140,8 @@ public class NotificationService {
                         ? "en ligne (à distance)"
                         : "sur place (présentielle)";
 
-                return "✅ Votre produit \"" + productName + "\" a été accepté !\n\n" +
-                        "📋 Une expertise " + methodText + " est requise.\n" +
+                return "Votre produit \"" + productName + "\" a été accepté !\n\n" +
+                        "Une expertise " + methodText + " est requise.\n" +
                         "Un expert sera assigné automatiquement et vous en serez notifié.";
             }
 
@@ -152,7 +152,7 @@ public class NotificationService {
                 Double amount = (Double) data.get("amount");
 
                 StringBuilder msg = new StringBuilder();
-                msg.append("📅 Expertise planifiée pour \"").append(productName).append("\"\n\n");
+                msg.append("Expertise planifiée pour \"").append(productName).append("\"\n\n");
 
                 if (method.equals("en ligne") || method.equals("ONLINE")) {
                     msg.append("Type : Expertise en ligne (à distance)\n");
@@ -160,13 +160,13 @@ public class NotificationService {
                 } else {
                     msg.append("Type : Expertise présentielle (sur place)\n");
                     if (dateTime != null) {
-                        msg.append("📆 Date du rendez-vous : ").append(formatDateTime(dateTime)).append("\n");
-                        msg.append("📍 Lieu : Magasin Bazart\n");
+                        msg.append("Date du rendez-vous : ").append(formatDateTime(dateTime)).append("\n");
+                        msg.append("Lieu : Magasin Bazart\n");
                     }
                 }
 
                 if (amount != null) {
-                    msg.append("\n💰 Montant : ").append(String.format("%.2f DH", amount));
+                    msg.append("\n Montant : ").append(String.format("%.2f DH", amount));
                     msg.append("\n(Débité de votre portefeuille)");
                 }
 
@@ -186,8 +186,8 @@ public class NotificationService {
                 Object winningAmount = data.getOrDefault("winningAmount", null);
                 String amountStr = winningAmount != null ? String.format("%.2f DH", winningAmount) : "";
 
-                return "⏰ L'enchère est terminée !\n" +
-                        "🏆 Produit: \"" + productName + "\"\n" +
+                return " L'enchère est terminée !\n" +
+                        " Produit: \"" + productName + "\"\n" +
                         "Gagnant: " + winnerName +
                         (amountStr.isEmpty() ? "" : "\nMontant gagnant: " + amountStr) + "\n" +
                         "Merci pour votre participation !";
@@ -206,7 +206,7 @@ public class NotificationService {
                     productId = (Long) data.get("idproduit");
                 }
 
-                System.out.println("🎯 Notification NEW_BID - ProductId trouvé dans data: " + productId);
+                System.out.println(" Notification NEW_BID - ProductId trouvé dans data: " + productId);
 
                 // Construire le message avec productId intégré
                 String baseMessage = bidUser + " a placé une nouvelle enchère de " + bidAmount + " DH sur \"" + bidProduct + "\".";
@@ -219,7 +219,7 @@ public class NotificationService {
                     data.put("wsProductId", productId);
                     data.put("extractedProductId", productId);
 
-                    System.out.println("📤 Message NEW_BID avec productId: " + messageWithId);
+                    System.out.println(" Message NEW_BID avec productId: " + messageWithId);
                     return messageWithId;
                 }
 
@@ -234,7 +234,7 @@ public class NotificationService {
                 Object winningAmount = data.getOrDefault("winningAmount", null);
                 String amountStr = winningAmount != null ? String.format("%.2f DH", winningAmount) : "";
 
-                return "🏆 Félicitations ! Vous avez gagné l'enchère pour \"" + productName + "\"" +
+                return " Félicitations ! Vous avez gagné l'enchère pour \"" + productName + "\"" +
                         (amountStr.isEmpty() ? " !" : " pour " + amountStr + " !") +
                         "\nContactez le vendeur pour finaliser la transaction.";
             }
@@ -247,7 +247,7 @@ public class NotificationService {
                 String amountStr = winningAmount != null ? String.format("%.2f DH", winningAmount) : "";
                 String winnerName = (String) data.getOrDefault("winnerName", "un acheteur");
 
-                return "💰 l' enchère de votre produit \"" + productName + "\" a été terminéé" +
+                return " l' enchère de votre produit \"" + productName + "\" a été terminéé" +
                         (amountStr.isEmpty() ? " !" : " pour " + amountStr + " !") +
                         "\nLe gagnant "+ winnerName +" va vous contacter pour la livraison.";
             }
@@ -260,21 +260,21 @@ public class NotificationService {
                 StringBuilder msg = new StringBuilder();
 
                 if ("ACHAT".equals(alertType)) {
-                    msg.append("🛒 Validation d'achat requise\n");
+                    msg.append(" Validation d'achat requise\n");
                     if (!productName.isEmpty()) {
                         msg.append("Produit: \"").append(productName).append("\"\n");
                     }
                     msg.append(adminMessage);
                 } else {
                     // Par défaut: PUBLICATION
-                    msg.append("🆕 Nouveau produit en attente");
+                    msg.append(" Nouveau produit en attente");
                     if (!productName.isEmpty()) {
                         msg.append(": \"").append(productName).append("\"");
                     }
                     msg.append("\n").append(adminMessage);
                 }
 
-                System.out.println("📌 Notification ADMIN_ALERT créée avec alertType: " + alertType);
+                System.out.println(" Notification ADMIN_ALERT créée avec alertType: " + alertType);
 
                 // 🔥 AJOUTER L'alertType AU MESSAGE POUR QU'IL SOIT ACCESSIBLE
                 msg.append("\n\n[ALERT_TYPE:").append(alertType).append("]");
@@ -300,19 +300,19 @@ public class NotificationService {
 
                 if ("VENDOR_ACCEPTED".equals(state)) {
                     // Notification pour acheteur quand vendeur accepte
-                    return "✅ Le vendeur " + sellerName + " a accepté votre offre !\n" +
+                    return " Le vendeur " + sellerName + " a accepté votre offre !\n" +
                             "Produit: \"" + productName + "\"\n" +
                             (amountStr.isEmpty() ? "" : "Montant: " + amountStr + "\n") +
                             "Veuillez attendre la confirmation d'achat par l'administrateur.";
                 } else if ("SOLD".equals(state)) {
                     // Notification pour acheteur quand admin valide l'achat
-                    return "✅ Achat confirmé par l'administrateur !\n" +
+                    return " Achat confirmé par l'administrateur !\n" +
                             "Votre achat du produit \"" + productName + "\" est maintenant confirmé.\n" +
                             "Le montant a été transmis au vendeur " + sellerName + ".\n" +
                             "Veuillez vous rendre à notre magasin dès que possible pour récupérer votre produit.";
                 } else {
                     // Message par défaut
-                    return "✅ Transaction acceptée !\n" +
+                    return " Transaction acceptée !\n" +
                             "Votre produit \"" + productName + "\" a été accepté par le gagnant " +
                             buyerName + ".\n" +
                             (amountStr.isEmpty() ? "" : "Vous avez été remboursé de " + amountStr + ".\n") +
@@ -320,7 +320,7 @@ public class NotificationService {
                 }
             }
             case TRANSACTION_ANNULEE: {
-                System.out.println("🎯 ENTRÉE dans case TRANSACTION_ANNULEE");
+                System.out.println(" ENTRÉE dans case TRANSACTION_ANNULEE");
                 String productName = (String) data.getOrDefault("productName", "Produit");
                 String buyerName = (String) data.getOrDefault("buyerName", "un acheteur");
                 String sellerName = (String) data.getOrDefault("sellerName", "le vendeur");
@@ -330,19 +330,19 @@ public class NotificationService {
 
                 if ("VENDOR_REFUSED".equals(state)) {
                     // Notification pour acheteur quand vendeur refuse
-                    return "❌ Le vendeur " + sellerName + " n'a pas accepté votre offre.\n" +
+                    return " Le vendeur " + sellerName + " n'a pas accepté votre offre.\n" +
                             "Produit: \"" + productName + "\"\n" +
                             (amountStr.isEmpty() ? "" : "Montant: " + amountStr + "\n") +
                             "La transaction a été annulée.";
                 } else if ("ADMIN_CANCELLED".equals(state)) {
                     // Notification pour acheteur quand admin refuse
-                    return "❌ Achat refusé par l'administrateur.\n" +
+                    return " Achat refusé par l'administrateur.\n" +
                             "L'achat du produit \"" + productName + "\" a été refusé.\n" +
                             (amountStr.isEmpty() ? "" : "Le montant de " + amountStr + " a été remboursé à votre portefeuille.\n") +
                             "La transaction est maintenant terminée.";
                 } else {
                     // Message par défaut
-                    return "❌ Transaction annulée !\n" +
+                    return " Transaction annulée !\n" +
                             "La transaction pour votre produit \"" + productName + "\" avec " +
                             buyerName + " a été annulée.\n" +
                             (amountStr.isEmpty() ? "" : "Le montant de " + amountStr + " a été remboursé.") +
@@ -351,7 +351,7 @@ public class NotificationService {
             }
             case AUCTION_END_NO_WINNER: {
                 String productName = (String) data.getOrDefault("productName", "Produit");
-                return "📢 Enchère terminée sans gagnant !\n" +
+                return " Enchère terminée sans gagnant !\n" +
                         "L'enchère pour votre produit \"" + productName + "\" est terminée, " +
                         "mais aucun participant n'a placé d'offre.\n" +
                         "Vous pouvez relancer l'enchère depuis votre espace vendeur.";
