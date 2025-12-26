@@ -1,13 +1,33 @@
-<div class="validation-achat-container">
-  <!-- Header -->
-  <div class="header-section">
-    <h1 class="page-title">
-      Validation d'Achat
-    </h1>
-    <p class="page-description">
-      Validez les ventes acceptées par les vendeurs. Les transactions seront finalisées après votre validation.
-    </p>
+
+
+
+<!-- Header avec statistiques -->
+<div class="admin-header">
+  <div class="container">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="admin-title">
+          Validation d'Achat
+        </h1>
+        <p class="admin-subtitle">
+          Validez les ventes acceptées par les vendeurs. Les transactions seront finalisées après votre validation.
+        </p>
+      </div>
+      <div class="header-stats">
+        <div class="stat-card">
+          <div class="stat-value">{{ produits.length }}</div>
+          <div class="stat-label">Total à valider</div>
+        </div>
+      </div>
+    </div>
   </div>
+</div>
+<div class="validation-achat-container">
+
+
+
+
+
 
   <!-- Messages d'état -->
   <div *ngIf="successMessage" class="alert alert-success">
@@ -71,17 +91,6 @@
       </div>
     </div>
 
-    <!-- Statistiques -->
-    <div class="stats-bar">
-      <div class="stat-item">
-        <span class="stat-label">Total à valider</span>
-        <span class="stat-value">{{ produits.length }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Filtrés</span>
-        <span class="stat-value">{{ produitsFiltres.length }}</span>
-      </div>
-    </div>
   </div>
 
   <!-- Liste des produits -->
@@ -123,7 +132,6 @@
           <!-- En-tête -->
           <div class="produit-header">
             <h3 class="produit-title">{{ produit.nom }}</h3>
-            <span class="produit-date">{{ formatDate(produit.datePublication) }}</span>
           </div>
 
           <!-- Description -->
