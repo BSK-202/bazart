@@ -6,6 +6,8 @@ import com.marketplace.user.entity.Client;
 import com.marketplace.user.service.ClientService;
 import com.marketplace.wallet.repository.WalletRepository;
 import com.marketplace.wallet.repository.HistoriqueWalletRepository;
+import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentIntent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,13 +19,16 @@ public class Walletservice {
     private final WalletRepository walletRepository;
     private final HistoriqueWalletRepository historiqueWalletRepository;
     private final ClientService clientService;
+    private final StripeService stripeService;
 
     public Walletservice(WalletRepository walletRepository,
                          HistoriqueWalletRepository historiqueWalletRepository,
-                         ClientService clientService) {
+                         ClientService clientService,
+                         StripeService stripeService) {
         this.walletRepository = walletRepository;
         this.historiqueWalletRepository = historiqueWalletRepository;
         this.clientService = clientService;
+        this.stripeService = stripeService;
     }
 
     public Wallet getWalletByUser(Client user) {
@@ -45,6 +50,47 @@ public class Walletservice {
         return getWalletByUser(user);
     }
 
+    /**
+     * ✅ NOUVELLE MÉTHODE : Créer un Payment Intent Stripe
+     */
+    public PaymentIntent createStripePaymentIntent(Client user, double amount) throws StripeException {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Le montant doit être positif");
+        }
+
+        // Créer le Payment Intent avec Stripe
+        return stripeService.createPaymentIntent(amount, "mad");
+    }
+
+    /**
+     * ✅ NOUVELLE MÉTHODE : Confirmer le paiement et recharger le wallet
+     */
+    @Transactional
+    public Wallet confirmStripePaymentAndRecharge(Client user, String paymentIntentId, double amount)
+            throws StripeException {
+
+        // Vérifier que le paiement est réussi
+        if (!stripeService.isPaymentSucceeded(paymentIntentId)) {
+            throw new IllegalArgumentException("Le paiement n'a pas été validé par Stripe");
+        }
+
+        // Recharger le wallet
+        Wallet wallet = getWalletByUser(user);
+        double balanceBefore = wallet.getBalance();
+
+        wallet.setBalance(wallet.getBalance() + amount);
+        Wallet savedWallet = walletRepository.save(wallet);
+
+        // Créer l'historique avec référence Stripe
+        createHistory(user, "CREDIT", amount, balanceBefore, savedWallet.getBalance(),
+                "Recharge Stripe - " + paymentIntentId, paymentIntentId);
+
+        return savedWallet;
+    }
+
+    /**
+     * Méthode originale de recharge (pour compatibilité)
+     */
     @Transactional
     public Wallet rechargeWallet(Client user, double amount) {
         if (amount <= 0) {
@@ -57,7 +103,6 @@ public class Walletservice {
         wallet.setBalance(wallet.getBalance() + amount);
         Wallet savedWallet = walletRepository.save(wallet);
 
-        // Créer l'historique
         createHistory(user, "CREDIT", amount, balanceBefore, savedWallet.getBalance(),
                 "Recharge du portefeuille", generateReference());
 
@@ -80,7 +125,6 @@ public class Walletservice {
         wallet.setBalance(wallet.getBalance() - amount);
         Wallet savedWallet = walletRepository.save(wallet);
 
-        // Créer l'historique
         createHistory(user, "DEBIT", amount, balanceBefore, savedWallet.getBalance(),
                 description, generateReference());
 
@@ -93,16 +137,13 @@ public class Walletservice {
             throw new IllegalArgumentException("Le montant doit être positif");
         }
 
-        // Débiter l'expéditeur
-        Wallet fromWallet = debitWallet(fromUser, amount, "Transfert à " + toUser.getEmail());
+        debitWallet(fromUser, amount, "Transfert à " + toUser.getEmail());
 
-        // Créditer le destinataire
         Wallet toWallet = getWalletByUser(toUser);
         double balanceBeforeTo = toWallet.getBalance();
         toWallet.setBalance(toWallet.getBalance() + amount);
         Wallet savedToWallet = walletRepository.save(toWallet);
 
-        // Historique pour le destinataire
         createHistory(toUser, "CREDIT", amount, balanceBeforeTo, savedToWallet.getBalance(),
                 "Transfert de " + fromUser.getEmail(), generateReference());
     }
@@ -127,6 +168,4 @@ public class Walletservice {
     public List<HistoriqueWallet> getUserHistoryByType(Client user, String operationType) {
         return historiqueWalletRepository.findByUserAndOperationTypeOrderByOperationDateDesc(user, operationType);
     }
-
-
 }

@@ -22,7 +22,7 @@
   },
   "private": true,
   "dependencies": {
-    "@angular/animations": "^21.0.5",
+    "@angular/animations": "^21.0.6",
     "@angular/cdk": "^20.2.7",
     "@angular/common": "^20.3.4",
     "@angular/compiler": "^20.3.4",
@@ -36,6 +36,7 @@
     "@fortawesome/free-regular-svg-icons": "^7.1.0",
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
     "@stomp/stompjs": "^7.2.1",
+    "@stripe/stripe-js": "^8.6.0",
     "chart.js": "^4.5.0",
     "firebase": "^12.4.0",
     "primeicons": "^7.0.0",

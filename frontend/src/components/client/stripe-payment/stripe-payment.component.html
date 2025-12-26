@@ -1,0 +1,44 @@
+<div class="stripe-payment-container">
+  <div class="payment-header">
+    <h3>💳 Paiement Sécurisé</h3>
+    <p>Montant à payer: <strong>{{ amount }} MAD</strong></p>
+  </div>
+
+  <!-- Formulaire de carte Stripe -->
+  <div class="payment-form">
+    <div *ngIf="isInitializing" class="loading-payment">
+      <p>⏳ Chargement du formulaire de paiement...</p>
+    </div>
+
+    <div
+      #cardElement
+      class="card-element"
+      [class.hidden]="isInitializing">
+    </div>
+
+    <div *ngIf="errorMessage" class="error-message">
+      ⚠️ {{ errorMessage }}
+    </div>
+
+    <div class="payment-actions">
+      <button
+        (click)="handlePayment()"
+        [disabled]="isProcessing || isInitializing"
+        class="pay-button">
+        <span *ngIf="!isProcessing">💳 Payer {{ amount }} MAD</span>
+        <span *ngIf="isProcessing">⏳ Paiement en cours...</span>
+      </button>
+
+      <button
+        (click)="cancel()"
+        [disabled]="isProcessing"
+        class="cancel-button">
+        Annuler
+      </button>
+    </div>
+  </div>
+
+  <div class="stripe-badge">
+    <p>🔒 Paiement sécurisé par Stripe</p>
+  </div>
+</div>
