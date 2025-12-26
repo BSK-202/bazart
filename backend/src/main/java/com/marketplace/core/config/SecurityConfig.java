@@ -91,9 +91,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/interactions/**").authenticated()
                         .requestMatchers("/api/commentaires/**").authenticated()
                         .requestMatchers("/api/wallet/**").authenticated()
-
-
-
                         .anyRequest().authenticated()
                 )
                 // ✅ SEULEMENT LE FILTRE JWT (supprimer le filtre admin)
@@ -105,7 +102,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:4200", "http://127.0.0.1:4200", "http://localhost:3000"));
+        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:4200","http://localhost:60178","http://localhost:58854" ,"http://127.0.0.1:4200", "http://localhost:3000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "X-Client-Id", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition", "X-Client-Id"));
