@@ -6,6 +6,7 @@ import com.marketplace.interaction.entity.Interaction;
 import com.marketplace.user.entity.Client;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -52,10 +53,10 @@ public class Produit {
     @JoinColumn(name = "idcategorie", referencedColumnName = "idcategorie")
     private Categorie categorie;
 
-    @OneToMany(mappedBy = "produit", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ProduitImage> images;
+    @OneToMany(mappedBy = "produit", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ProduitImage> images=new ArrayList<>();;
 
-    @OneToMany(mappedBy = "produit", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "produit", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Interaction> interactions;
 
     @OneToMany(mappedBy = "produit", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -108,7 +109,19 @@ public class Produit {
     public void setCategorie(Categorie categorie) { this.categorie = categorie; }
 
     public List<ProduitImage> getImages() { return images; }
-    public void setImages(List<ProduitImage> images) { this.images = images; }
+    public void setImages(List<ProduitImage> images) {
+        if (this.images == null) {
+            this.images = new ArrayList<>();
+        }
+        this.images.clear(); // On vide la collection existante
+        if (images != null) {
+            for (ProduitImage image : images) {
+                image.setProduit(this); // IMPORTANT: établir la relation bidirectionnelle
+                this.images.add(image);
+            }
+        }
+    }
+
 
     public List<Interaction> getInteractions() { return interactions; }
     public void setInteractions(List<Interaction> interactions) { this.interactions = interactions; }

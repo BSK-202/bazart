@@ -306,4 +306,31 @@ export class CategoryDetailComponent implements OnInit {
       }
     });
   }
+  // Méthode pour obtenir le texte à afficher selon l'état
+  getEtatDisplayText(etat: string): string {
+    switch (etat?.toLowerCase()) {
+      case 'accepte':
+        return 'Publié';
+      case 'en_enchere':
+        return 'En enchère';
+      case 'vendu':
+        return 'Vendu';
+      default:
+        return etat || 'Publié';
+    }
+  }
+
+// Méthode pour obtenir la classe CSS selon l'état
+  getEtatClass(etat: string): string {
+    switch (etat?.toLowerCase()) {
+      case 'accepte':
+        return 'status-published';
+      case 'en_enchere':
+        return 'status-auction';
+      case 'vendu':
+        return 'status-sold';
+      default:
+        return 'status-published';
+    }
+  }
 }

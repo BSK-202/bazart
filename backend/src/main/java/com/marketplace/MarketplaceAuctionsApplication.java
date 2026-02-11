@@ -11,5 +11,4 @@ public class MarketplaceAuctionsApplication {
 
 		SpringApplication.run(MarketplaceAuctionsApplication.class, args);
 	}
-	
 }

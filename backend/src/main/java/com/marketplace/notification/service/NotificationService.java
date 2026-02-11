@@ -12,13 +12,28 @@ import java.util.Map;
 import java.util.Set;
 
 @Service
-@RequiredArgsConstructor
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     // You may still use templateService for advanced templating if needed
     private final List<NotificationSender> senders;
     private final UserNotificationPreferenceService preferenceService;
+
+    public NotificationService(
+            NotificationRepository notificationRepository,
+            List<NotificationSender> senders,
+            UserNotificationPreferenceService preferenceService
+    ) {
+        this.notificationRepository = notificationRepository;
+        this.senders = senders;
+        this.preferenceService = preferenceService;
+
+        // Debug injectés
+        System.out.println("NotificationSenders injectés: " + senders);
+        for (NotificationSender s : senders) {
+            System.out.println("→ Sender: " + s.getClass().getName());
+        }
+    }
 
     /**
      * Main method to process events and send notifications.
@@ -52,9 +67,10 @@ public class NotificationService {
                     }
                 }
             }
-
+            System.out.println("→ Vérif notif email, userId=" + userId + ", emailEnabled? " + pref.isEmailEnabled());
             // Email channel
             if (pref.isEmailEnabled()) {
+                System.out.println("→ Vérif notif email, userId=" + userId + ", emailEnabled? " + pref.isEmailEnabled());
                 for (NotificationSender sender : senders) {
                     if (sender.supportsChannel("EMAIL")) {
                         try {

@@ -60,6 +60,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   produitId: string = '';
   bidAmount: string = '';
   timeLeft: string = '';
+  walletBalance: number = 0;
   selectedImage: number = 0;
   private timer: any;
   showDefaultAvatar: boolean = false;
@@ -112,8 +113,8 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   loadDonneesEnchere(): void {
     if (!this.produitId) return;
 
-    const produitIdNum = parseInt(this.produitId);
 
+    const produitIdNum = parseInt(this.produitId);
     // Charger l'enchère actuelle
     this.enchereService.getEnchereActuelle(produitIdNum).subscribe({
       next: (response) => {
@@ -250,6 +251,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
   }
   // 🔍 Extraire l'ID du vendeur du produit
   private extractVendeurId(produit: Produit): number {
+
     // Si vous avez directement l'ID du vendeur dans le produit
     if ((produit as any).vendeurId) {
       return (produit as any).vendeurId;
@@ -381,7 +383,7 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     clearInterval(this.timer);
   }
 
-  handleBid(): void {
+  async handleBid(): Promise<void> {
     if (!this.isAuthenticated) {
       this.router.navigate(['/connexion']);
       return;
@@ -409,23 +411,57 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
 
     console.log('🎯 Placement enchère:', { produitId: produitIdNum, clientId, montant: amount });
 
-    this.enchereService.placerEnchere(produitIdNum, clientId, amount).subscribe({
-      next: (enchere) => {
-        console.log('✅ Enchère placée avec succès:', enchere);
-        alert('Enchère placée avec succès!');
-        this.bidAmount = '';
+    try {
+      // Étape 1: Vérifier SEULEMENT le solde du wallet (sans débiter)
+      const soldeSuffisant = await this.checkWalletBalance(amount);
 
-        // Recharger les données d'enchère
-        this.loadDonneesEnchere();
+      if (!soldeSuffisant) {
+        alert(`❌ Solde insuffisant! Votre solde est inférieur au montant de ${this.formatPrice(amount)} que vous souhaitez miser. Veuillez recharger votre wallet.`);
+        return;
+      }
+
+      // Étape 2: Placer l'enchère directement (le débit se fera ailleurs, probablement à la fin de l'enchère)
+      this.enchereService.placerEnchere(produitIdNum, clientId, amount).subscribe({
+        next: (enchere) => {
+          console.log('✅ Enchère placée avec succès:', enchere);
+          alert(`✅ Enchère de ${this.formatPrice(amount)} placée avec succès!`);
+          this.bidAmount = '';
+
+          // Recharger les données d'enchère
+          this.loadDonneesEnchere();
+        },
+        error: (err) => {
+          console.error('❌ Erreur placement enchère:', err);
+          const errorMessage = err.error?.error || 'Erreur lors du placement de l\'enchère';
+          alert(`❌ Erreur: ${errorMessage}`);
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Erreur lors de la vérification du wallet:', error);
+      alert(`❌ Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    }
+  }
+
+// Méthode optionnelle pour afficher le solde
+  getCurrentWalletBalance(): void {
+    const url = 'http://localhost:8080/api/wallet/balance';
+
+    this.http.get<any>(url).subscribe({
+      next: (response) => {
+        if (response.success) {
+          const solde = response.balance;
+          alert(`💰 Votre solde actuel: ${this.formatPrice(solde)}`);
+        } else {
+          alert('❌ Erreur lors du chargement du solde');
+        }
       },
-      error: (err) => {
-        console.error('❌ Erreur placement enchère:', err);
-        const errorMessage = err.error?.error || 'Erreur lors du placement de l\'enchère';
-        alert(`Erreur: ${errorMessage}`);
+      error: (error) => {
+        console.error('❌ Erreur API wallet:', error);
+        alert('❌ Erreur de connexion au wallet');
       }
     });
   }
-
 
   handleAddToFavorites(): void {
     if (!this.isAuthenticated) {
@@ -593,4 +629,52 @@ export class ProductDetailComponent implements OnInit, OnDestroy {
     const imgElement = event.target as HTMLImageElement;
     imgElement.style.display = 'none';
   }
+  // Méthode pour vérifier le solde du wallet (sans débiter)
+  private checkWalletBalance(amount: number): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const url = 'http://localhost:8080/api/wallet/balance';
+
+      this.http.get<any>(url).subscribe({
+        next: (response) => {
+          if (response.success) {
+            const walletBalance = response.balance;
+            console.log('💰 Solde du wallet:', walletBalance, 'Montant requis:', amount);
+
+            // Vérifier seulement si le solde est suffisant
+            if (walletBalance >= amount) {
+              resolve(true);
+            } else {
+              resolve(false);
+            }
+          } else {
+            console.error('❌ Erreur lors du chargement du solde:', response.error);
+            reject(new Error('Erreur lors de la vérification du solde'));
+          }
+        },
+        error: (error) => {
+          console.error('❌ Erreur API wallet:', error);
+          reject(new Error('Erreur de connexion au wallet'));
+        }
+      });
+    });
+  }
+  // Ajouter cette méthode dans la classe ProductDetailComponent
+
+// Vérifier si l'utilisateur connecté est le vendeur du produit
+  isCurrentUserSeller(): boolean {
+    if (!this.isAuthenticated || !this.produit || !this.vendeur) {
+      return false;
+    }
+
+    const currentUserId = this.authService.getCurrentUserId();
+
+    // Comparer l'ID de l'utilisateur connecté avec l'ID du vendeur
+    if (currentUserId && this.vendeur.idClient === currentUserId) {
+      console.log('👤 Utilisateur connecté est le vendeur du produit');
+      return true;
+    }
+
+    return false;
+  }
+
 }

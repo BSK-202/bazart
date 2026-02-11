@@ -11,12 +11,7 @@
       <div class="balance-card">
         <div class="balance-header">
           <h3>Solde Actuel</h3>
-          <button (click)="refreshAll()" class="refresh-btn" title="Actualiser" [disabled]="isLoading">
-            <svg *ngIf="!isLoading" class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-            </svg>
-            <span *ngIf="isLoading">⏳</span>
-          </button>
+
         </div>
         <div class="balance-amount">
           {{ balance | currency:currency:'symbol':'1.2-2' }}
@@ -104,17 +99,8 @@
               <option value="CREDIT">Rechargements</option>
               <option value="DEBIT">Débits</option>
             </select>
-            <button
-              (click)="loadHistory()"
-              class="refresh-btn"
-              [disabled]="historyLoading"
-              title="Actualiser l'historique"
-            >
-              <svg *ngIf="!historyLoading" class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-              </svg>
-              <span *ngIf="historyLoading">⏳</span>
-            </button>
+
+
           </div>
         </div>
 
