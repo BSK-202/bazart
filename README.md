@@ -757,20 +757,30 @@ Projet privé.
 
 # 👩‍💻 Équipe
 
+
 <div align="center">
 
 ### BSK-202
 
-<a href="https://github.com/BSK-202">
-<img src="https://img.shields.io/badge/GitHub-BSK--202-181717?style=for-the-badge&logo=github" />
-</a>
+[![GitHub](https://img.shields.io/badge/GitHub-BSK--202-181717?style=for-the-badge\&logo=github)](https://github.com/BSK-202)
+
+### fadmajadda
+
+[![GitHub](https://img.shields.io/badge/GitHub-fadmajadda-181717?style=for-the-badge\&logo=github)](https://github.com/fadmajadda)
+
+### Binta
+
+[![GitHub](https://img.shields.io/badge/GitHub-Binta-181717?style=for-the-badge\&logo=github)](https://github.com/binta1112)
+
+### Chebila
+
+[![GitHub](https://img.shields.io/badge/GitHub-Chebila-181717?style=for-the-badge\&logo=github)](https://github.com/Chebila)
 
 </div>
 
 ---
 
 <div align="center">
-
 ### 🏛️ Bazart
 
 **L'art de l'authentique, expertisé et sécurisé.**
