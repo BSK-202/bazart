@@ -781,8 +781,7 @@ Projet privé.
 ---
 
 <div align="center">
----
-### 🏛️ Bazart
+# 🏛️ Bazart
 
 **L'art de l'authentique, expertisé et sécurisé.**
 
